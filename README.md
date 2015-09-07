@@ -19,7 +19,7 @@ The following features are implemented thus far:
 
 ### Generating symbols
 
-The easiest of generating symbols is with the `sym` method. The start symbol
+The easiest way of generating symbols is with the `sym` method. The start symbol
 isn't generated, because it's constant for all grammars.
 
 ```rust
