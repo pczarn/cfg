@@ -157,7 +157,7 @@ impl<S> Iterator for Nonterminals<S> where S: SymbolSource {
 }
 
 /// Trait used to generate terminal symbols.
-pub trait SymbolContainer<S> {
+pub trait SymbolContainer<S: GrammarSymbol> {
     /// Generates 
     fn generate<Ss>(source: Ss) -> Self where Ss: SymbolSource<Symbol=S>;
 }
