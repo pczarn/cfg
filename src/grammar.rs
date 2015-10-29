@@ -58,7 +58,10 @@ pub trait ContextFreeRef<'a>: Deref where Self::Target: ContextFree {
 }
 
 /// Allows access to a ContextFreeRef through mutable references.
-pub trait ContextFreeMut<'a>: Deref where &'a Self::Target: ContextFreeRef<'a> {}
+pub trait ContextFreeMut<'a>: Deref where
+            Self::Target: ContextFree + 'a,
+            &'a Self::Target: ContextFreeRef<'a, Target=Self::Target> {
+}
 
 /// Basic representation of context-free grammars.
 #[derive(Clone)]
@@ -140,7 +143,7 @@ impl<'a, H: Action, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
 
 impl<'a, H: Action, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss> where
             H: 'a,
-            Hs: Clone + RewriteSequence<Rewritten=H>,
+            Hs: Clone + RewriteSequence<Rewritten=H> + 'a,
             Ss: SymbolSource + 'a,
             Ss::Symbol: 'a {
 }

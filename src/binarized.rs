@@ -167,7 +167,7 @@ impl<H, Ss> ContextFree for BinarizedCfg<H, Ss> where
     }
 
     fn binarize<'a>(&'a self) -> Self where
-                &'a Self: ContextFreeRef<'a>,
+                &'a Self: ContextFreeRef<'a, Target=Self>,
                 H: Clone,
                 Ss: Clone {
         // This grammar is already binarized.
@@ -202,7 +202,7 @@ impl<'a, H, Ss> ContextFreeRef<'a> for &'a BinarizedCfg<H, Ss> where
 
 impl<'a, H, Ss> ContextFreeMut<'a> for &'a mut BinarizedCfg<H, Ss> where
             H: Binarize + 'a,
-            Ss: SymbolSource,
+            Ss: SymbolSource + 'a,
             Ss::Symbol: 'a {
 }
 
@@ -427,7 +427,7 @@ impl<Ss> LhsWithHistoryToRuleRef<Ss> {
 }
 
 impl<'a, H, Ss> FnOnce<(LhsWithHistory<'a, H>,)> for LhsWithHistoryToRuleRef<Ss> where
-            Ss: GrammarSymbol {
+            Ss: GrammarSymbol + 'a {
     type Output = Option<RuleRef<'a, H, Ss>>;
     extern "rust-call" fn call_once(self, ((lhs, history),): (LhsWithHistory<'a, H>,))
             -> Self::Output {
@@ -442,7 +442,7 @@ impl<'a, H, Ss> FnOnce<(LhsWithHistory<'a, H>,)> for LhsWithHistoryToRuleRef<Ss>
 }
 
 impl<'a, H, Ss> FnMut<(LhsWithHistory<'a, H>,)>  for LhsWithHistoryToRuleRef<Ss> where
-        Ss: GrammarSymbol {
+        Ss: GrammarSymbol + 'a {
     extern "rust-call" fn call_mut(&mut self, ((lhs, history),): (LhsWithHistory<'a, H>,))
             -> Self::Output {
         history.as_ref().map(|history|
