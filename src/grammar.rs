@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::slice;
 
 use binarized::BinarizedCfg;
-use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory};
+use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory, Action};
 use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
 use rule_builder::RuleBuilder;
@@ -89,7 +89,7 @@ impl<H, Hs, Ss> Cfg<H, Hs, Ss> where Ss: SymbolSource {
     }
 }
 
-impl<H, Hs, Ss> Cfg<H, Hs, Ss>
+impl<H: Action, Hs, Ss> Cfg<H, Hs, Ss>
         where Hs: RewriteSequence<Rewritten=H>,
               H: Clone,
               Ss: SymbolSource {
@@ -106,7 +106,7 @@ impl<H, Hs, Ss> Cfg<H, Hs, Ss>
     }
 }
 
-impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
+impl<H: Action, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
             Ss: SymbolSource,
             Hs: Clone + RewriteSequence<Rewritten=H> {
     type Source = Ss;
@@ -125,7 +125,7 @@ impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
     }
 }
 
-impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
+impl<'a, H: Action, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
             H: 'a,
             Hs: Clone + RewriteSequence<Rewritten=H>,
             Ss: SymbolSource + 'a,
@@ -138,7 +138,7 @@ impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
     }
 }
 
-impl<'a, H, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss> where
+impl<'a, H: Action, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss> where
             H: 'a,
             Hs: Clone + RewriteSequence<Rewritten=H>,
             Ss: SymbolSource + 'a,
