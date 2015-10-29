@@ -17,7 +17,7 @@ pub enum BinarizedRhsSubset {
 }
 
 /// A history which carries no data. All operations on `NullHistory` are no-op.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct NullHistory;
 
 /// Trait for history types that may have semantic actions.

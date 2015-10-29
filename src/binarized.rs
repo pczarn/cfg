@@ -332,9 +332,9 @@ impl<H, Ss> BinarizedRule<H, Ss> where Ss: GrammarSymbol {
             history: history,
             lhs: lhs,
             rhs: if rhs.len() == 1 {
-                BinarizedRuleRhs::One([rhs[0]])
+                One([rhs[0]])
             } else if rhs.len() == 2 {
-                BinarizedRuleRhs::Two([rhs[0], rhs[1]])
+                Two([rhs[0], rhs[1]])
             } else {
                 unreachable!()
             }
@@ -343,15 +343,15 @@ impl<H, Ss> BinarizedRule<H, Ss> where Ss: GrammarSymbol {
 
     pub fn rhs0(&self) -> Ss {
         match self.rhs {
-            BinarizedRuleRhs::One(slice) => slice[0],
-            BinarizedRuleRhs::Two(slice) => slice[0],
+            One(slice) => slice[0],
+            Two(slice) => slice[0],
         }
     }
 
     pub fn rhs1(&self) -> Option<Ss> {
         match self.rhs {
-            BinarizedRuleRhs::One(_) => None,
-            BinarizedRuleRhs::Two(slice) => Some(slice[1]),
+            One(_) => None,
+            Two(slice) => Some(slice[1]),
         }
     }
 }

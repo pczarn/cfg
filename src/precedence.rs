@@ -51,7 +51,7 @@ impl<D> PrecedencedRuleBuilder<D> where
             tighter_lhs: tightest_lhs,
             current_lhs: tightest_lhs,
             history: None,
-            assoc: Associativity::Left,
+            assoc: Left,
             looseness: 0,
             rules_with_group_assoc: vec![],
         }

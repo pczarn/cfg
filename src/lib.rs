@@ -1,7 +1,12 @@
 //! Library for manipulations on context-free grammars. Most transformations are abstracted over
 //! grammar representations.
 
-#![deny(missing_docs)]
+#![deny(missing_docs,
+        missing_copy_implementations,
+        trivial_casts,
+        trivial_numeric_casts,
+        unused_import_braces,
+        unused_qualifications)]
 #![cfg_attr(test, deny(warnings))]
 #![feature(
     collections, collections_range,

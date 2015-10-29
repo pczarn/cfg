@@ -161,7 +161,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 self.rule(lhs).rhs_with_history([rhs], history.clone());
                 // Left recursive
                 // seq ::= seq sep item
-                if let Separator::Proper(sep) = separator {
+                if let Proper(sep) = separator {
                     self.rule(lhs).rhs_with_history([lhs, sep, rhs], history.clone());
                 } else {
                     self.rule(lhs).rhs_with_history([lhs, rhs], history.clone());
@@ -187,7 +187,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 self.rule(lhs).rhs_with_history(rhs, history.clone());
             }
             // Bug in rustc. Must use comparison.
-            (Separator::Proper(sep), start, end) if start == 2 && end == Some(2) => {
+            (Proper(sep), start, end) if start == 2 && end == Some(2) => {
                 self.rule(lhs).rhs_with_history([rhs, sep, rhs], history.clone());
             }
             (separator, 2 ... 0xFFFF_FFFF, end) => {

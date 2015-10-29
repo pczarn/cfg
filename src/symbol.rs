@@ -82,7 +82,7 @@ impl<'a, S> TerminalSymbolSet for &'a mut S where S: TerminalSymbolSet {
 }
 
 /// A source of numeric symbols.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct ConsecutiveSymbols {
     next_sym: NumericSymbolRepr,
 }
