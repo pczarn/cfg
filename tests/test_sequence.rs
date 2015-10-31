@@ -12,7 +12,7 @@ fn test_sequence() {
     let start = cfg.start_sym();
     let (elem, sep) = cfg.sym();
 
-    cfg.sequence(start).separator(Trailing(sep)).rhs(elem, 1..2);
+    cfg.sequence(start).separator(Trailing(sep)).inclusive(1, Some(1)).rhs(elem);
     cfg.rewrite_sequences();
 
     let mut equivalent: Cfg = Cfg::new();
@@ -32,7 +32,7 @@ fn test_nulling_sequence() {
     let start = cfg.start_sym();
     let elem = cfg.sym();
 
-    cfg.sequence(start).rhs(elem, 0..1);
+    cfg.sequence(start).inclusive(0, Some(0)).rhs(elem);
     cfg.rewrite_sequences();
 
     let mut equivalent: Cfg = Cfg::new();
@@ -51,7 +51,7 @@ fn test_sequence_combinations() {
         let start = cfg.start_sym();
         let elem = cfg.sym();
 
-        cfg.sequence(start).rhs(elem, i..100);
+        cfg.sequence(start).inclusive(i, Some(99)).rhs(elem);
         cfg.rewrite_sequences();
 
         assert!(!Usefulness::new(&mut cfg).has_useless_rules());

@@ -1,14 +1,10 @@
 //! Symbol types can be used to parameterize grammars.
 
-use core::nonzero::NonZero;
 use std::convert::{From, Into};
 use std::hash::Hash;
 
-/// A numeric symbol type.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct NumericSymbol(NonZero<NumericSymbolRepr>);
-
-type NumericSymbolRepr = u32;
+pub use self::implt::NumericSymbol;
+use self::implt::NumericSymbolRepr;
 
 /// A type that can represent symbols in a context-free grammar. Symbols are distinguished by their
 /// IDs.
@@ -18,20 +14,6 @@ pub trait GrammarSymbol: From<u64> + Into<u64> + Eq + Ord + Clone + Hash + Copy 
     fn usize(&self) -> usize {
         let id: u64 = (*self).into();
         id as usize
-    }
-}
-
-impl From<u64> for NumericSymbol {
-    #[inline]
-    fn from(id: u64) -> Self {
-        unsafe { NumericSymbol(NonZero::new(id as NumericSymbolRepr)) }
-    }
-}
-
-impl Into<u64> for NumericSymbol {
-    #[inline]
-    fn into(self) -> u64 {
-        *self.0 as u64
     }
 }
 
@@ -123,7 +105,7 @@ impl SymbolSource for ConsecutiveSymbols {
     type Symbol = NumericSymbol;
 
     fn next_sym(&mut self, _terminal: bool) -> NumericSymbol {
-        let ret = unsafe { NumericSymbol(NonZero::new(self.next_sym)) };
+        let ret = NumericSymbol::from(self.next_sym as u64);
         self.next_sym = self.next_sym.saturating_add(1);
         ret
     }
@@ -133,9 +115,7 @@ impl SymbolSource for ConsecutiveSymbols {
     }
 
     fn start_sym(&self) -> NumericSymbol {
-        unsafe {
-            NumericSymbol(NonZero::new(START_SYMBOL))
-        }
+        NumericSymbol::from(START_SYMBOL as u64)
     }
 
     fn num_syms(&self) -> usize {
@@ -180,3 +160,51 @@ macro_rules! impl_generate {
 }
 
 impl_generate!(S, S, S, S, S, S, S, S, S, S, S, S, S, S, S, S);
+
+#[cfg(not(feature = "nightly"))]
+mod implt {
+    pub type NumericSymbolRepr = u32;
+
+    /// A common grammar symbol type.
+    #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+    pub struct NumericSymbol(NumericSymbolRepr);
+
+    impl From<u64> for NumericSymbol {
+        #[inline]
+        fn from(id: u64) -> Self {
+            NumericSymbol(id as NumericSymbolRepr)
+        }
+    }
+
+    impl Into<u64> for NumericSymbol {
+        #[inline]
+        fn into(self) -> u64 {
+            self.0 as u64
+        }
+    }
+}
+
+#[cfg(feature = "nightly")]
+mod implt {
+    use core::nonzero::NonZero;
+
+    pub type NumericSymbolRepr = u32;
+
+    /// A common grammar symbol type.
+    #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+    pub struct NumericSymbol(NonZero<NumericSymbolRepr>);
+
+    impl From<u64> for NumericSymbol {
+        #[inline]
+        fn from(id: u64) -> Self {
+            unsafe { NumericSymbol(NonZero::new(id as NumericSymbolRepr)) }
+        }
+    }
+
+    impl Into<u64> for NumericSymbol {
+        #[inline]
+        fn into(self) -> u64 {
+            *self.0 as u64
+        }
+    }
+}

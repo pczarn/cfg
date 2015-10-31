@@ -1,9 +1,11 @@
-use collections::range::RangeArgument;
+//#[cfg(feature = "nightly")]
+//use collections::range::RangeArgument;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::marker::PhantomData;
 
 use history::{Action, RewriteSequence};
-use rule_builder::RuleBuilder;
+use rule_builder::{RuleBuilder, HistoryFn};
 use rule_container::RuleContainer;
 use sequence::{Separator, Sequence};
 use sequence::Separator::{Trailing, Proper, Liberal};
@@ -25,6 +27,7 @@ pub struct SequencesToProductions<H, D> where
     stack: Vec<Sequence<H::Rewritten, D::Symbol>>,
     map: HashMap<PartialSequence<D::Symbol>, D::Symbol>,
     history: Option<H>,
+    default_history: Option<H::Rewritten>,
 }
 
 // A key into a private map.
@@ -67,6 +70,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
             stack: vec![],
             map: HashMap::new(),
             history: None,
+            default_history: None,
         }
     }
 
@@ -100,8 +104,9 @@ impl<H, S, D> SequencesToProductions<H, D> where
         }
     }
 
-    fn rule(&mut self, lhs: S) -> RuleBuilder<&mut D> {
-        RuleBuilder::new(&mut self.destination).rule(lhs)
+    fn rule(&mut self, lhs: S) -> RuleBuilder<&mut D, CloneHistory<H::Rewritten, S>> {
+        let default = CloneHistory::new(self.default_history.as_ref().unwrap());
+        RuleBuilder::new(&mut self.destination).rule(lhs).default_history(default)
     }
 
     fn recurse(&mut self, seq: Sequence<H::Rewritten, S>) -> S {
@@ -138,31 +143,32 @@ impl<H, S, D> SequencesToProductions<H, D> where
         let Sequence { lhs, rhs, start, end, separator, ref history } = sequence;
         let sequence = Sequence { lhs: lhs, rhs: rhs, start: start, end: end,
             separator: separator, history: history.no_op() };
+        self.default_history = Some(history.clone());
 
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
                 let sym1 = self.recurse(sequence.clone().separator(Proper(sep)));
                 let sym2 = self.recurse(sequence.clone().separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs).rhs_with_history([sym1], history.clone())
-                              .rhs_with_history([sym2], history.clone());
+                self.rule(lhs).rhs([sym1])
+                              .rhs([sym2]);
             }
             (Trailing(sep), _, _) => {
                 let sym = self.recurse(sequence.separator(Proper(sep)));
                 // seq ::= sym sep
-                self.rule(lhs).rhs_with_history([sym, sep], history.clone());
+                self.rule(lhs).rhs([sym, sep]);
             }
             (_, 0, end) => {
                 // seq ::= epsilon | sym
-                self.rule(lhs).rhs_with_history([], history.clone());
+                self.rule(lhs).rhs([]);
                 if end != Some(0) {
                     let sym = self.recurse(sequence.inclusive(1, end));
-                    self.rule(lhs).rhs_with_history([sym], history.clone());
+                    self.rule(lhs).rhs([sym]);
                 }
             }
             (separator, 1, None) => {
                 // seq ::= item
-                self.rule(lhs).rhs_with_history([rhs], history.clone());
+                self.rule(lhs).rhs([rhs]);
                 // Left recursive
                 // seq ::= seq sep item
                 if let Proper(sep) = separator {
@@ -174,14 +180,14 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 }
             }
             (_, 1, Some(1)) => {
-                self.rule(lhs).rhs_with_history([rhs], history.clone());
+                self.rule(lhs).rhs([rhs]);
             }
             (_, 1, Some(2)) => {
                 let sym1 = self.recurse(sequence.clone().inclusive(1, Some(1)));
                 let sym2 = self.recurse(sequence.clone().inclusive(2, Some(2)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs).rhs_with_history([sym1], history.clone())
-                              .rhs_with_history([sym2], history.clone());
+                self.rule(lhs).rhs([sym1])
+                              .rhs([sym2]);
             }
             (separator, 1, Some(end)) => {
                 let pow2 = end.next_power_of_two() / 2;
@@ -190,7 +196,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 let rhs = &[self.recurse(seq1.separator(separator.prefix_separator())),
                             self.recurse(seq2.separator(separator))];
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs_with_history(rhs, history.clone());
+                self.rule(lhs).rhs(rhs);
             }
             // Bug in rustc. Must use comparison.
             (Proper(sep), start, end) if start == 2 && end == Some(2) => {
@@ -212,9 +218,33 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 let rhs = &[self.recurse(seq1.separator(separator.prefix_separator())),
                             self.recurse(seq2.separator(separator))];
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs_with_history(rhs, history.clone());
+                self.rule(lhs).rhs(rhs);
             }
             _ => panic!()
         }
+    }
+}
+
+/// Clone history.
+pub struct CloneHistory<'a, H: 'a, S> {
+    history: &'a H,
+    marker: PhantomData<S>,
+}
+
+impl<'a, H, S> CloneHistory<'a, H, S> {
+    /// Creates history factory.
+    pub fn new(history: &'a H) -> Self {
+        CloneHistory {
+            history: history,
+            marker: PhantomData
+        }
+    }
+}
+
+impl<'a, H, S> HistoryFn<H, S> for CloneHistory<'a, H, S> where
+            H: Clone,
+            S: GrammarSymbol {
+    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
+        self.history.clone()
     }
 }

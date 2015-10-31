@@ -1,5 +1,6 @@
 //! Sequence rules can be built with the builder pattern.
 
+#[cfg(feature = "nightly")]
 use collections::range::RangeArgument;
 
 use history::RewriteSequence;
@@ -62,12 +63,19 @@ impl<H, D, S> SequenceRuleBuilder<H, D, S> where
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs<T>(mut self, rhs: S, range: T) -> Self where
+    pub fn rhs(mut self, rhs: S) -> Self where H: Default {
+        let history = self.history.take();
+        self.rhs_with_history(rhs, history.unwrap_or_else(|| H::default()))
+    }
+
+    /// Adds a sequence rule to the grammar.
+    #[cfg(feature = "nightly")]
+    pub fn rhs_with_range<T>(mut self, rhs: S, range: T) -> Self where
                 T: RangeArgument<u32>,
                 H: Default {
         let history = self.history.take();
         self.inclusive(range.start().cloned().unwrap_or(0), range.end().cloned().map(|end| end - 1))
-            .rhs_with_history(rhs, history.unwrap_or_else(|| H::default()))
+            .rhs(rhs)
     }
 
     /// Adds a sequence rule to the grammar.

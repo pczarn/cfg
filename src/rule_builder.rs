@@ -6,9 +6,10 @@ use std::marker::PhantomData;
 use history::AssignPrecedence;
 use precedence::PrecedencedRuleBuilder;
 use rule_container::RuleContainer;
+use symbol::GrammarSymbol;
 
 /// The rule builder.
-pub struct RuleBuilder<C, F = TakeHistory<C>> where C: RuleContainer {
+pub struct RuleBuilder<C, F = DefaultHistory<C>> where C: RuleContainer {
     lhs: Option<C::Symbol>,
     history: Option<C::History>,
     default_history: F,
@@ -21,7 +22,7 @@ impl<C> RuleBuilder<C> where C: RuleContainer {
         RuleBuilder {
             lhs: None,
             history: None,
-            default_history: TakeHistory::new(),
+            default_history: DefaultHistory::new(),
             rules: rules,
         }
     }
@@ -56,9 +57,9 @@ impl<C, F> RuleBuilder<C, F> where C: RuleContainer {
     /// `Default` history.
     pub fn rhs<Sr>(mut self, syms: Sr) -> Self where
                 Sr: AsRef<[C::Symbol]>,
-                F: FnMut(C::Symbol, &[C::Symbol]) -> C::History {
+                F: HistoryFn<C::History, C::Symbol> {
         let history = self.history.take().unwrap_or_else(||
-            (self.default_history)(self.lhs.unwrap(), syms.as_ref())
+            self.default_history.call_mut(self.lhs.unwrap(), syms.as_ref())
         );
         self.rhs_with_history(syms, history)
     }
@@ -78,34 +79,27 @@ impl<C, F> RuleBuilder<C, F> where C: RuleContainer {
     }
 }
 
-/// Arguments to TakeHistory.
-pub type TakeHistoryArg<'a, S> = (S, &'a [S]);
+/// A trait for history factories.
+pub trait HistoryFn<H, S> {
+    /// Create a history.
+    fn call_mut(&mut self, lhs: S, rhs: &[S]) -> H;
+}
 
 /// Default history.
-pub struct TakeHistory<C>(PhantomData<C>);
+pub struct DefaultHistory<C>(PhantomData<C>);
 
-impl<C> TakeHistory<C> {
+impl<C> DefaultHistory<C> {
     /// Creates default history.
     pub fn new() -> Self {
-        TakeHistory(PhantomData)
+        DefaultHistory(PhantomData)
     }
 }
 
-impl<'a, C> FnOnce<TakeHistoryArg<'a, C::Symbol>> for TakeHistory<C> where
-            C: RuleContainer,
-            C::History: Default {
-    type Output = C::History;
-    extern "rust-call" fn call_once(self, (_lhs, _rhs): TakeHistoryArg<C::Symbol>)
-            -> Self::Output {
-        C::History::default()
-    }
-}
-
-impl<'a, C> FnMut<TakeHistoryArg<'a, C::Symbol>>  for TakeHistory<C> where
-            C: RuleContainer,
-            C::History: Default {
-    extern "rust-call" fn call_mut(&mut self, (_lhs, _rhs): TakeHistoryArg<C::Symbol>)
-            -> Self::Output {
+impl<C, H, S> HistoryFn<H, S> for DefaultHistory<C> where
+            C: RuleContainer<History=H, Symbol=S>,
+            H: Default,
+            S: GrammarSymbol {
+    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
         C::History::default()
     }
 }

@@ -181,22 +181,20 @@ impl<'a, H, Ss> ContextFreeRef<'a> for &'a BinarizedCfg<H, Ss> where
             Ss::Symbol: 'a {
     type RuleRef = RuleRef<'a, H, Ss::Symbol>;
     type Rules =    iter::Chain<
-                        iter::FilterMap<
+                        LhsWithHistoryToRuleRef<
                             iter::Enumerate<
                                 slice::Iter<'a, Option<H>>
                             >,
-                            LhsWithHistoryToRuleRef<Ss::Symbol>
+                            Ss::Symbol
                         >,
-                        iter::Map<
-                            slice::Iter<'a, BinarizedRule<H, Ss::Symbol>>,
-                            BinarizedRuleToRuleRef
+                        BinarizedRuleToRuleRef<
+                            slice::Iter<'a, BinarizedRule<H, Ss::Symbol>>
                         >
                     >;
 
     fn rules(self) -> Self::Rules {
-        self.nulling.iter().enumerate()
-            .filter_map(LhsWithHistoryToRuleRef::new())
-            .chain(self.rules.iter().map(BinarizedRuleToRuleRef::new()))
+        LhsWithHistoryToRuleRef::new(self.nulling.iter().enumerate())
+            .chain(BinarizedRuleToRuleRef::new(self.rules.iter()))
     }
 }
 
@@ -385,72 +383,76 @@ impl<Ss> Clone for BinarizedRuleRhs<Ss> where Ss: GrammarSymbol {
     }
 }
 
-pub struct BinarizedRuleToRuleRef;
-
-impl BinarizedRuleToRuleRef {
-    pub fn new() -> Self {
-        BinarizedRuleToRuleRef
-    }
+pub struct BinarizedRuleToRuleRef<I> {
+    iter: I
 }
 
-impl<'a, H, Ss> FnOnce<(&'a BinarizedRule<H, Ss>,)> for BinarizedRuleToRuleRef
-        where Ss: GrammarSymbol {
-    type Output = RuleRef<'a, H, Ss>;
-    extern "rust-call" fn call_once(self, (rule,): (&'a BinarizedRule<H, Ss>,)) -> Self::Output {
-        RuleRef {
-            lhs: rule.lhs(),
-            rhs: rule.rhs(),
-            history: rule.history(),
+impl<I> BinarizedRuleToRuleRef<I> {
+    pub fn new(iter: I) -> Self {
+        BinarizedRuleToRuleRef {
+            iter: iter
         }
     }
 }
 
-impl<'a, H, Ss> FnMut<(&'a BinarizedRule<H, Ss>,)>  for BinarizedRuleToRuleRef
-        where Ss: GrammarSymbol {
-    extern "rust-call" fn call_mut(&mut self, (rule,): (&'a BinarizedRule<H, Ss>,)) -> Self::Output {
-        RuleRef {
-            lhs: rule.lhs(),
-            rhs: rule.rhs(),
-            history: rule.history(),
-        }
+impl<'a, I, R, H, S> Iterator for BinarizedRuleToRuleRef<I> where
+            I: Iterator<Item=&'a R>,
+            R: GrammarRule<History=H, Symbol=S> + 'a,
+            H: 'a,
+            S: GrammarSymbol + 'a {
+    type Item = RuleRef<'a, H, S>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|rule| {
+            RuleRef {
+                lhs: rule.lhs(),
+                rhs: rule.rhs(),
+                history: rule.history(),
+            }
+        })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
     }
 }
 
 pub type LhsWithHistory<'a, H> = (usize, &'a Option<H>);
 
-pub struct LhsWithHistoryToRuleRef<Ss>(PhantomData<Ss>);
+pub struct LhsWithHistoryToRuleRef<I, Ss> {
+    iter: I,
+    marker: PhantomData<Ss>,
+}
 
-impl<Ss> LhsWithHistoryToRuleRef<Ss> {
-    pub fn new() -> Self {
-        LhsWithHistoryToRuleRef(PhantomData)
+impl<I, Ss> LhsWithHistoryToRuleRef<I, Ss> {
+    pub fn new(iter: I) -> Self {
+        LhsWithHistoryToRuleRef {
+            iter: iter,
+            marker: PhantomData,
+        }
     }
 }
 
-impl<'a, H, Ss> FnOnce<(LhsWithHistory<'a, H>,)> for LhsWithHistoryToRuleRef<Ss> where
-            Ss: GrammarSymbol + 'a {
-    type Output = Option<RuleRef<'a, H, Ss>>;
-    extern "rust-call" fn call_once(self, ((lhs, history),): (LhsWithHistory<'a, H>,))
-            -> Self::Output {
-        history.as_ref().map(|history|
-            RuleRef {
-                lhs: Ss::from(lhs as u64),
-                rhs: &[],
-                history: history,
-            }
-        )
-    }
-}
+impl<'a, I, H, S> Iterator for LhsWithHistoryToRuleRef<I, S> where
+            I: Iterator<Item=LhsWithHistory<'a, H>>,
+            H: 'a,
+            S: GrammarSymbol + 'a {
+    type Item = RuleRef<'a, H, S>;
 
-impl<'a, H, Ss> FnMut<(LhsWithHistory<'a, H>,)>  for LhsWithHistoryToRuleRef<Ss> where
-        Ss: GrammarSymbol + 'a {
-    extern "rust-call" fn call_mut(&mut self, ((lhs, history),): (LhsWithHistory<'a, H>,))
-            -> Self::Output {
-        history.as_ref().map(|history|
-            RuleRef {
-                lhs: Ss::from(lhs as u64),
-                rhs: &[],
-                history: history,
+    fn next(&mut self) -> Option<Self::Item> {
+        for (lhs, history_opt) in &mut self.iter {
+            if let Some(history) = history_opt.as_ref() {
+                return Some(RuleRef {
+                    lhs: S::from(lhs as u64),
+                    rhs: &[],
+                    history: history,
+                });
             }
-        )
+        }
+        None
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
     }
 }

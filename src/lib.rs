@@ -8,15 +8,20 @@
         unused_import_braces,
         unused_qualifications)]
 #![cfg_attr(test, deny(warnings))]
-#![feature(
-    collections, collections_range,
-    core, nonzero,
-    unboxed_closures
-)]
+#![cfg_attr(feature = "nightly",
+            feature(
+                collections,
+                collections_range,
+                core,
+                nonzero,
+            ))]
 
 extern crate bit_matrix;
 extern crate bit_vec;
+
+#[cfg(feature = "nightly")]
 extern crate collections;
+#[cfg(feature = "nightly")]
 extern crate core;
 
 mod binarized;
