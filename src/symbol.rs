@@ -14,6 +14,7 @@ type NumericSymbolRepr = u32;
 /// IDs.
 pub trait GrammarSymbol: From<u64> + Into<u64> + Eq + Ord + Clone + Hash + Copy {
     /// Cast the symbol's ID to `usize`.
+    #[inline]
     fn usize(&self) -> usize {
         let id: u64 = (*self).into();
         id as usize
@@ -21,12 +22,14 @@ pub trait GrammarSymbol: From<u64> + Into<u64> + Eq + Ord + Clone + Hash + Copy 
 }
 
 impl From<u64> for NumericSymbol {
+    #[inline]
     fn from(id: u64) -> Self {
         unsafe { NumericSymbol(NonZero::new(id as NumericSymbolRepr)) }
     }
 }
 
 impl Into<u64> for NumericSymbol {
+    #[inline]
     fn into(self) -> u64 {
         *self.0 as u64
     }

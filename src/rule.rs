@@ -5,7 +5,7 @@ pub trait GrammarRule {
     /// The type of history carried with the rule.
     type History;
     /// The type of symbols.
-    type Symbol;
+    type Symbol: GrammarSymbol;
 
     /// Returns the rule's left-hand side.
     fn lhs(&self) -> Self::Symbol;

@@ -24,6 +24,7 @@ pub struct SequencesToProductions<H, D> where
     destination: D,
     stack: Vec<Sequence<H::Rewritten, D::Symbol>>,
     map: HashMap<PartialSequence<D::Symbol>, D::Symbol>,
+    history: Option<H>,
 }
 
 // A key into a private map.
@@ -65,6 +66,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
             destination: destination,
             stack: vec![],
             map: HashMap::new(),
+            history: None,
         }
     }
 
@@ -81,13 +83,15 @@ impl<H, S, D> SequencesToProductions<H, D> where
     pub fn rewrite(&mut self, top: Sequence<H, S>) {
         self.stack.clear();
         self.map.clear();
+        let seq_history = top.history.sequence(&top);
+        self.history = Some(top.history);
         self.stack.push(Sequence {
             lhs: top.lhs,
             rhs: top.rhs,
             start: top.start,
             end: top.end,
             separator: top.separator,
-            history: top.history.sequence(&top),
+            history: seq_history,
         });
 
         while let Some(seq) = self.stack.pop() {
@@ -100,7 +104,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
         RuleBuilder::new(&mut self.destination).rule(lhs)
     }
 
-    fn recurse(&mut self, seq: Sequence<&H::Rewritten, S>) -> S {
+    fn recurse(&mut self, seq: Sequence<H::Rewritten, S>) -> S {
         let sym_source = &mut self.destination;
         // As a placeholder
         let partial = PartialSequence {
@@ -120,7 +124,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
                     start: seq.start,
                     end: seq.end,
                     separator: seq.separator,
-                    history: seq.history.no_op(),
+                    history: seq.history,
                 });
                 lhs
             }
@@ -133,7 +137,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
     fn reduce(&mut self, sequence: Sequence<H::Rewritten, S>) {
         let Sequence { lhs, rhs, start, end, separator, ref history } = sequence;
         let sequence = Sequence { lhs: lhs, rhs: rhs, start: start, end: end,
-            separator: separator, history: history };
+            separator: separator, history: history.no_op() };
 
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
@@ -162,9 +166,11 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 // Left recursive
                 // seq ::= seq sep item
                 if let Proper(sep) = separator {
-                    self.rule(lhs).rhs_with_history([lhs, sep, rhs], history.clone());
+                    let orig = self.history.as_ref().unwrap().bottom(rhs, Some(sep), &[lhs, sep, rhs]);
+                    self.rule(lhs).rhs_with_history([lhs, sep, rhs], orig);
                 } else {
-                    self.rule(lhs).rhs_with_history([lhs, rhs], history.clone());
+                    let orig = self.history.as_ref().unwrap().bottom(rhs, None, &[lhs, rhs]);
+                    self.rule(lhs).rhs_with_history([lhs, rhs], orig);
                 }
             }
             (_, 1, Some(1)) => {
@@ -188,7 +194,8 @@ impl<H, S, D> SequencesToProductions<H, D> where
             }
             // Bug in rustc. Must use comparison.
             (Proper(sep), start, end) if start == 2 && end == Some(2) => {
-                self.rule(lhs).rhs_with_history([rhs, sep, rhs], history.clone());
+                let orig = self.history.as_ref().unwrap().bottom(rhs, Some(sep), &[rhs, sep, rhs]);
+                self.rule(lhs).rhs_with_history([rhs, sep, rhs], orig);
             }
             (separator, 2 ... 0xFFFF_FFFF, end) => {
                 // to do infinity

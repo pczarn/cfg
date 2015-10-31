@@ -102,6 +102,11 @@ impl<H: Action, Hs, Ss> Cfg<H, Hs, Ss>
         SequenceRuleBuilder::new(&mut self.sequence_rules).sequence(lhs)
     }
 
+    /// Returns sequence rules.
+    pub fn sequence_rules(&self) -> &[Sequence<Hs, Ss::Symbol>] {
+        &self.sequence_rules
+    }
+
     /// Forces a rewrite of sequence rules into grammar rules.
     pub fn rewrite_sequences(&mut self) {
         let sequence_rules = mem::replace(&mut self.sequence_rules, vec![]);

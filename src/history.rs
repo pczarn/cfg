@@ -54,6 +54,8 @@ pub trait RewriteSequence {
 
     /// Returns a history. May record the rewrite.
     fn sequence<H, S>(&self, top: &Sequence<H, S>) -> Self::Rewritten where S: GrammarSymbol;
+    /// Returns a history. May record the rewrite.
+    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol;
 }
 
 impl Action for NullHistory {
@@ -84,6 +86,10 @@ impl RewriteSequence for NullHistory {
     fn sequence<H, S>(&self, _top: &Sequence<H, S>) -> Self {
         NullHistory
     }
+
+    fn bottom<S>(&self, _rhs: S, _sep: Option<S>, _new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol {
+        NullHistory
+    }
 }
 
 impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence {
@@ -92,5 +98,9 @@ impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence {
     fn sequence<H, S>(&self, top: &Sequence<H, S>) -> Self::Rewritten
             where S: GrammarSymbol {
         (**self).sequence(top)
+    }
+
+    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol {
+        (**self).bottom(rhs, sep, new_rhs)
     }
 }
