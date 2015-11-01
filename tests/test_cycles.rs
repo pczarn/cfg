@@ -8,8 +8,7 @@ use cfg::cycles::Cycles;
 #[test]
 fn test_remove_cycles() {
     let mut cfg: Cfg = Cfg::new();
-    let start = cfg.start_sym();
-    let (a, b, c, d) = cfg.sym();
+    let (start, a, b, c, d) = cfg.sym();
 
     cfg.rule(start).rhs([a])
        .rule(a).rhs([b])
@@ -18,8 +17,7 @@ fn test_remove_cycles() {
        .rule(d).rhs([a]);
 
     let mut equivalent: Cfg = Cfg::new();
-    let start = equivalent.start_sym();
-    let a = equivalent.sym();
+    let (start, a) = equivalent.sym();
 
     // Order is significant.
     equivalent.rule(start).rhs([a]);
@@ -30,36 +28,33 @@ fn test_remove_cycles() {
         cycles.remove_cycles();
     };
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(!Cycles::new(&mut cfg).has_cycles());
+    assert!(Cycles::new(&mut cfg).cycle_free());
 }
 
 #[test]
 fn test_rewrite_cycles() {
     let mut cfg: Cfg = Cfg::new();
-    let start = cfg.start_sym();
-    let (first, second) = cfg.sym();
+    let (start, first, second) = cfg.sym();
 
     cfg.rule(start).rhs([second])
        .rule(first).rhs([second])
        .rule(second).rhs([first]);
 
     let mut equivalent: Cfg = Cfg::new();
-    let start = equivalent.start_sym();
-    let first = equivalent.sym();
+    let (start, first) = equivalent.sym();
 
     // Order is significant.
     equivalent.rule(start).rhs([first]);
 
     Cycles::new(&mut cfg).rewrite_cycles();
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(!Cycles::new(&mut cfg).has_cycles());
+    assert!(Cycles::new(&mut cfg).cycle_free());
 }
 
 #[test]
 fn test_cycle_branch() {
     let mut cfg: Cfg = Cfg::new();
-    let start = cfg.start_sym();
-    let (a, b, c, d) = cfg.sym();
+    let (start, a, b, c, d) = cfg.sym();
 
     cfg.rule(start).rhs([a])
        .rule(a).rhs([b])
@@ -68,8 +63,7 @@ fn test_cycle_branch() {
        .rule(c).rhs([d]);
 
     let mut equivalent: Cfg = Cfg::new();
-    let start = equivalent.start_sym();
-    let (a, _, _, d) = equivalent.sym();
+    let (start, a, _, _, d) = equivalent.sym();
 
     // Order is significant.
     equivalent.rule(start).rhs([a])
@@ -81,5 +75,5 @@ fn test_cycle_branch() {
         cycles.rewrite_cycles();
     };
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(!Cycles::new(&mut cfg).has_cycles());
+    assert!(Cycles::new(&mut cfg).cycle_free());
 }

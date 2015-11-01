@@ -279,10 +279,6 @@ impl<H, Ss> SymbolSource for BinarizedCfg<H, Ss> where Ss: SymbolSource {
     fn num_syms(&self) -> usize {
         self.sym_source.num_syms()
     }
-
-    fn start_sym(&self) -> Ss::Symbol {
-        self.sym_source.start_sym()
-    }
 }
 
 impl<H, Ss> TerminalSymbolSet for BinarizedCfg<H, Ss> where Ss: TerminalSymbolSet {

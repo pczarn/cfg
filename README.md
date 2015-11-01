@@ -24,8 +24,7 @@ isn't generated, because it's constant for all grammars.
 
 ```rust
 let mut grammar: Cfg = Cfg::new();
-let start = grammar.start_sym();
-let (expr, identifier, number,
+let (start, expr, identifier, number,
      plus, multiply, power, l_paren, r_paren, digit) = grammar.sym();
 ```
 

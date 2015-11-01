@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use grammar::{ContextFree, ContextFreeRef};
 use prediction::{FirstSets, PerSymbolSets};
 use rule::GrammarRule;
-use symbol::{SymbolSource, GrammarSymbol, TerminalSymbolSet};
+use symbol::{GrammarSymbol, TerminalSymbolSet};
 
 /// FOLLOW sets.
 pub struct FollowSets<S> where S: GrammarSymbol {
@@ -16,7 +16,7 @@ pub struct FollowSets<S> where S: GrammarSymbol {
 impl<S> FollowSets<S> where S: GrammarSymbol {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
-    pub fn new<'a, G>(grammar: &'a G, first_sets: &FirstSets<S>) -> Self
+    pub fn new<'a, G>(grammar: &'a G, start_sym: S, first_sets: &FirstSets<S>) -> Self
             where G: ContextFree<Symbol=S> + TerminalSymbolSet,
                   &'a G: ContextFreeRef<'a, Target=G> {
         let mut this = FollowSets {
@@ -25,7 +25,7 @@ impl<S> FollowSets<S> where S: GrammarSymbol {
 
         for rule in grammar.rules() {
             let follow_set = this.map.entry(rule.lhs()).or_insert_with(|| BTreeSet::new());
-            if rule.lhs() == grammar.start_sym() {
+            if rule.lhs() == start_sym {
                 follow_set.insert(None);
             }
         }

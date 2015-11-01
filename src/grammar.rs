@@ -185,10 +185,6 @@ impl<H, Hs, Ss> SymbolSource for Cfg<H, Hs, Ss> where Ss: SymbolSource {
     fn num_syms(&self) -> usize {
         self.sym_source.num_syms()
     }
-
-    fn start_sym(&self) -> Ss::Symbol {
-        self.sym_source.start_sym()
-    }
 }
 
 impl<H, Hs, Ss> TerminalSymbolSet for Cfg<H, Hs, Ss> where Ss: TerminalSymbolSet {

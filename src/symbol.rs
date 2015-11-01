@@ -29,8 +29,6 @@ pub trait SymbolSource {
     /// Marks a symbol as nonterminal. Used each time a rule with arbitrary LHS is added
     /// to the grammar.
     fn mark_as_nonterminal(&mut self, sym: Self::Symbol);
-    /// Returns the start symbol.
-    fn start_sym(&self) -> Self::Symbol;
     /// Returns the number of symbols in use.
     fn num_syms(&self) -> usize;
     /// Returns an iterator that generates terminal symbols.
@@ -59,7 +57,6 @@ impl<'a, S> SymbolSource for &'a mut S where S: SymbolSource {
     fn next_sym(&mut self, terminal: bool) -> Self::Symbol { (**self).next_sym(terminal) }
     fn mark_as_nonterminal(&mut self, sym: Self::Symbol) { (**self).mark_as_nonterminal(sym) }
     fn num_syms(&self) -> usize { (**self).num_syms() }
-    fn start_sym(&self) -> Self::Symbol { (**self).start_sym() }
 }
 
 impl<'a, S> TerminalSymbolSet for &'a mut S where S: TerminalSymbolSet {
@@ -82,10 +79,8 @@ pub struct Nonterminals<S> {
     source: S,
 }
 
-/// The start symbol's ID.
-const START_SYMBOL: u32 = 1;
 /// The first usable symbol ID.
-const FIRST_SYMBOL: u32 = 2;
+const FIRST_SYMBOL: u32 = 1;
 
 impl ConsecutiveSymbols {
     /// Creates a source of numeric symbols with an empty symbol space.
@@ -112,10 +107,6 @@ impl SymbolSource for ConsecutiveSymbols {
 
     fn mark_as_nonterminal(&mut self, _sym: Self::Symbol) {
         // This information isn't stored.
-    }
-
-    fn start_sym(&self) -> NumericSymbol {
-        NumericSymbol::from(START_SYMBOL as u64)
     }
 
     fn num_syms(&self) -> usize {

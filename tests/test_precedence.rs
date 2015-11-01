@@ -9,8 +9,7 @@ use cfg::usefulness::Usefulness;
 #[test]
 fn test_simple_precedence() {
     let mut cfg: Cfg = Cfg::new();
-    let start = cfg.start_sym();
-    let (top, num, var) = cfg.sym();
+    let (start, top, num, var) = cfg.sym();
     let (l_paren, r_paren, exp, mul, div, plus, minus, eq) = cfg.sym();
 
     // top ::=
@@ -45,8 +44,7 @@ fn test_simple_precedence() {
                 .rhs([var, eq, top]);
 
     let mut equivalent: Cfg = Cfg::new();
-    let start = equivalent.start_sym();
-    let (top, num, var) = equivalent.sym();
+    let (start, top, num, var) = equivalent.sym();
     let (l_paren, r_paren, exp, mul, div, plus, minus, eq) = equivalent.sym();
     let (g4, g3, g2, g1, g0) = equivalent.sym();
 
@@ -69,14 +67,13 @@ fn test_simple_precedence() {
               .rule(top).rhs([g0]);
 
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(!Usefulness::new(&mut cfg).has_useless_rules());
+    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
 }
 
 #[test]
 fn test_ternary_quaternary() {
     let mut cfg: Cfg = Cfg::new();
-    let start = cfg.start_sym();
-    let (top, num) = cfg.sym();
+    let (start, top, num) = cfg.sym();
     let (ternary_op, quaternary_op, sep) = cfg.sym();
 
     cfg.rule(start).rhs([top])
@@ -89,8 +86,7 @@ fn test_ternary_quaternary() {
                     .rhs([top, quaternary_op, top, sep, top, sep, top]);
 
     let mut equivalent: Cfg = Cfg::new();
-    let start = equivalent.start_sym();
-    let (top, num) = equivalent.sym();
+    let (start, top, num) = equivalent.sym();
     let (ternary_op, quaternary_op, sep) = equivalent.sym();
     let (g1, g0) = equivalent.sym();
 
@@ -103,5 +99,5 @@ fn test_ternary_quaternary() {
               .rule(top).rhs([g0]);
 
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(!Usefulness::new(&mut cfg).has_useless_rules());
+    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
 }
