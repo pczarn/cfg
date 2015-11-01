@@ -6,7 +6,7 @@ use bit_vec::BitVec;
 use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
 use rhs_closure::RhsClosure;
 use rule::GrammarRule;
-use rule_container::RuleContainer;
+use rule::container::RuleContainer;
 use symbol::{SymbolSource, GrammarSymbol};
 
 /// Contains the information about usefulness of the grammar's rules.

@@ -1,3 +1,11 @@
+//! This module defines grammar rules. Each rule in a context-free grammar
+//! consists of a single symbol on its left-hand side and an array of symbols
+//! on its right-hand side. In this library, each rule carries additional
+//! value called "history."
+
+pub mod builder;
+pub mod container;
+
 use symbol::GrammarSymbol;
 
 /// Trait for rules of a context-free grammar.
@@ -28,7 +36,9 @@ impl<'a, R> GrammarRule for &'a R where R: GrammarRule {
 #[derive(Clone, Debug)]
 pub struct Rule<H, S> where S: GrammarSymbol {
     lhs: S,
+    /// The rule's right-hand side.
     pub rhs: Vec<S>,
+    /// The rule's history.
     pub history: H,
 }
 
@@ -50,6 +60,7 @@ impl<H, S> GrammarRule for Rule<H, S> where S: GrammarSymbol {
 }
 
 impl<H, S> Rule<H, S> where S: GrammarSymbol {
+    /// Creates a new rule.
     pub fn new(lhs: S, rhs: Vec<S>, history: H) -> Self {
         Rule {
             lhs: lhs,
@@ -61,8 +72,11 @@ impl<H, S> Rule<H, S> where S: GrammarSymbol {
 
 /// References rule's components.
 pub struct RuleRef<'a, H, S> where S: GrammarSymbol + 'a, H: 'a {
+    /// Left-hand side.
     pub lhs: S,
+    /// Right-hand side.
     pub rhs: &'a [S],
+    /// The rule's history.
     pub history: &'a H,
 }
 

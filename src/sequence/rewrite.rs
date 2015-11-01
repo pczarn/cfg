@@ -1,25 +1,20 @@
+//! Rewrites sequence rules into production rules.
+
 //#[cfg(feature = "nightly")]
 //use collections::range::RangeArgument;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::marker::PhantomData;
 
-use history::{Action, RewriteSequence};
-use rule_builder::{RuleBuilder, HistoryFn};
-use rule_container::RuleContainer;
+use history::{Action, CloneHistory, RewriteSequence};
+use rule::builder::RuleBuilder;
+use rule::container::RuleContainer;
 use sequence::{Separator, Sequence};
 use sequence::Separator::{Trailing, Proper, Liberal};
-use sequence_builder::SequenceRuleBuilder;
+use sequence::builder::SequenceRuleBuilder;
+use sequence::destination::SequenceDestination;
 use symbol::{GrammarSymbol, SymbolSource};
 
-/// Trait for storing sequence rules in containers, with potential rewrites.
-pub trait SequenceDestination<H> {
-    /// The type of symbols.
-    type Symbol;
-    /// Inserts a sequence rule.
-    fn add_sequence(&mut self, seq: Sequence<H, Self::Symbol>);
-}
-
+/// Rewrites sequence rules into production rules.
 pub struct SequencesToProductions<H, D> where
             H: RewriteSequence,
             D: RuleContainer {
@@ -39,14 +34,6 @@ struct PartialSequence<S> {
     separator: Separator<S>,
 }
 
-impl<'a, H, S> SequenceDestination<H> for &'a mut Vec<Sequence<H, S>> where S: GrammarSymbol {
-    type Symbol = S;
-
-    fn add_sequence(&mut self, seq: Sequence<H, Self::Symbol>) {
-        self.push(seq);
-    }
-}
-
 impl<H, S, D> SequenceDestination<H> for SequencesToProductions<H, D> where
             D: RuleContainer<History=H::Rewritten, Symbol=S>,
             H: RewriteSequence,
@@ -64,6 +51,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
             H: RewriteSequence,
             H::Rewritten: Clone,
             S: GrammarSymbol {
+    /// Initializes a rewrite.
     pub fn new(destination: D) -> Self {
         SequencesToProductions {
             destination: destination,
@@ -74,6 +62,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
         }
     }
 
+    /// Rewrites sequence rules.
     pub fn rewrite_sequences(sequence_rules: &[Sequence<H, S>], rules: D) {
         let mut rewrite = SequenceRuleBuilder::new(SequencesToProductions::new(rules));
         for rule in sequence_rules {
@@ -84,6 +73,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
         }
     }
 
+    /// Rewrites a sequence rule.
     pub fn rewrite(&mut self, top: Sequence<H, S>) {
         self.stack.clear();
         self.map.clear();
@@ -222,29 +212,5 @@ impl<H, S, D> SequencesToProductions<H, D> where
             }
             _ => panic!()
         }
-    }
-}
-
-/// Clone history.
-pub struct CloneHistory<'a, H: 'a, S> {
-    history: &'a H,
-    marker: PhantomData<S>,
-}
-
-impl<'a, H, S> CloneHistory<'a, H, S> {
-    /// Creates history factory.
-    pub fn new(history: &'a H) -> Self {
-        CloneHistory {
-            history: history,
-            marker: PhantomData
-        }
-    }
-}
-
-impl<'a, H, S> HistoryFn<H, S> for CloneHistory<'a, H, S> where
-            H: Clone,
-            S: GrammarSymbol {
-    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
-        self.history.clone()
     }
 }

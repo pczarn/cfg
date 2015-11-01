@@ -5,7 +5,7 @@ use collections::range::RangeArgument;
 
 use history::RewriteSequence;
 use sequence::{Separator, Sequence};
-use sequence_destination::SequenceDestination;
+use sequence::destination::SequenceDestination;
 use symbol::GrammarSymbol;
 
 /// Sequence rule builder.

@@ -1,6 +1,8 @@
 //! Any data carried alongside a grammar rule can be its _history_. Rule histories may contain
 //! more than semantic actions.
 
+use std::marker::PhantomData;
+
 use rule::GrammarRule;
 use sequence::Sequence;
 use symbol::GrammarSymbol;
@@ -102,5 +104,53 @@ impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence {
 
     fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol {
         (**self).bottom(rhs, sep, new_rhs)
+    }
+}
+
+/// A trait for history factories.
+pub trait HistoryFn<H, S> {
+    /// Create a history.
+    fn call_mut(&mut self, lhs: S, rhs: &[S]) -> H;
+}
+
+/// Clone history.
+pub struct CloneHistory<'a, H: 'a, S> {
+    history: &'a H,
+    marker: PhantomData<S>,
+}
+
+impl<'a, H, S> CloneHistory<'a, H, S> {
+    /// Creates history factory.
+    pub fn new(history: &'a H) -> Self {
+        CloneHistory {
+            history: history,
+            marker: PhantomData
+        }
+    }
+}
+
+impl<'a, H, S> HistoryFn<H, S> for CloneHistory<'a, H, S> where
+            H: Clone,
+            S: GrammarSymbol {
+    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
+        self.history.clone()
+    }
+}
+
+/// Default history.
+pub struct DefaultHistory<H, S>(PhantomData<(H, S)>);
+
+impl<H, S> DefaultHistory<H, S> {
+    /// Creates default history.
+    pub fn new() -> Self {
+        DefaultHistory(PhantomData)
+    }
+}
+
+impl<H, S> HistoryFn<H, S> for DefaultHistory<H, S> where
+            H: Default,
+            S: GrammarSymbol {
+    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
+        H::default()
     }
 }

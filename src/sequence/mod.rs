@@ -1,5 +1,9 @@
 //! Sequences are similar to regex repetitions with numbering.
 
+pub mod builder;
+pub mod destination;
+pub mod rewrite;
+
 use self::Separator::*;
 
 /// Sequence rule representation.

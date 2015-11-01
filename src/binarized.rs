@@ -11,7 +11,7 @@ use history::{Binarize, EliminateNulling, NullHistory};
 use history::BinarizedRhsSubset::*;
 use rhs_closure::RhsClosure;
 use rule::{GrammarRule, RuleRef};
-use rule_container::RuleContainer;
+use rule::container::RuleContainer;
 use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol, TerminalSymbolSet};
 
 use self::BinarizedRuleRhs::*;

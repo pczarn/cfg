@@ -31,12 +31,8 @@ pub mod history;
 pub mod precedence;
 pub mod prediction;
 mod rhs_closure;
-mod rule;
-pub mod rule_builder;
-pub mod rule_container;
+pub mod rule;
 pub mod sequence;
-pub mod sequence_builder;
-mod sequence_destination;
 pub mod symbol;
 pub mod usefulness;
 

@@ -6,11 +6,11 @@ use binarized::BinarizedCfg;
 use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory, Action};
 use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
-use rule_builder::RuleBuilder;
-use rule_container::RuleContainer;
+use rule::builder::RuleBuilder;
+use rule::container::RuleContainer;
 use sequence::Sequence;
-use sequence_builder::SequenceRuleBuilder;
-use sequence_destination::SequencesToProductions;
+use sequence::builder::SequenceRuleBuilder;
+use sequence::rewrite::SequencesToProductions;
 use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol, TerminalSymbolSet};
 
 /// Trait for context-free grammars.

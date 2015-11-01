@@ -5,8 +5,8 @@ use std::mem;
 
 use history::AssignPrecedence;
 use rule::{GrammarRule, Rule, RuleRef};
-use rule_builder::RuleBuilder;
-use rule_container::RuleContainer;
+use rule::builder::RuleBuilder;
+use rule::container::RuleContainer;
 use symbol::SymbolSource;
 
 use self::Associativity::*;

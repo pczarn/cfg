@@ -1,15 +1,16 @@
 //! Grammar rules can be built with the builder pattern.
 
 use std::convert::AsRef;
-use std::marker::PhantomData;
 
-use history::AssignPrecedence;
+use history::{AssignPrecedence, DefaultHistory, HistoryFn};
 use precedence::PrecedencedRuleBuilder;
-use rule_container::RuleContainer;
-use symbol::GrammarSymbol;
+use rule::container::RuleContainer;
+use symbol::SymbolSource;
 
 /// The rule builder.
-pub struct RuleBuilder<C, F = DefaultHistory<C>> where C: RuleContainer {
+pub struct RuleBuilder<C, F = DefaultHistory<<C as RuleContainer>::History,
+                                             <C as SymbolSource>::Symbol>>
+        where C: RuleContainer {
     lhs: Option<C::Symbol>,
     history: Option<C::History>,
     default_history: F,
@@ -76,30 +77,5 @@ impl<C, F> RuleBuilder<C, F> where C: RuleContainer {
             -> PrecedencedRuleBuilder<C>
             where C::History: AssignPrecedence + Default {
         PrecedencedRuleBuilder::new(self.rules, lhs)
-    }
-}
-
-/// A trait for history factories.
-pub trait HistoryFn<H, S> {
-    /// Create a history.
-    fn call_mut(&mut self, lhs: S, rhs: &[S]) -> H;
-}
-
-/// Default history.
-pub struct DefaultHistory<C>(PhantomData<C>);
-
-impl<C> DefaultHistory<C> {
-    /// Creates default history.
-    pub fn new() -> Self {
-        DefaultHistory(PhantomData)
-    }
-}
-
-impl<C, H, S> HistoryFn<H, S> for DefaultHistory<C> where
-            C: RuleContainer<History=H, Symbol=S>,
-            H: Default,
-            S: GrammarSymbol {
-    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
-        C::History::default()
     }
 }
