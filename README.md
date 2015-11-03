@@ -1,4 +1,4 @@
-## cfg
+## cfg ![Build status](https://api.travis-ci.org/pczarn/cfg.png?branch=master) ![Latest version](https://img.shields.io/crates/v/cfg.png)
 
 Rust library for manipulating context-free grammars.
 [You can check the documentation here](http://pczarn.github.io/cfg/).
