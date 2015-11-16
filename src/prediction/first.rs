@@ -1,4 +1,4 @@
-//! First sets.
+//! FIRST sets.
 
 use std::collections::{BTreeMap, BTreeSet};
 

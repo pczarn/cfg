@@ -1,4 +1,4 @@
-//! Follow sets.
+//! FOLLOW sets.
 
 use std::collections::{BTreeMap, BTreeSet};
 

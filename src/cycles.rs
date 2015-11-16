@@ -22,7 +22,7 @@ pub struct CycleParticipants<'a, G: 'a, R> {
     cycles: &'a Cycles<&'a mut G>,
 }
 
-/// Returns the set of symbols which participate in a cycle.
+/// Returns the unit derivation matrix.
 fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> FixedBitMatrix where
             G: ContextFree,
             &'a G: ContextFreeRef<'a, Target=G> {
@@ -57,7 +57,7 @@ impl<'a, G> Cycles<&'a mut G> where
         }
     }
 
-    /// Checks whether the grammar has cycles.
+    /// Checks whether the grammar is cycle-free.
     pub fn cycle_free(&self) -> bool {
         self.cycle_free
     }

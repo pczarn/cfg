@@ -126,8 +126,7 @@ impl<'a, G> Usefulness<&'a mut G> where
         self.productivity[sym.usize()]
     }
 
-    /// Checks whether a symbol is productive. Can be used to determine the precise reason
-    /// for a rule's unproductiveness.
+    /// Sets symbol reachability. Takes an array of reachable symbols.
     pub fn reachable<Sr>(mut self, syms: Sr) -> Self where
                 Sr: AsRef<[G::Symbol]> {
         for &sym in syms.as_ref().iter() {
