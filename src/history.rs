@@ -120,7 +120,7 @@ pub struct CloneHistory<'a, H: 'a, S> {
 }
 
 impl<'a, H, S> CloneHistory<'a, H, S> {
-    /// Creates history factory.
+    /// Creates a cloned history factory.
     pub fn new(history: &'a H) -> Self {
         CloneHistory {
             history: history,
@@ -141,7 +141,7 @@ impl<'a, H, S> HistoryFn<H, S> for CloneHistory<'a, H, S> where
 pub struct DefaultHistory<H, S>(PhantomData<(H, S)>);
 
 impl<H, S> DefaultHistory<H, S> {
-    /// Creates default history.
+    /// Creates a default history factory.
     pub fn new() -> Self {
         DefaultHistory(PhantomData)
     }

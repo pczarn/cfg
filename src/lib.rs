@@ -7,7 +7,9 @@
         trivial_numeric_casts,
         unused_import_braces,
         unused_qualifications)]
+
 #![cfg_attr(test, deny(warnings))]
+
 #![cfg_attr(feature = "nightly",
             feature(
                 collections,

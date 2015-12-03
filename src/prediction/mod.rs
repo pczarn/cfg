@@ -1,5 +1,7 @@
 //! Prediction for predictive parsers.
 
+// Based on code by Niko Matsakis.
+
 mod first;
 mod follow;
 

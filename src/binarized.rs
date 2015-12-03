@@ -12,7 +12,8 @@ use history::BinarizedRhsSubset::*;
 use rhs_closure::RhsClosure;
 use rule::{GrammarRule, RuleRef};
 use rule::container::RuleContainer;
-use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol, TerminalSymbolSet};
+use rule::terminal_set::{TerminalSet, TerminalBitSet};
+use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol};
 
 use self::BinarizedRuleRhs::*;
 
@@ -210,6 +211,7 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
             Ss: SymbolSource,
             Ss::Symbol: GrammarSymbol {
     type History = H;
+    type TerminalSet = TerminalBitSet<Ss::Symbol>;
 
     fn retain<F>(&mut self, mut f: F) where
                 F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool {
@@ -222,10 +224,9 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
             rhs: rhs,
             history: &(),
         };
-        self.sym_source.mark_as_nonterminal(lhs);
         if rhs.is_empty() {
             while self.nulling.len() <= lhs.usize() {
-                // We don't know whether`H` is `Clone`.
+                // We don't know whether `H` is `Clone`.
                 self.nulling.push(None);
             }
             // Add a rule of the form `LHS ⸬= ε`.
@@ -243,7 +244,7 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
             //| Sn  ⸬= A   B
             let mut rhs_iter = rhs.iter().cloned();
             let sym_range = cmp::max(rhs.len(), 2) - 2;
-            let left_iter = self.sym_source.nonterminals().take(sym_range).chain(rhs_iter.next());
+            let left_iter = self.sym_source.generate().take(sym_range).chain(rhs_iter.next());
             let right_iter = rhs_iter.rev().map(Some).chain(iter::once(None));
 
             let mut next_lhs = lhs;
@@ -263,31 +264,21 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
             );
         }
     }
+
+    fn terminal_set(&self) -> Self::TerminalSet {
+        TerminalBitSet::new(self)
+    }
 }
 
 impl<H, Ss> SymbolSource for BinarizedCfg<H, Ss> where Ss: SymbolSource {
     type Symbol = Ss::Symbol;
 
-    fn next_sym(&mut self, terminal: bool) -> Self::Symbol {
-        self.sym_source.next_sym(terminal)
-    }
-
-    fn mark_as_nonterminal(&mut self, sym: Self::Symbol) {
-        self.sym_source.mark_as_nonterminal(sym)
+    fn next_sym(&mut self) -> Self::Symbol {
+        self.sym_source.next_sym()
     }
 
     fn num_syms(&self) -> usize {
         self.sym_source.num_syms()
-    }
-
-    fn start_sym(&self) -> Ss::Symbol {
-        self.sym_source.start_sym()
-    }
-}
-
-impl<H, Ss> TerminalSymbolSet for BinarizedCfg<H, Ss> where Ss: TerminalSymbolSet {
-    fn is_terminal(&self, sym: Self::Symbol) -> bool {
-        self.sym_source.is_terminal(sym)
     }
 }
 

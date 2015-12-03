@@ -1,18 +1,18 @@
-//! First sets.
+//! FIRST sets.
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use grammar::{ContextFree, ContextFreeRef};
 use prediction::PerSymbolSets;
 use rule::GrammarRule;
-use symbol::{GrammarSymbol, TerminalSymbolSet};
+use rule::terminal_set::TerminalSet;
+use symbol::GrammarSymbol;
 
 /// FIRST sets.
 pub struct FirstSets<S> where S: GrammarSymbol {
     map: PerSymbolSets<S>,
 }
 
-// Based on code by Niko Matsakis.
 impl<S> FirstSets<S> where S: GrammarSymbol {
     /// Compute all FIRST sets of the grammar.
     ///
@@ -22,7 +22,8 @@ impl<S> FirstSets<S> where S: GrammarSymbol {
     ///
     /// We compute the transitive closure of this relation.
     pub fn new<'a, G>(grammar: &'a G) -> Self where
-                G: ContextFree<Symbol=S> + TerminalSymbolSet,
+                G::TerminalSet: TerminalSet<Symbol=S>,
+                G: ContextFree<Symbol=S>,
                 &'a G: ContextFreeRef<'a, Target=G> {
         let mut this = FirstSets {
             map: BTreeMap::new(),
@@ -32,8 +33,9 @@ impl<S> FirstSets<S> where S: GrammarSymbol {
         let mut changed = true;
         while changed {
             changed = false;
+            let terminal_set = grammar.terminal_set();
             for rule in grammar.rules() {
-                this.first_set_collect(grammar, &mut lookahead, rule.rhs());
+                this.first_set_collect(&terminal_set, &mut lookahead, rule.rhs());
                 let first_set = this.map.entry(rule.lhs()).or_insert_with(|| BTreeSet::new());
                 let prev_cardinality = first_set.len();
                 first_set.extend(lookahead.iter().cloned());
@@ -51,11 +53,11 @@ impl<S> FirstSets<S> where S: GrammarSymbol {
     }
 
     /// Compute a FIRST set.
-    fn first_set_collect<G>(&self, grammar: &G, vec: &mut Vec<Option<S>>, rhs: &[S]) where
-                G: ContextFree<Symbol=S> + TerminalSymbolSet {
+    fn first_set_collect<T>(&self, terminal_set: &T, vec: &mut Vec<Option<S>>, rhs: &[S]) where
+                T: TerminalSet<Symbol=S> {
         for &sym in rhs {
             let mut nullable = false;
-            if grammar.is_terminal(sym) {
+            if terminal_set.has_sym(sym) {
                 vec.push(Some(sym));
             } else {
                 match self.map.get(&sym) {

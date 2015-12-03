@@ -18,14 +18,14 @@ pub enum Associativity {
     Left,
     /// Right associative.
     Right,
-    /// It usually means that  e.g. by parentheses.
+    /// `Group` usually means the operand is delimited, e.g. by parentheses.
     Group,
 }
 
 /// The default associativity.
 const DEFAULT_ASSOC: Associativity = Left;
 
-/// Precedenced rules are built in series of rule alternatives that have equal precedence.
+/// Precedenced rules are built in series of rule alternatives with equal precedence.
 pub struct PrecedencedRuleBuilder<D> where
             D: RuleContainer,
             D::History: AssignPrecedence + Default {
@@ -44,7 +44,7 @@ impl<D> PrecedencedRuleBuilder<D> where
             D::History: AssignPrecedence + Default {
     /// Returns a precedenced rule builder.
     pub fn new(mut rules: D, lhs: D::Symbol) -> Self {
-        let tightest_lhs = rules.next_sym(false);
+        let tightest_lhs = rules.next_sym();
         PrecedencedRuleBuilder {
             rules: Some(rules),
             lhs: lhs,
@@ -139,7 +139,7 @@ impl<D> PrecedencedRuleBuilder<D> where
         self.looseness += 1;
 
         self.tighter_lhs = self.current_lhs;
-        self.current_lhs = self.rules.as_mut().unwrap().next_sym(false);
+        self.current_lhs = self.rules.as_mut().unwrap().next_sym();
 
         RuleBuilder::new(self.rules.as_mut().unwrap()).rule(self.current_lhs)
                                                       .rhs(&[self.tighter_lhs]);

@@ -8,10 +8,11 @@ use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
+use rule::terminal_set::{TerminalSet, TerminalBitSet};
 use sequence::Sequence;
 use sequence::builder::SequenceRuleBuilder;
 use sequence::rewrite::SequencesToProductions;
-use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol, TerminalSymbolSet};
+use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol};
 
 /// Trait for context-free grammars.
 pub trait ContextFree: RuleContainer + Sized {
@@ -95,6 +96,7 @@ impl<H, Hs, Ss> Cfg<H, Hs, Ss> where Ss: SymbolSource {
 impl<H: Action, Hs, Ss> Cfg<H, Hs, Ss>
         where Hs: RewriteSequence<Rewritten=H>,
               H: Clone,
+              Hs: Clone,
               Ss: SymbolSource {
     /// Starts building a sequence rule.
     pub fn sequence(&mut self, lhs: Ss::Symbol)
@@ -114,7 +116,8 @@ impl<H: Action, Hs, Ss> Cfg<H, Hs, Ss>
     }
 }
 
-impl<H: Action, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
+impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
+            H: Action,
             Ss: SymbolSource,
             Hs: Clone + RewriteSequence<Rewritten=H> {
     type Source = Ss;
@@ -133,8 +136,8 @@ impl<H: Action, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
     }
 }
 
-impl<'a, H: Action, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
-            H: 'a,
+impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
+            H: Action + 'a,
             Hs: Clone + RewriteSequence<Rewritten=H>,
             Ss: SymbolSource + 'a,
             Ss::Symbol: 'a {
@@ -146,17 +149,20 @@ impl<'a, H: Action, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
     }
 }
 
-impl<'a, H: Action, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss> where
-            H: 'a,
+impl<'a, H, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss> where
+            H: Action + 'a,
             Hs: Clone + RewriteSequence<Rewritten=H> + 'a,
             Ss: SymbolSource + 'a,
             Ss::Symbol: 'a {
 }
 
 impl<H, Hs, Ss> RuleContainer for Cfg<H, Hs, Ss> where
+            H: Action,
+            Hs: Clone + RewriteSequence<Rewritten=H>,
             Ss: SymbolSource,
             Ss::Symbol: GrammarSymbol {
     type History = H;
+    type TerminalSet = TerminalBitSet<Ss::Symbol>;
 
     fn retain<F>(&mut self, mut f: F) where
                 F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool {
@@ -166,33 +172,22 @@ impl<H, Hs, Ss> RuleContainer for Cfg<H, Hs, Ss> where
     fn add_rule(&mut self, lhs: Self::Symbol,
                            rhs: &[Self::Symbol],
                            history: H) {
-        self.sym_source.mark_as_nonterminal(lhs);
         self.rules.push(Rule::new(lhs, rhs.to_vec(), history));
+    }
+
+    fn terminal_set(&self) -> Self::TerminalSet {
+        TerminalBitSet::new(self)
     }
 }
 
 impl<H, Hs, Ss> SymbolSource for Cfg<H, Hs, Ss> where Ss: SymbolSource {
     type Symbol = Ss::Symbol;
 
-    fn next_sym(&mut self, terminal: bool) -> Self::Symbol {
-        self.sym_source.next_sym(terminal)
-    }
-
-    fn mark_as_nonterminal(&mut self, sym: Self::Symbol) {
-        self.sym_source.mark_as_nonterminal(sym)
+    fn next_sym(&mut self) -> Self::Symbol {
+        self.sym_source.next_sym()
     }
 
     fn num_syms(&self) -> usize {
         self.sym_source.num_syms()
-    }
-
-    fn start_sym(&self) -> Ss::Symbol {
-        self.sym_source.start_sym()
-    }
-}
-
-impl<H, Hs, Ss> TerminalSymbolSet for Cfg<H, Hs, Ss> where Ss: TerminalSymbolSet {
-    fn is_terminal(&self, sym: Self::Symbol) -> bool {
-        self.sym_source.is_terminal(sym)
     }
 }

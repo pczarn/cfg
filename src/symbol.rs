@@ -25,45 +25,37 @@ pub trait SymbolSource {
     type Symbol: GrammarSymbol;
 
     /// Generates a new unique symbol.
-    fn next_sym(&mut self, terminal: bool) -> Self::Symbol;
-    /// Marks a symbol as nonterminal. Used each time a rule with arbitrary LHS is added
-    /// to the grammar.
-    fn mark_as_nonterminal(&mut self, sym: Self::Symbol);
-    /// Returns the start symbol.
-    fn start_sym(&self) -> Self::Symbol;
+    fn next_sym(&mut self) -> Self::Symbol;
     /// Returns the number of symbols in use.
     fn num_syms(&self) -> usize;
-    /// Returns an iterator that generates terminal symbols.
-    fn terminals(&mut self) -> Terminals<&mut Self> {
-        Terminals { source: self }
-    }
-    /// Returns an iterator that generates nonterminal symbols.
-    fn nonterminals(&mut self) -> Nonterminals<&mut Self> {
-        Nonterminals { source: self }
-    }
     /// Returns generated terminal symbols.
     fn sym<T>(&mut self) -> T where Self: Sized, T: SymbolContainer<Self::Symbol> {
         T::generate(self)
     }
-}
-
-/// A source of symbols that tracks whether a symbol is terminal or nonterminal.
-pub trait TerminalSymbolSet: SymbolSource {
-    /// Checks whether a symbol is terminal.
-    fn is_terminal(&self, sym: Self::Symbol) -> bool;
+    /// Returns an iterator that generates symbols.
+    fn generate(&mut self) -> Generate<&mut Self> {
+        Generate { source: self }
+    }
 }
 
 impl<'a, S> SymbolSource for &'a mut S where S: SymbolSource {
     type Symbol = S::Symbol;
 
-    fn next_sym(&mut self, terminal: bool) -> Self::Symbol { (**self).next_sym(terminal) }
-    fn mark_as_nonterminal(&mut self, sym: Self::Symbol) { (**self).mark_as_nonterminal(sym) }
+    fn next_sym(&mut self) -> Self::Symbol { (**self).next_sym() }
     fn num_syms(&self) -> usize { (**self).num_syms() }
-    fn start_sym(&self) -> Self::Symbol { (**self).start_sym() }
 }
 
-impl<'a, S> TerminalSymbolSet for &'a mut S where S: TerminalSymbolSet {
-    fn is_terminal(&self, sym: Self::Symbol) -> bool { (**self).is_terminal(sym) }
+/// Iterator for generating terminal symbols.
+pub struct Generate<S> {
+    source: S,
+}
+
+impl<S> Iterator for Generate<S> where S: SymbolSource {
+    type Item = S::Symbol;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.source.next_sym())
+    }
 }
 
 /// A source of numeric symbols.
@@ -72,20 +64,8 @@ pub struct ConsecutiveSymbols {
     next_sym: NumericSymbolRepr,
 }
 
-/// Iterator for generating terminal symbols.
-pub struct Terminals<S> {
-    source: S,
-}
-
-/// Iterator for generating nonterminal symbols.
-pub struct Nonterminals<S> {
-    source: S,
-}
-
-/// The start symbol's ID.
-const START_SYMBOL: u32 = 1;
 /// The first usable symbol ID.
-const FIRST_SYMBOL: u32 = 2;
+const FIRST_SYMBOL: u32 = 1;
 
 impl ConsecutiveSymbols {
     /// Creates a source of numeric symbols with an empty symbol space.
@@ -104,38 +84,14 @@ impl ConsecutiveSymbols {
 impl SymbolSource for ConsecutiveSymbols {
     type Symbol = NumericSymbol;
 
-    fn next_sym(&mut self, _terminal: bool) -> NumericSymbol {
+    fn next_sym(&mut self) -> NumericSymbol {
         let ret = NumericSymbol::from(self.next_sym as u64);
         self.next_sym = self.next_sym.saturating_add(1);
         ret
     }
 
-    fn mark_as_nonterminal(&mut self, _sym: Self::Symbol) {
-        // This information isn't stored.
-    }
-
-    fn start_sym(&self) -> NumericSymbol {
-        NumericSymbol::from(START_SYMBOL as u64)
-    }
-
     fn num_syms(&self) -> usize {
         self.next_sym as usize
-    }
-}
-
-impl<S> Iterator for Terminals<S> where S: SymbolSource {
-    type Item = S::Symbol;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.source.next_sym(true))
-    }
-}
-
-impl<S> Iterator for Nonterminals<S> where S: SymbolSource {
-    type Item = S::Symbol;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.source.next_sym(false))
     }
 }
 
@@ -149,8 +105,8 @@ macro_rules! impl_generate {
     (S $(, $t:ident)*) => (
         impl<S> SymbolContainer<S> for ( S $(, $t)* ) where S: GrammarSymbol {
             fn generate<Ss>(mut source: Ss) -> Self where Ss: SymbolSource<Symbol=S> {
-                ({ let x: S = source.next_sym(true); x }
-                 $(, { let x: $t = source.next_sym(true); x })*)
+                ({ let x: S = source.next_sym(); x }
+                 $(, { let x: $t = source.next_sym(); x })*)
             }
         }
         impl_generate!($($t),*);

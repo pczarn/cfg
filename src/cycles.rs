@@ -2,7 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use bit_matrix::{FixedBitVec, FixedBitMatrix};
+use bit_matrix::BitMatrix;
+use bit_vec::BitVec;
 
 use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
 use rule::GrammarRule;
@@ -12,8 +13,8 @@ use symbol::{SymbolSource, GrammarSymbol};
 /// pruning cycles.
 pub struct Cycles<G> {
     grammar: G,
-    unit_derivation: FixedBitMatrix,
-    has_cycles: bool,
+    unit_derivation: BitMatrix,
+    cycle_free: bool,
 }
 
 /// An iterator over the grammar's useless rules.
@@ -22,12 +23,12 @@ pub struct CycleParticipants<'a, G: 'a, R> {
     cycles: &'a Cycles<&'a mut G>,
 }
 
-/// Returns the set of symbols which participate in a cycle.
-fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> FixedBitMatrix where
+/// Returns the unit derivation matrix.
+fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix where
             G: ContextFree,
             &'a G: ContextFreeRef<'a, Target=G> {
     let num_syms = grammar.sym_source().num_syms();
-    let mut unit_derivation = FixedBitMatrix::new(num_syms, num_syms);
+    let mut unit_derivation = BitMatrix::new(num_syms, num_syms);
 
     for rule in grammar.rules() {
         // A rule of form `A ::= A` is not a cycle. We can represent unit rules in the form of
@@ -52,14 +53,14 @@ impl<'a, G> Cycles<&'a mut G> where
         let cycle_free = (0 .. grammar.num_syms()).all(|i| !unit_derivation[(i, i)]);
         Cycles {
             unit_derivation: unit_derivation,
-            has_cycles: !cycle_free,
+            cycle_free: cycle_free,
             grammar: grammar,
         }
     }
 
-    /// Checks whether the grammar has cycles.
-    pub fn has_cycles(&self) -> bool {
-        self.has_cycles
+    /// Checks whether the grammar is cycle-free.
+    pub fn cycle_free(&self) -> bool {
+        self.cycle_free
     }
 }
 
@@ -81,7 +82,7 @@ impl<'a, G> Cycles<&'a mut G> where
     pub fn remove_cycles(&mut self) where
                 &'a G: ContextFreeRef<'a, Target=G>,
                 &'a mut G: ContextFreeMut<'a, Target=G> {
-        if self.has_cycles {
+        if !self.cycle_free {
             let unit_derivation = &self.unit_derivation;
             self.grammar.retain(|lhs, rhs, _| {
                 rhs.len() != 1 || !unit_derivation[(rhs[0].usize(), lhs.usize())]
@@ -96,8 +97,8 @@ impl<'a, G> Cycles<&'a mut G> where
                 &'a G: ContextFreeRef<'a, Target=G>,
                 &'a mut G: ContextFreeMut<'a, Target=G> {
         let mut translation = BTreeMap::new();
-        let mut row = FixedBitVec::from_elem(self.grammar.num_syms(), false);
-        if self.has_cycles {
+        let mut row = BitVec::from_elem(self.grammar.num_syms(), false);
+        if !self.cycle_free {
             let unit_derivation = &self.unit_derivation;
             self.grammar.retain(|lhs_sym, rhs, _| {
                 // We have `A ::= B`.
@@ -157,7 +158,7 @@ impl<'a, G> Iterator for CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>:
     type Item = <<&'a G as ContextFreeRef<'a>>::Rules as Iterator>::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if !self.cycles.has_cycles {
+        if self.cycles.cycle_free {
             return None;
         }
 
