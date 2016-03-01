@@ -89,9 +89,13 @@ impl<H, D, S, Hs> SequenceRuleBuilder<H, D, S, Hs>
     pub fn rhs(mut self, rhs: S) -> Self
         where Hs: HistorySource<H, S>
     {
-        let history = self.history.take().unwrap_or_else(||
-            self.history_state.build(self.lhs.unwrap(), &[rhs])
-        );
+        let history = self.history.take().unwrap_or_else(|| {
+            if let Some(sep) = self.separator.into() {
+                self.history_state.build(self.lhs.unwrap(), &[rhs, sep])
+            } else {
+                self.history_state.build(self.lhs.unwrap(), &[rhs])
+            }
+        });
         self.rhs_with_history(rhs, history)
     }
 

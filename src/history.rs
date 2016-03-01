@@ -4,7 +4,6 @@
 use std::marker::PhantomData;
 
 use rule::GrammarRule;
-use sequence::Sequence;
 use symbol::GrammarSymbol;
 
 /// Used to inform which symbols on a rule's RHS are nullable, and will be eliminated.
@@ -51,10 +50,10 @@ pub trait AssignPrecedence {
 pub trait RewriteSequence {
     /// Must be an `Action`, because all created grammar rules except the topmost one will have
     /// no-op semantic action.
-    type Rewritten: Action;
+    type Rewritten;
 
     /// Returns a history. May record the rewrite.
-    fn sequence<H, S>(&self, top: &Sequence<H, S>) -> Self::Rewritten where S: GrammarSymbol;
+    fn top<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol;
     /// Returns a history. May record the rewrite.
     fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
         where S: GrammarSymbol;
@@ -87,7 +86,7 @@ impl AssignPrecedence for NullHistory {
 impl RewriteSequence for NullHistory {
     type Rewritten = Self;
 
-    fn sequence<H, S>(&self, _top: &Sequence<H, S>) -> Self {
+    fn top<S>(&self, _rhs: S, _sep: Option<S>, _new_rhs: &[S]) -> Self {
         NullHistory
     }
 
@@ -102,10 +101,10 @@ impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence
 {
     type Rewritten = T::Rewritten;
 
-    fn sequence<H, S>(&self, top: &Sequence<H, S>) -> Self::Rewritten
+    fn top<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
         where S: GrammarSymbol
     {
-        (**self).sequence(top)
+        (**self).top(rhs, sep, new_rhs)
     }
 
     fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten

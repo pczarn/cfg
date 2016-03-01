@@ -3,7 +3,7 @@ use std::ops::Deref;
 use std::slice;
 
 use binarized::BinarizedCfg;
-use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory, Action};
+use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory};
 use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
 use rule::builder::RuleBuilder;
@@ -100,7 +100,7 @@ impl<H, Hs, Ss> Cfg<H, Hs, Ss> where Ss: SymbolSource
 
 impl<H, Hs, Ss> Cfg<H, Hs, Ss>
     where Hs: RewriteSequence<Rewritten = H>,
-          H: Action + Clone,
+          H: Clone,
           Hs: Clone,
           Ss: SymbolSource
 {
@@ -124,8 +124,7 @@ impl<H, Hs, Ss> Cfg<H, Hs, Ss>
 }
 
 impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss>
-    where H: Action,
-          Ss: SymbolSource,
+    where Ss: SymbolSource,
           Hs: Clone + RewriteSequence<Rewritten = H>
 {
     type Source = Ss;
@@ -137,7 +136,6 @@ impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss>
     fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History, Self::Source>
         where &'a Self: ContextFreeRef<'a, Target = Self>,
               H: Binarize + Clone + 'static,
-              Hs: Clone,
               Ss: Clone
     {
         let mut grammar = BinarizedCfg::from_context_free(self);
@@ -147,7 +145,7 @@ impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss>
 }
 
 impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss>
-    where H: Action + 'a,
+    where H: 'a,
           Hs: Clone + RewriteSequence<Rewritten = H>,
           Ss: SymbolSource + 'a,
           Ss::Symbol: 'a
@@ -161,15 +159,14 @@ impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss>
 }
 
 impl<'a, H, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss>
-    where H: Action + 'a,
+    where H: 'a,
           Hs: Clone + RewriteSequence<Rewritten = H> + 'a,
           Ss: SymbolSource + 'a,
           Ss::Symbol: 'a
 {}
 
 impl<H, Hs, Ss> RuleContainer for Cfg<H, Hs, Ss>
-    where H: Action,
-          Hs: Clone + RewriteSequence<Rewritten = H>,
+    where Hs: Clone + RewriteSequence<Rewritten = H>,
           Ss: SymbolSource,
           Ss::Symbol: GrammarSymbol
 {

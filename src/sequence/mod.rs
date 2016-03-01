@@ -64,3 +64,12 @@ impl<S> Separator<S> {
         }
     }
 }
+
+impl<S> Into<Option<S>> for Separator<S> {
+    fn into(self) -> Option<S> {
+        match self {
+            Trailing(sep) => Some(sep),
+            _ => None,
+        }
+    }
+}

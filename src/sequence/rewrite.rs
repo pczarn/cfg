@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-use history::{Action, RewriteSequence, HistorySource};
+use history::{RewriteSequence, HistorySource, NullHistory};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
 use sequence::{Separator, Sequence};
@@ -20,11 +20,12 @@ pub struct SequencesToProductions<H, D>
           D: RuleContainer
 {
     destination: D,
-    stack: Vec<Sequence<H::Rewritten, D::Symbol>>,
+    stack: Vec<Sequence<NullHistory, D::Symbol>>,
     map: HashMap<PartialSequence<D::Symbol>, D::Symbol>,
-    history: Option<H>,
-    default_history: Option<H::Rewritten>,
+    top_history: Option<H>,
+    at_top: bool,
     rhs: Option<D::Symbol>,
+    separator: Option<D::Symbol>,
 }
 
 // A key into a private map.
@@ -38,7 +39,7 @@ struct PartialSequence<S> {
 
 impl<H, S, D> SequenceDestination<H> for SequencesToProductions<H, D>
     where D: RuleContainer<History = H::Rewritten, Symbol = S>,
-          H: RewriteSequence,
+          H: Clone + RewriteSequence,
           H::Rewritten: Clone,
           S: GrammarSymbol
 {
@@ -51,7 +52,7 @@ impl<H, S, D> SequenceDestination<H> for SequencesToProductions<H, D>
 
 impl<H, S, D> SequencesToProductions<H, D>
     where D: RuleContainer<History = H::Rewritten, Symbol = S>,
-          H: RewriteSequence,
+          H: Clone + RewriteSequence,
           H::Rewritten: Clone,
           S: GrammarSymbol
 {
@@ -61,9 +62,10 @@ impl<H, S, D> SequencesToProductions<H, D>
             destination: destination,
             stack: vec![],
             map: HashMap::new(),
-            history: None,
-            default_history: None,
+            top_history: None,
+            at_top: false,
             rhs: None,
+            separator: None,
         }
     }
 
@@ -82,20 +84,20 @@ impl<H, S, D> SequencesToProductions<H, D>
     pub fn rewrite(&mut self, top: Sequence<H, S>) {
         self.stack.clear();
         self.map.clear();
-        let seq_history = top.history.sequence(&top);
-        self.history = Some(top.history);
+        self.top_history = Some(top.history);
         let top = Sequence {
             lhs: top.lhs,
             rhs: top.rhs,
             start: top.start,
             end: top.end,
             separator: top.separator,
-            history: seq_history.no_op(),
+            history: NullHistory,
         };
-        self.default_history = Some(seq_history);
         self.rhs = Some(top.rhs);
+        self.separator = top.separator.into();
+        self.at_top = true;
         self.reduce(top);
-        self.default_history = None;
+        self.at_top = false;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
             self.reduce(seq);
@@ -104,14 +106,15 @@ impl<H, S, D> SequencesToProductions<H, D>
 
     fn rule(&mut self, lhs: S) -> RuleBuilder<&mut D, DefaultSeqHistory<H, S>> {
         let default = DefaultSeqHistory {
-            default: self.default_history.as_ref(),
-            top: self.history.as_ref().unwrap(),
+            top_history: self.top_history.as_ref().unwrap(),
+            at_top: self.at_top,
             elem: self.rhs.unwrap(),
+            separator: self.separator,
         };
         RuleBuilder::new(&mut self.destination).rule(lhs).default_history(default)
     }
 
-    fn recurse(&mut self, seq: Sequence<H::Rewritten, S>) -> S {
+    fn recurse(&mut self, seq: Sequence<NullHistory, S>) -> S {
         let sym_source = &mut self.destination;
         // As a placeholder
         let partial = PartialSequence {
@@ -139,10 +142,9 @@ impl<H, S, D> SequencesToProductions<H, D>
         }
     }
 
-    fn reduce(&mut self, sequence: Sequence<H::Rewritten, S>) {
+    fn reduce(&mut self, sequence: Sequence<NullHistory, S>) {
         let Sequence { lhs, rhs, start, end, separator, .. } = sequence;
         // TODO optimize reductions
-
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
                 let sym1 = self.recurse(sequence.clone().separator(Proper(sep)));
@@ -226,9 +228,10 @@ impl<H, S, D> SequencesToProductions<H, D>
 }
 
 struct DefaultSeqHistory<'a, H: 'a, S> where H: RewriteSequence {
-    default: Option<&'a H::Rewritten>,
-    top: &'a H,
+    top_history: &'a H,
+    at_top: bool,
     elem: S,
+    separator: Option<S>,
 }
 
 impl<'a, H, S> HistorySource<H::Rewritten, S> for DefaultSeqHistory<'a, H, S>
@@ -237,10 +240,10 @@ impl<'a, H, S> HistorySource<H::Rewritten, S> for DefaultSeqHistory<'a, H, S>
           S: GrammarSymbol,
 {
     fn build(&mut self, _lhs: S, rhs: &[S]) -> H::Rewritten {
-        if let Some(default) = self.default {
-            default.clone()
+        if self.at_top {
+            self.top_history.top(self.elem, self.separator, rhs)
         } else {
-            self.top.bottom(self.elem, None, rhs)
+            self.top_history.bottom(self.elem, self.separator, rhs)
         }
     }
 }
