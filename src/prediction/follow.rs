@@ -9,21 +9,23 @@ use rule::terminal_set::TerminalSet;
 use symbol::GrammarSymbol;
 
 /// FOLLOW sets.
-pub struct FollowSets<S> where S: GrammarSymbol {
+pub struct FollowSets<S>
+    where S: GrammarSymbol
+{
     /// Mapping from nonterminals to FOLLOW sets.
     map: PerSymbolSets<S>,
 }
 
-impl<S> FollowSets<S> where S: GrammarSymbol {
+impl<S> FollowSets<S> where S: GrammarSymbol
+{
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
     pub fn new<'a, G>(grammar: &'a G, start_sym: S, first_sets: &FirstSets<S>) -> Self
-            where G: ContextFree<Symbol=S>,
-                  &'a G: ContextFreeRef<'a, Target=G>,
-                  G::TerminalSet: TerminalSet<Symbol=S> {
-        let mut this = FollowSets {
-            map: BTreeMap::new()
-        };
+        where G: ContextFree<Symbol = S>,
+              &'a G: ContextFreeRef<'a, Target = G>,
+              G::TerminalSet: TerminalSet<Symbol = S>
+    {
+        let mut this = FollowSets { map: BTreeMap::new() };
 
         for rule in grammar.rules() {
             let follow_set = this.map.entry(rule.lhs()).or_insert_with(|| BTreeSet::new());

@@ -24,9 +24,10 @@ pub struct CycleParticipants<'a, G: 'a, R> {
 }
 
 /// Returns the unit derivation matrix.
-fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix where
-            G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target=G> {
+fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>
+{
     let num_syms = grammar.sym_source().num_syms();
     let mut unit_derivation = BitMatrix::new(num_syms, num_syms);
 
@@ -43,14 +44,15 @@ fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix where
     unit_derivation
 }
 
-impl<'a, G> Cycles<&'a mut G> where
-            G: ContextFree,
-            for<'b> &'b G: ContextFreeRef<'b, Target=G>,
-            for<'b> &'b mut G: ContextFreeMut<'b, Target=G> {
+impl<'a, G> Cycles<&'a mut G>
+    where G: ContextFree,
+          for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+          for<'b> &'b mut G: ContextFreeMut<'b, Target = G>
+{
     /// Analyzes the grammar's cycles.
     pub fn new(grammar: &'a mut G) -> Cycles<&'a mut G> {
         let unit_derivation = unit_derivation_matrix(grammar);
-        let cycle_free = (0 .. grammar.num_syms()).all(|i| !unit_derivation[(i, i)]);
+        let cycle_free = (0..grammar.num_syms()).all(|i| !unit_derivation[(i, i)]);
         Cycles {
             unit_derivation: unit_derivation,
             cycle_free: cycle_free,
@@ -64,13 +66,14 @@ impl<'a, G> Cycles<&'a mut G> where
     }
 }
 
-impl<'a, G> Cycles<&'a mut G> where
-        G: ContextFree,
-        &'a G: ContextFreeRef<'a, Target=G>,
-        &'a mut G: ContextFreeMut<'a, Target=G> {
+impl<'a, G> Cycles<&'a mut G>
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>,
+          &'a mut G: ContextFreeMut<'a, Target = G>
+{
     /// Iterates over rules that participate in a cycle.
     pub fn cycle_participants(&'a self)
-                -> CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
+                              -> CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
         CycleParticipants {
             rules: self.grammar.rules(),
             cycles: self,
@@ -79,9 +82,10 @@ impl<'a, G> Cycles<&'a mut G> where
 
     /// Removes all rules that participate in a cycle. Doesn't preserve the language represented
     /// by the grammar.
-    pub fn remove_cycles(&mut self) where
-                &'a G: ContextFreeRef<'a, Target=G>,
-                &'a mut G: ContextFreeMut<'a, Target=G> {
+    pub fn remove_cycles(&mut self)
+        where &'a G: ContextFreeRef<'a, Target = G>,
+              &'a mut G: ContextFreeMut<'a, Target = G>
+    {
         if !self.cycle_free {
             let unit_derivation = &self.unit_derivation;
             self.grammar.retain(|lhs, rhs, _| {
@@ -92,10 +96,11 @@ impl<'a, G> Cycles<&'a mut G> where
 
     /// Rewrites all rules that participate in a cycle. Preserves the language represented
     /// by the grammar.
-    pub fn rewrite_cycles(&mut self) where
-                G::History: Clone,
-                &'a G: ContextFreeRef<'a, Target=G>,
-                &'a mut G: ContextFreeMut<'a, Target=G> {
+    pub fn rewrite_cycles(&mut self)
+        where G::History: Clone,
+              &'a G: ContextFreeRef<'a, Target = G>,
+              &'a mut G: ContextFreeMut<'a, Target = G>
+    {
         let mut translation = BTreeMap::new();
         let mut row = BitVec::from_elem(self.grammar.num_syms(), false);
         if !self.cycle_free {

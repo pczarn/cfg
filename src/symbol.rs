@@ -29,7 +29,10 @@ pub trait SymbolSource {
     /// Returns the number of symbols in use.
     fn num_syms(&self) -> usize;
     /// Returns generated terminal symbols.
-    fn sym<T>(&mut self) -> T where Self: Sized, T: SymbolContainer<Self::Symbol> {
+    fn sym<T>(&mut self) -> T
+        where Self: Sized,
+              T: SymbolContainer<Self::Symbol>
+    {
         T::generate(self)
     }
     /// Returns an iterator that generates symbols.
@@ -38,11 +41,16 @@ pub trait SymbolSource {
     }
 }
 
-impl<'a, S> SymbolSource for &'a mut S where S: SymbolSource {
+impl<'a, S> SymbolSource for &'a mut S where S: SymbolSource
+{
     type Symbol = S::Symbol;
 
-    fn next_sym(&mut self) -> Self::Symbol { (**self).next_sym() }
-    fn num_syms(&self) -> usize { (**self).num_syms() }
+    fn next_sym(&mut self) -> Self::Symbol {
+        (**self).next_sym()
+    }
+    fn num_syms(&self) -> usize {
+        (**self).num_syms()
+    }
 }
 
 /// Iterator for generating terminal symbols.
@@ -50,7 +58,8 @@ pub struct Generate<S> {
     source: S,
 }
 
-impl<S> Iterator for Generate<S> where S: SymbolSource {
+impl<S> Iterator for Generate<S> where S: SymbolSource
+{
     type Item = S::Symbol;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -70,13 +79,13 @@ const FIRST_SYMBOL: u32 = 1;
 impl ConsecutiveSymbols {
     /// Creates a source of numeric symbols with an empty symbol space.
     pub fn new() -> Self {
-        ConsecutiveSymbols {
-            next_sym: FIRST_SYMBOL,
-        }
+        ConsecutiveSymbols { next_sym: FIRST_SYMBOL }
     }
 
     /// Returns generated terminal symbols.
-    pub fn sym<T>(&mut self) -> T where T: SymbolContainer<NumericSymbol> {
+    pub fn sym<T>(&mut self) -> T
+        where T: SymbolContainer<NumericSymbol>
+    {
         T::generate(self)
     }
 }
@@ -98,7 +107,7 @@ impl SymbolSource for ConsecutiveSymbols {
 /// Trait used to generate terminal symbols.
 pub trait SymbolContainer<S: GrammarSymbol> {
     /// Generates 
-    fn generate<Ss>(source: Ss) -> Self where Ss: SymbolSource<Symbol=S>;
+    fn generate<Ss>(source: Ss) -> Self where Ss: SymbolSource<Symbol = S>;
 }
 
 macro_rules! impl_generate {

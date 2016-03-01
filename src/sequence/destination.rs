@@ -11,7 +11,8 @@ pub trait SequenceDestination<H> {
     fn add_sequence(&mut self, seq: Sequence<H, Self::Symbol>);
 }
 
-impl<'a, H, S> SequenceDestination<H> for &'a mut Vec<Sequence<H, S>> where S: GrammarSymbol {
+impl<'a, H, S> SequenceDestination<H> for &'a mut Vec<Sequence<H, S>> where S: GrammarSymbol
+{
     type Symbol = S;
 
     fn add_sequence(&mut self, seq: Sequence<H, Self::Symbol>) {

@@ -17,7 +17,8 @@ pub struct RuleBuilder<C, F = DefaultHistory<<C as RuleContainer>::History,
     rules: C,
 }
 
-impl<C> RuleBuilder<C> where C: RuleContainer {
+impl<C> RuleBuilder<C> where C: RuleContainer
+{
     /// Creates a rule builder.
     pub fn new(rules: C) -> RuleBuilder<C> {
         RuleBuilder {
@@ -66,16 +67,17 @@ impl<C, F> RuleBuilder<C, F> where C: RuleContainer {
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_history<Sr>(mut self, syms: Sr, history: C::History) -> Self where
-                Sr: AsRef<[C::Symbol]> {
+    pub fn rhs_with_history<Sr>(mut self, syms: Sr, history: C::History) -> Self
+        where Sr: AsRef<[C::Symbol]>,
+    {
         self.rules.add_rule(self.lhs.unwrap(), syms.as_ref(), history);
         self
     }
 
     /// Starts building a new precedenced rule.
-    pub fn precedenced_rule(self, lhs: C::Symbol)
-            -> PrecedencedRuleBuilder<C>
-            where C::History: AssignPrecedence + Default {
+    pub fn precedenced_rule(self, lhs: C::Symbol) -> PrecedencedRuleBuilder<C>
+        where C::History: AssignPrecedence + Default
+    {
         PrecedencedRuleBuilder::new(self.rules, lhs)
     }
 }

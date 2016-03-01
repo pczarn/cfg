@@ -1,7 +1,7 @@
 //! Rewrites sequence rules into production rules.
 
-//#[cfg(feature = "nightly")]
-//use collections::range::RangeArgument;
+// #[cfg(feature = "nightly")]
+// use collections::range::RangeArgument;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
@@ -15,9 +15,10 @@ use sequence::destination::SequenceDestination;
 use symbol::{GrammarSymbol, SymbolSource};
 
 /// Rewrites sequence rules into production rules.
-pub struct SequencesToProductions<H, D> where
-            H: RewriteSequence,
-            D: RuleContainer {
+pub struct SequencesToProductions<H, D>
+    where H: RewriteSequence,
+          D: RuleContainer
+{
     destination: D,
     stack: Vec<Sequence<H::Rewritten, D::Symbol>>,
     map: HashMap<PartialSequence<D::Symbol>, D::Symbol>,
@@ -34,11 +35,12 @@ struct PartialSequence<S> {
     separator: Separator<S>,
 }
 
-impl<H, S, D> SequenceDestination<H> for SequencesToProductions<H, D> where
-            D: RuleContainer<History=H::Rewritten, Symbol=S>,
-            H: RewriteSequence,
-            H::Rewritten: Clone,
-            S: GrammarSymbol {
+impl<H, S, D> SequenceDestination<H> for SequencesToProductions<H, D>
+    where D: RuleContainer<History = H::Rewritten, Symbol = S>,
+          H: RewriteSequence,
+          H::Rewritten: Clone,
+          S: GrammarSymbol
+{
     type Symbol = S;
 
     fn add_sequence(&mut self, seq: Sequence<H, Self::Symbol>) {
@@ -46,11 +48,12 @@ impl<H, S, D> SequenceDestination<H> for SequencesToProductions<H, D> where
     }
 }
 
-impl<H, S, D> SequencesToProductions<H, D> where
-            D: RuleContainer<History=H::Rewritten, Symbol=S>,
-            H: RewriteSequence,
-            H::Rewritten: Clone,
-            S: GrammarSymbol {
+impl<H, S, D> SequencesToProductions<H, D>
+    where D: RuleContainer<History = H::Rewritten, Symbol = S>,
+          H: RewriteSequence,
+          H::Rewritten: Clone,
+          S: GrammarSymbol
+{
     /// Initializes a rewrite.
     pub fn new(destination: D) -> Self {
         SequencesToProductions {
@@ -106,7 +109,7 @@ impl<H, S, D> SequencesToProductions<H, D> where
             rhs: seq.rhs,
             separator: seq.separator,
             start: seq.start,
-            end: seq.end
+            end: seq.end,
         };
 
         match self.map.entry(partial) {
@@ -140,8 +143,9 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 let sym1 = self.recurse(sequence.clone().separator(Proper(sep)));
                 let sym2 = self.recurse(sequence.clone().separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs).rhs([sym1])
-                              .rhs([sym2]);
+                self.rule(lhs)
+                    .rhs([sym1])
+                    .rhs([sym2]);
             }
             (Trailing(sep), _, _) => {
                 let sym = self.recurse(sequence.separator(Proper(sep)));
@@ -176,8 +180,9 @@ impl<H, S, D> SequencesToProductions<H, D> where
                 let sym1 = self.recurse(sequence.clone().inclusive(1, Some(1)));
                 let sym2 = self.recurse(sequence.clone().inclusive(2, Some(2)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs).rhs([sym1])
-                              .rhs([sym2]);
+                self.rule(lhs)
+                    .rhs([sym1])
+                    .rhs([sym2]);
             }
             (separator, 1, Some(end)) => {
                 let pow2 = end.next_power_of_two() / 2;

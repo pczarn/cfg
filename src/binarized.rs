@@ -12,14 +12,16 @@ use history::BinarizedRhsSubset::*;
 use rhs_closure::RhsClosure;
 use rule::{GrammarRule, RuleRef};
 use rule::container::RuleContainer;
-use rule::terminal_set::{TerminalSet, TerminalBitSet};
+use rule::terminal_set::TerminalBitSet;
 use symbol::{ConsecutiveSymbols, SymbolSource, GrammarSymbol};
 
 use self::BinarizedRuleRhs::*;
 
 /// Representation for grammars where right-hand sides of all rules have at most two symbols.
 #[derive(Clone)]
-pub struct BinarizedCfg<H = NullHistory, Ss = ConsecutiveSymbols> where Ss: SymbolSource {
+pub struct BinarizedCfg<H = NullHistory, Ss = ConsecutiveSymbols>
+    where Ss: SymbolSource
+{
     /// The symbol source.
     sym_source: Ss,
     /// The array of rules.
@@ -30,7 +32,9 @@ pub struct BinarizedCfg<H = NullHistory, Ss = ConsecutiveSymbols> where Ss: Symb
 }
 
 /// Compact representation of a binarized rule.
-pub struct BinarizedRule<H, Ss> where Ss: GrammarSymbol {
+pub struct BinarizedRule<H, Ss>
+    where Ss: GrammarSymbol
+{
     lhs: Ss,
     rhs: BinarizedRuleRhs<Ss>,
     history: H,
@@ -38,34 +42,38 @@ pub struct BinarizedRule<H, Ss> where Ss: GrammarSymbol {
 
 /// Compact representation of a binarized rule's RHS.
 #[derive(Eq, Ord, PartialEq, PartialOrd)]
-pub enum BinarizedRuleRhs<Ss> where Ss: GrammarSymbol {
+pub enum BinarizedRuleRhs<Ss>
+    where Ss: GrammarSymbol
+{
     One([Ss; 1]),
     Two([Ss; 2]),
 }
 
 impl<H> BinarizedCfg<H> {
     /// Creates a BinarizedCfg.
-    pub fn new() -> BinarizedCfg<H> {
+    pub fn new() -> Self {
         BinarizedCfg::with_sym_source(ConsecutiveSymbols::new())
     }
 }
 
-impl<H, Ss> BinarizedCfg<H, Ss> where Ss: SymbolSource {
+impl<H, Ss> BinarizedCfg<H, Ss> where Ss: SymbolSource
+{
     /// Creates an empty BinarizedCfg with the given symbol source.
-    pub fn with_sym_source(sym_source: Ss) -> BinarizedCfg<H, Ss> {
+    pub fn with_sym_source(ss: Ss) -> BinarizedCfg<H, Ss> {
         BinarizedCfg {
-            sym_source: sym_source,
+            sym_source: ss,
             rules: vec![],
             nulling: vec![],
         }
     }
 
     /// Creates a BinarizedCfg by binarizing a context-free grammar.
-    pub fn from_context_free<'a, G>(this: &'a G) -> BinarizedCfg<H, Ss> where
-                G: ContextFree<History=H, Source=Ss>,
-                &'a G: ContextFreeRef<'a, Target=G>,
-                H: Binarize + Clone + 'static,
-                Ss: Clone + SymbolSource<Symbol=G::Symbol> {
+    pub fn from_context_free<'a, G>(this: &'a G) -> BinarizedCfg<H, Ss>
+        where G: ContextFree<History = H, Source = Ss>,
+              &'a G: ContextFreeRef<'a, Target = G>,
+              H: Binarize + Clone + 'static,
+              Ss: Clone + SymbolSource<Symbol = G::Symbol>
+    {
         let mut new_rule_count = 0;
         // Calculate rule vec capacity.
         for rule in this.rules() {
@@ -89,17 +97,23 @@ impl<H, Ss> BinarizedCfg<H, Ss> where Ss: SymbolSource {
         self.rules.sort();
     }
 
+    /// Sorts the rule array in place, using the argument to compare elements.
+    pub fn sort_by<F>(&mut self, compare: F) where F: FnMut(&BinarizedRule<H, Ss::Symbol>, &BinarizedRule<H, Ss::Symbol>) -> Ordering {
+        self.rules.sort_by(compare);
+    }
+
     /// Removes consecutive duplicate rules.
     pub fn dedup(&mut self) {
         self.rules.dedup();
     }
 }
 
-impl<H, Ss> BinarizedCfg<H, Ss> where
-            H: Binarize + Clone + EliminateNulling,
-            Ss: SymbolSource + Clone {
+impl<H, Ss> BinarizedCfg<H, Ss>
+    where H: Binarize + Clone + EliminateNulling,
+          Ss: SymbolSource + Clone
+{
     /// Eliminates all rules of the form `A ::= epsilon`.
-    /// 
+    ///
     /// In other words, this splits off the set of nulling rules.
     ///
     /// The language represented by the grammar is preserved, except for the possible lack of
@@ -133,12 +147,12 @@ impl<H, Ss> BinarizedCfg<H, Ss> where
                     let which = &[(rule.rhs()[0], Right), (rule.rhs()[1], Left)];
                     let with_rhs0 = right_nullable as usize;
                     let with_rhs1 = left_nullable as usize;
-                    for &(sym, direction) in &which[1 - with_rhs0 .. 1 + with_rhs1] {
-                        rewritten_rules.push(BinarizedRule::new(
-                            rule.lhs(),
-                            &[sym],
-                            rule.history().eliminate_nulling(rule, direction),
-                        ));
+                    for &(sym, direction) in &which[1 - with_rhs0..1 + with_rhs1] {
+                        rewritten_rules.push(BinarizedRule::new(rule.lhs(),
+                                                                &[sym],
+                                                                rule.history()
+                                                                    .eliminate_nulling(rule,
+                                                                                       direction)));
                     }
                 }
             }
@@ -158,28 +172,31 @@ impl<H, Ss> BinarizedCfg<H, Ss> where
     }
 }
 
-impl<H, Ss> ContextFree for BinarizedCfg<H, Ss> where
-            H: Binarize,
-            Ss: SymbolSource {
+impl<H, Ss> ContextFree for BinarizedCfg<H, Ss>
+    where H: Binarize,
+          Ss: SymbolSource
+{
     type Source = Ss;
 
     fn sym_source(&self) -> &Ss {
         &self.sym_source
     }
 
-    fn binarize<'a>(&'a self) -> Self where
-                &'a Self: ContextFreeRef<'a, Target=Self>,
-                H: Clone,
-                Ss: Clone {
+    fn binarize<'a>(&'a self) -> Self
+        where &'a Self: ContextFreeRef<'a, Target = Self>,
+              H: Clone,
+              Ss: Clone
+    {
         // This grammar is already binarized.
         self.clone()
     }
 }
 
-impl<'a, H, Ss> ContextFreeRef<'a> for &'a BinarizedCfg<H, Ss> where
-            H: Binarize + 'a,
-            Ss: SymbolSource,
-            Ss::Symbol: 'a {
+impl<'a, H, Ss> ContextFreeRef<'a> for &'a BinarizedCfg<H, Ss>
+    where H: Binarize + 'a,
+          Ss: SymbolSource,
+          Ss::Symbol: 'a
+{
     type RuleRef = RuleRef<'a, H, Ss::Symbol>;
     type Rules =    iter::Chain<
                         LhsWithHistoryToRuleRef<
@@ -199,22 +216,23 @@ impl<'a, H, Ss> ContextFreeRef<'a> for &'a BinarizedCfg<H, Ss> where
     }
 }
 
-impl<'a, H, Ss> ContextFreeMut<'a> for &'a mut BinarizedCfg<H, Ss> where
-            H: Binarize + 'a,
-            Ss: SymbolSource + 'a,
-            Ss::Symbol: 'a {
-}
+impl<'a, H, Ss> ContextFreeMut<'a> for &'a mut BinarizedCfg<H, Ss>
+    where H: Binarize + 'a,
+          Ss: SymbolSource + 'a,
+          Ss::Symbol: 'a
+{}
 
 impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
-        where
-            H: Binarize,
-            Ss: SymbolSource,
-            Ss::Symbol: GrammarSymbol {
+    where H: Binarize,
+          Ss: SymbolSource,
+          Ss::Symbol: GrammarSymbol
+{
     type History = H;
     type TerminalSet = TerminalBitSet<Ss::Symbol>;
 
-    fn retain<F>(&mut self, mut f: F) where
-                F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool {
+    fn retain<F>(&mut self, mut f: F)
+        where F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool
+    {
         self.rules.retain(|rule| f(rule.lhs(), rule.rhs(), rule.history()));
     }
 
@@ -230,18 +248,19 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
                 self.nulling.push(None);
             }
             // Add a rule of the form `LHS ⸬= ε`.
-            assert!(self.nulling[lhs.usize()].is_none(), "Duplicate nulling rule");
+            assert!(self.nulling[lhs.usize()].is_none(),
+                    "Duplicate nulling rule");
             self.nulling[lhs.usize()] = Some(history.binarize(&this_rule_ref, 0));
         } else {
             // Rewrite to a set of binarized rules.
             // From `LHS ⸬= A B C … X Y Z` to:
             // ____________________
-            //| LHS ⸬= S0  Z
-            //| S0  ⸬= S1  Y
-            //| S1  ⸬= S2  X
-            //| …
-            //| Sm  ⸬= Sn  C
-            //| Sn  ⸬= A   B
+            // | LHS ⸬= S0  Z
+            // | S0  ⸬= S1  Y
+            // | S1  ⸬= S2  X
+            // | …
+            // | Sm  ⸬= Sn  C
+            // | Sn  ⸬= A   B
             let mut rhs_iter = rhs.iter().cloned();
             let sym_range = cmp::max(rhs.len(), 2) - 2;
             let left_iter = self.sym_source.generate().take(sym_range).chain(rhs_iter.next());
@@ -249,19 +268,21 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
 
             let mut next_lhs = lhs;
 
-            self.rules.extend(
-                left_iter.zip(right_iter).enumerate().map(
-                    |(depth, (left, right))| {
-                        let lhs = next_lhs;
-                        next_lhs = left;
-                        BinarizedRule {
-                            lhs: lhs,
-                            rhs: if let Some(r) = right { Two([left, r]) } else { One([left]) },
-                            history: history.binarize(&this_rule_ref, depth),
-                        }
-                    }
-                )
-            );
+            self.rules.extend(left_iter.zip(right_iter)
+                                       .enumerate()
+                                       .map(|(depth, (left, right))| {
+                                           let lhs = next_lhs;
+                                           next_lhs = left;
+                                           BinarizedRule {
+                                               lhs: lhs,
+                                               rhs: if let Some(r) = right {
+                                                   Two([left, r])
+                                               } else {
+                                                   One([left])
+                                               },
+                                               history: history.binarize(&this_rule_ref, depth),
+                                           }
+                                       }));
         }
     }
 
@@ -270,7 +291,8 @@ impl<H, Ss> RuleContainer for BinarizedCfg<H, Ss>
     }
 }
 
-impl<H, Ss> SymbolSource for BinarizedCfg<H, Ss> where Ss: SymbolSource {
+impl<H, Ss> SymbolSource for BinarizedCfg<H, Ss> where Ss: SymbolSource
+{
     type Symbol = Ss::Symbol;
 
     fn next_sym(&mut self) -> Self::Symbol {
@@ -282,7 +304,8 @@ impl<H, Ss> SymbolSource for BinarizedCfg<H, Ss> where Ss: SymbolSource {
     }
 }
 
-impl<H, Ss> GrammarRule for BinarizedRule<H, Ss> where Ss: GrammarSymbol {
+impl<H, Ss> GrammarRule for BinarizedRule<H, Ss> where Ss: GrammarSymbol
+{
     type Symbol = Ss;
     type History = H;
 
@@ -304,8 +327,9 @@ impl<H, Ss> GrammarRule for BinarizedRule<H, Ss> where Ss: GrammarSymbol {
 
 // Can't derive because of the where clause.
 impl<H, Ss> Clone for BinarizedRule<H, Ss>
-        where H: Clone,
-              Ss: GrammarSymbol {
+    where H: Clone,
+          Ss: GrammarSymbol
+{
     fn clone(&self) -> Self {
         BinarizedRule {
             lhs: self.lhs,
@@ -315,7 +339,8 @@ impl<H, Ss> Clone for BinarizedRule<H, Ss>
     }
 }
 
-impl<H, Ss> BinarizedRule<H, Ss> where Ss: GrammarSymbol {
+impl<H, Ss> BinarizedRule<H, Ss> where Ss: GrammarSymbol
+{
     pub fn new(lhs: Ss, rhs: &[Ss], history: H) -> Self {
         BinarizedRule {
             history: history,
@@ -326,7 +351,7 @@ impl<H, Ss> BinarizedRule<H, Ss> where Ss: GrammarSymbol {
                 Two([rhs[0], rhs[1]])
             } else {
                 unreachable!()
-            }
+            },
         }
     }
 
@@ -345,52 +370,57 @@ impl<H, Ss> BinarizedRule<H, Ss> where Ss: GrammarSymbol {
     }
 }
 
-impl<Ss> Copy for BinarizedRuleRhs<Ss> where Ss: GrammarSymbol {}
+impl<Ss> Copy for BinarizedRuleRhs<Ss> where Ss: GrammarSymbol
+{}
 
-impl<H, Ss> PartialEq for BinarizedRule<H, Ss> where Ss: GrammarSymbol {
+impl<H, Ss> PartialEq for BinarizedRule<H, Ss> where Ss: GrammarSymbol
+{
     fn eq(&self, other: &Self) -> bool {
         (self.lhs, &self.rhs) == (other.lhs, &other.rhs)
     }
 }
 
-impl<H, Ss> PartialOrd for BinarizedRule<H, Ss> where Ss: GrammarSymbol {
+impl<H, Ss> PartialOrd for BinarizedRule<H, Ss> where Ss: GrammarSymbol
+{
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         (self.lhs, &self.rhs).partial_cmp(&(other.lhs, &other.rhs))
     }
 }
 
-impl<H, Ss> Ord for BinarizedRule<H, Ss> where Ss: GrammarSymbol {
+impl<H, Ss> Ord for BinarizedRule<H, Ss> where Ss: GrammarSymbol
+{
     fn cmp(&self, other: &Self) -> Ordering {
         (self.lhs, &self.rhs).cmp(&(other.lhs, &other.rhs))
     }
 }
 
-impl<H, Ss> Eq for BinarizedRule<H, Ss> where Ss: GrammarSymbol {}
+impl<H, Ss> Eq for BinarizedRule<H, Ss> where Ss: GrammarSymbol
+{}
 
 // Can't derive because of the where clause.
-impl<Ss> Clone for BinarizedRuleRhs<Ss> where Ss: GrammarSymbol {
+impl<Ss> Clone for BinarizedRuleRhs<Ss> where Ss: GrammarSymbol
+{
     fn clone(&self) -> Self {
         *self
     }
 }
 
 pub struct BinarizedRuleToRuleRef<I> {
-    iter: I
+    iter: I,
 }
 
 impl<I> BinarizedRuleToRuleRef<I> {
     pub fn new(iter: I) -> Self {
-        BinarizedRuleToRuleRef {
-            iter: iter
-        }
+        BinarizedRuleToRuleRef { iter: iter }
     }
 }
 
-impl<'a, I, R, H, S> Iterator for BinarizedRuleToRuleRef<I> where
-            I: Iterator<Item=&'a R>,
-            R: GrammarRule<History=H, Symbol=S> + 'a,
-            H: 'a,
-            S: GrammarSymbol + 'a {
+impl<'a, I, R, H, S> Iterator for BinarizedRuleToRuleRef<I>
+    where I: Iterator<Item = &'a R>,
+          R: GrammarRule<History = H, Symbol = S> + 'a,
+          H: 'a,
+          S: GrammarSymbol + 'a
+{
     type Item = RuleRef<'a, H, S>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -424,10 +454,11 @@ impl<I, Ss> LhsWithHistoryToRuleRef<I, Ss> {
     }
 }
 
-impl<'a, I, H, S> Iterator for LhsWithHistoryToRuleRef<I, S> where
-            I: Iterator<Item=LhsWithHistory<'a, H>>,
-            H: 'a,
-            S: GrammarSymbol + 'a {
+impl<'a, I, H, S> Iterator for LhsWithHistoryToRuleRef<I, S>
+    where I: Iterator<Item = LhsWithHistory<'a, H>>,
+          H: 'a,
+          S: GrammarSymbol + 'a
+{
     type Item = RuleRef<'a, H, S>;
 
     fn next(&mut self) -> Option<Self::Item> {

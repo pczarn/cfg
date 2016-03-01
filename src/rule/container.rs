@@ -13,30 +13,28 @@ pub trait RuleContainer: SymbolSource {
     /// Retains only the rules specified by the predicate.
     ///
     /// In other words, removes all rules `rule` for which `f(&rule)` returns false.
-    fn retain<F>(&mut self, f: F) where
-            F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool;
+    fn retain<F>(&mut self, f: F)
+        where F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool;
     /// Inserts a rule with `lhs` and `rhs` on its LHS and RHS. The rule carries `history`.
-    fn add_rule(&mut self, lhs: Self::Symbol,
-                           rhs: &[Self::Symbol],
-                           history: Self::History);
+    fn add_rule(&mut self, lhs: Self::Symbol, rhs: &[Self::Symbol], history: Self::History);
     /// Gathers information about whether symbols are terminal or nonterminal.
     ///
     /// Constructs a data structure in O(n) time.
     fn terminal_set(&self) -> Self::TerminalSet;
 }
 
-impl<'a, D> RuleContainer for &'a mut D where D: RuleContainer {
+impl<'a, D> RuleContainer for &'a mut D where D: RuleContainer
+{
     type History = D::History;
     type TerminalSet = D::TerminalSet;
 
-    fn retain<F>(&mut self, f: F) where
-                F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool {
+    fn retain<F>(&mut self, f: F)
+        where F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool
+    {
         (**self).retain(f);
     }
 
-    fn add_rule(&mut self, lhs: Self::Symbol,
-                           rhs: &[Self::Symbol],
-                           history: Self::History) {
+    fn add_rule(&mut self, lhs: Self::Symbol, rhs: &[Self::Symbol], history: Self::History) {
         (**self).add_rule(lhs, rhs, history);
     }
 

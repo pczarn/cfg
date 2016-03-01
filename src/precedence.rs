@@ -39,9 +39,10 @@ pub struct PrecedencedRuleBuilder<D> where
     rules_with_group_assoc: Vec<Rule<D::History, D::Symbol>>,
 }
 
-impl<D> PrecedencedRuleBuilder<D> where
-            D: RuleContainer,
-            D::History: AssignPrecedence + Default {
+impl<D> PrecedencedRuleBuilder<D>
+    where D: RuleContainer,
+          D::History: AssignPrecedence + Default
+{
     /// Returns a precedenced rule builder.
     pub fn new(mut rules: D, lhs: D::Symbol) -> Self {
         let tightest_lhs = rules.next_sym();
@@ -87,8 +88,9 @@ impl<D> PrecedencedRuleBuilder<D> where
     }
 
     /// Creates a rule alternative with the given RHS and history.
-    pub fn rhs_with_history<S>(mut self, syms: S, history: D::History) -> Self where
-                S: AsRef<[D::Symbol]> {
+    pub fn rhs_with_history<S>(mut self, syms: S, history: D::History) -> Self
+        where S: AsRef<[D::Symbol]>
+    {
         let syms = syms.as_ref();
         let this_rule_ref = RuleRef {
             lhs: self.current_lhs,
@@ -127,9 +129,10 @@ impl<D> PrecedencedRuleBuilder<D> where
     }
 
     /// Assigns the associativity, which influences the next call to `rhs` or `rhs_with_history`.
-    pub fn associativity(mut self, assoc: Associativity) -> Self where
-                D::History: AssignPrecedence,
-                D: SymbolSource {
+    pub fn associativity(mut self, assoc: Associativity) -> Self
+        where D::History: AssignPrecedence,
+              D: SymbolSource
+    {
         self.assoc = assoc;
         self
     }

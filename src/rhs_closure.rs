@@ -6,18 +6,22 @@ use grammar::{ContextFree, ContextFreeRef};
 use rule::GrammarRule;
 use symbol::GrammarSymbol;
 
-pub struct RhsClosure<G, R> where G: ContextFree {
+pub struct RhsClosure<G, R>
+    where G: ContextFree
+{
     derived_by: Vec<(G::Symbol, R)>,
     work_stack: Vec<G::Symbol>,
 }
 
-impl<G, R> RhsClosure<G, R> where
-            G: ContextFree,
-            R: Copy + GrammarRule<History=G::History, Symbol=G::Symbol> {
+impl<G, R> RhsClosure<G, R>
+    where G: ContextFree,
+          R: Copy + GrammarRule<History = G::History, Symbol = G::Symbol>
+{
     /// Records information which is needed to calculate the RHS transitive closure.
-    pub fn new<'a>(grammar: &'a G) -> Self where
-                &'a G: ContextFreeRef<'a, RuleRef=R, Target=G>,
-                R: 'a {
+    pub fn new<'a>(grammar: &'a G) -> Self
+        where &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
+              R: 'a
+    {
         let mut derived_by = Vec::with_capacity(2 * grammar.rules().size_hint().0);
         for rule in grammar.rules() {
             derived_by.extend(rule.rhs().iter().map(|&sym| (sym, rule)));
@@ -44,14 +48,14 @@ impl<G, R> RhsClosure<G, R> where
             match derived_by.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(work_sym, Less))) {
                 Err(idx) => {
                     for &(_, rule) in derived_by[idx..].iter().take_while(|t| t.0 == work_sym) {
-                        if !property[rule.lhs().usize()]
-                                && rule.rhs().iter().all(|sym| property[sym.usize()]) {
+                        if !property[rule.lhs().usize()] &&
+                           rule.rhs().iter().all(|sym| property[sym.usize()]) {
                             property.set(rule.lhs().usize(), true);
                             self.work_stack.push(rule.lhs());
                         }
                     }
                 }
-                Ok(_) => unreachable!()
+                Ok(_) => unreachable!(),
             }
         }
     }

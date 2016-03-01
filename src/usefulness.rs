@@ -22,7 +22,9 @@ pub struct Usefulness<G> {
 }
 
 /// An iterator over the grammar's useless rules.
-pub struct UselessRules<'a, G, R> where G: 'a {
+pub struct UselessRules<'a, G, R>
+    where G: 'a
+{
     rules: R,
     usefulness: &'a Usefulness<&'a mut G>,
 }
@@ -39,9 +41,10 @@ pub struct UselessRule<R> {
 }
 
 /// Returns the set of used symbols.
-fn used_syms<'a, G>(grammar: &'a G) -> BitVec where
-            G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target=G> {
+fn used_syms<'a, G>(grammar: &'a G) -> BitVec
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>
+{
     let num_syms = grammar.sym_source().num_syms();
     let mut used_syms = BitVec::from_elem(num_syms, false);
 
@@ -55,18 +58,20 @@ fn used_syms<'a, G>(grammar: &'a G) -> BitVec where
 }
 
 /// Returns the set of productive symbols.
-fn productive_syms<'a, G>(grammar: &'a G) -> BitVec where
-            G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target=G> {
+fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>
+{
     let mut productive_syms = grammar.terminal_set().into_bit_vec();
     RhsClosure::new(grammar).rhs_closure(&mut productive_syms);
     productive_syms
 }
 
 /// Returns the reachability matrix.
-fn reachability<'a, G>(grammar: &'a G) -> BitMatrix where
-            G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target=G> {
+fn reachability<'a, G>(grammar: &'a G) -> BitMatrix
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>
+{
     let num_syms = grammar.sym_source().num_syms();
     let mut reachability = BitMatrix::new(num_syms, num_syms);
 
@@ -82,10 +87,11 @@ fn reachability<'a, G>(grammar: &'a G) -> BitMatrix where
     reachability
 }
 
-impl<'a, G> Usefulness<&'a mut G> where
-            G: ContextFree,
-            for<'b> &'b G: ContextFreeRef<'b, Target=G>,
-            for<'b> &'b mut G: ContextFreeMut<'b, Target=G> {
+impl<'a, G> Usefulness<&'a mut G>
+    where G: ContextFree,
+          for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+          for<'b> &'b mut G: ContextFreeMut<'b, Target = G>
+{
     /// Analyzes usefulness of the grammar's rules. In particular, it checks for reachable
     /// and productive symbols.
     pub fn new(grammar: &'a mut G) -> Usefulness<&'a mut G> {
@@ -95,9 +101,11 @@ impl<'a, G> Usefulness<&'a mut G> where
         let mut reachable_syms = BitVec::from_elem(grammar.sym_source().num_syms(), false);
 
         unsafe {
-            for ((productive, reachable), &used) in productivity.storage_mut().iter_mut()
-                                                    .zip(reachable_syms.storage_mut().iter_mut())
-                                                    .zip(used_syms.storage().iter()) {
+            for ((productive, reachable), &used) in productivity.storage_mut()
+                                                                .iter_mut()
+                                                                .zip(reachable_syms.storage_mut()
+                                                                                   .iter_mut())
+                                                                .zip(used_syms.storage().iter()) {
                 *productive |= !used;
                 *reachable |= !used;
             }
@@ -122,8 +130,9 @@ impl<'a, G> Usefulness<&'a mut G> where
     }
 
     /// Sets symbol reachability. Takes an array of reachable symbols.
-    pub fn reachable<Sr>(mut self, syms: Sr) -> Self where
-                Sr: AsRef<[G::Symbol]> {
+    pub fn reachable<Sr>(mut self, syms: Sr) -> Self
+        where Sr: AsRef<[G::Symbol]>
+    {
         for &sym in syms.as_ref().iter() {
             let reachability = self.reachability[sym.usize()].iter();
             unsafe {
@@ -149,13 +158,13 @@ impl<'a, G> Usefulness<&'a mut G> where
 }
 
 // Watch out: Normal type bounds conflict with HRTB.
-impl<'a, G> Usefulness<&'a mut G> where
-            G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target=G>,
-            &'a mut G: ContextFreeMut<'a, Target=G> {
+impl<'a, G> Usefulness<&'a mut G>
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>,
+          &'a mut G: ContextFreeMut<'a, Target = G>
+{
     /// Returns an iterator over the grammar's useless rules.
-    pub fn useless_rules(&'a self)
-            -> UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
+    pub fn useless_rules(&'a self) -> UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
         UselessRules {
             rules: self.grammar.rules(),
             usefulness: self,

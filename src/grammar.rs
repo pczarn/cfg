@@ -8,7 +8,7 @@ use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
-use rule::terminal_set::{TerminalSet, TerminalBitSet};
+use rule::terminal_set::TerminalBitSet;
 use sequence::Sequence;
 use sequence::builder::SequenceRuleBuilder;
 use sequence::rewrite::SequencesToProductions;
@@ -28,16 +28,18 @@ pub trait ContextFree: RuleContainer + Sized {
     }
 
     /// Starts building a new precedenced rule.
-    fn precedenced_rule(&mut self, lhs: Self::Symbol) -> PrecedencedRuleBuilder<&mut Self> where
-                Self::History: AssignPrecedence + Default {
+    fn precedenced_rule(&mut self, lhs: Self::Symbol) -> PrecedencedRuleBuilder<&mut Self>
+        where Self::History: AssignPrecedence + Default
+    {
         PrecedencedRuleBuilder::new(self, lhs)
     }
 
     /// Returns a binarized weak equivalent of this grammar.
-    fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History, Self::Source> where
-                &'a Self: ContextFreeRef<'a, Target=Self>,
-                Self::History: Binarize + Clone + 'static,
-                Self::Source: Clone {
+    fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History, Self::Source>
+        where &'a Self: ContextFreeRef<'a, Target = Self>,
+              Self::History: Binarize + Clone + 'static,
+              Self::Source: Clone
+    {
         BinarizedCfg::from_context_free(self)
     }
 }
@@ -66,7 +68,9 @@ pub trait ContextFreeMut<'a>: Deref where
 
 /// Basic representation of context-free grammars.
 #[derive(Clone)]
-pub struct Cfg<H = NullHistory, Hs = H, Ss = ConsecutiveSymbols> where Ss: SymbolSource {
+pub struct Cfg<H = NullHistory, Hs = H, Ss = ConsecutiveSymbols>
+    where Ss: SymbolSource
+{
     /// The symbol source.
     sym_source: Ss,
     /// The array of rules.
@@ -82,9 +86,10 @@ impl<H, Hs> Cfg<H, Hs> {
     }
 }
 
-impl<H, Hs, Ss> Cfg<H, Hs, Ss> where Ss: SymbolSource {
+impl<H, Hs, Ss> Cfg<H, Hs, Ss> where Ss: SymbolSource
+{
     /// Creates an empty context-free grammar with the given symbol source.
-    pub fn with_sym_source(sym_source: Ss) -> Cfg<H, Hs, Ss> {
+    pub fn with_sym_source(sym_source: Ss) -> Self {
         Cfg {
             sym_source: sym_source,
             rules: vec![],
@@ -93,14 +98,16 @@ impl<H, Hs, Ss> Cfg<H, Hs, Ss> where Ss: SymbolSource {
     }
 }
 
-impl<H: Action, Hs, Ss> Cfg<H, Hs, Ss>
-        where Hs: RewriteSequence<Rewritten=H>,
-              H: Clone,
-              Hs: Clone,
-              Ss: SymbolSource {
+impl<H, Hs, Ss> Cfg<H, Hs, Ss>
+    where Hs: RewriteSequence<Rewritten = H>,
+          H: Action + Clone,
+          Hs: Clone,
+          Ss: SymbolSource
+{
     /// Starts building a sequence rule.
-    pub fn sequence(&mut self, lhs: Ss::Symbol)
-                -> SequenceRuleBuilder<Hs, &mut Vec<Sequence<Hs, Ss::Symbol>>, Ss::Symbol> {
+    pub fn sequence(&mut self,
+                    lhs: Ss::Symbol)
+                    -> SequenceRuleBuilder<Hs, &mut Vec<Sequence<Hs, Ss::Symbol>>, Ss::Symbol> {
         SequenceRuleBuilder::new(&mut self.sequence_rules).sequence(lhs)
     }
 
@@ -116,31 +123,35 @@ impl<H: Action, Hs, Ss> Cfg<H, Hs, Ss>
     }
 }
 
-impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss> where
-            H: Action,
-            Ss: SymbolSource,
-            Hs: Clone + RewriteSequence<Rewritten=H> {
+impl<H, Hs, Ss> ContextFree for Cfg<H, Hs, Ss>
+    where H: Action,
+          Ss: SymbolSource,
+          Hs: Clone + RewriteSequence<Rewritten = H>
+{
     type Source = Ss;
 
     fn sym_source(&self) -> &Ss {
         &self.sym_source
     }
 
-    fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History, Self::Source> where
-                &'a Self: ContextFreeRef<'a, Target=Self>,
-                H: Binarize + Clone + 'static,
-                Ss: Clone {
+    fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History, Self::Source>
+        where &'a Self: ContextFreeRef<'a, Target = Self>,
+              H: Binarize + Clone + 'static,
+              Hs: Clone,
+              Ss: Clone
+    {
         let mut grammar = BinarizedCfg::from_context_free(self);
         SequencesToProductions::rewrite_sequences(&self.sequence_rules[..], &mut grammar);
         grammar
     }
 }
 
-impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
-            H: Action + 'a,
-            Hs: Clone + RewriteSequence<Rewritten=H>,
-            Ss: SymbolSource + 'a,
-            Ss::Symbol: 'a {
+impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss>
+    where H: Action + 'a,
+          Hs: Clone + RewriteSequence<Rewritten = H>,
+          Ss: SymbolSource + 'a,
+          Ss::Symbol: 'a
+{
     type RuleRef = <Self::Rules as Iterator>::Item;
     type Rules = slice::Iter<'a, Rule<H, Ss::Symbol>>;
 
@@ -149,29 +160,29 @@ impl<'a, H, Hs, Ss> ContextFreeRef<'a> for &'a Cfg<H, Hs, Ss> where
     }
 }
 
-impl<'a, H, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss> where
-            H: Action + 'a,
-            Hs: Clone + RewriteSequence<Rewritten=H> + 'a,
-            Ss: SymbolSource + 'a,
-            Ss::Symbol: 'a {
-}
+impl<'a, H, Hs, Ss> ContextFreeMut<'a> for &'a mut Cfg<H, Hs, Ss>
+    where H: Action + 'a,
+          Hs: Clone + RewriteSequence<Rewritten = H> + 'a,
+          Ss: SymbolSource + 'a,
+          Ss::Symbol: 'a
+{}
 
-impl<H, Hs, Ss> RuleContainer for Cfg<H, Hs, Ss> where
-            H: Action,
-            Hs: Clone + RewriteSequence<Rewritten=H>,
-            Ss: SymbolSource,
-            Ss::Symbol: GrammarSymbol {
+impl<H, Hs, Ss> RuleContainer for Cfg<H, Hs, Ss>
+    where H: Action,
+          Hs: Clone + RewriteSequence<Rewritten = H>,
+          Ss: SymbolSource,
+          Ss::Symbol: GrammarSymbol
+{
     type History = H;
     type TerminalSet = TerminalBitSet<Ss::Symbol>;
 
-    fn retain<F>(&mut self, mut f: F) where
-                F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool {
+    fn retain<F>(&mut self, mut f: F)
+        where F: FnMut(Self::Symbol, &[Self::Symbol], &Self::History) -> bool
+    {
         self.rules.retain(|rule| f(rule.lhs(), rule.rhs(), rule.history()));
     }
 
-    fn add_rule(&mut self, lhs: Self::Symbol,
-                           rhs: &[Self::Symbol],
-                           history: H) {
+    fn add_rule(&mut self, lhs: Self::Symbol, rhs: &[Self::Symbol], history: H) {
         self.rules.push(Rule::new(lhs, rhs.to_vec(), history));
     }
 
@@ -180,7 +191,8 @@ impl<H, Hs, Ss> RuleContainer for Cfg<H, Hs, Ss> where
     }
 }
 
-impl<H, Hs, Ss> SymbolSource for Cfg<H, Hs, Ss> where Ss: SymbolSource {
+impl<H, Hs, Ss> SymbolSource for Cfg<H, Hs, Ss> where Ss: SymbolSource
+{
     type Symbol = Ss::Symbol;
 
     fn next_sym(&mut self) -> Self::Symbol {

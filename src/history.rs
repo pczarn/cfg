@@ -38,8 +38,7 @@ pub trait Binarize {
 /// eliminated from the RHS.
 pub trait EliminateNulling {
     /// Returns a history. May record the elimination.
-    fn eliminate_nulling<R>(&self, rule: &R, which: BinarizedRhsSubset) -> Self where
-            R: GrammarRule;
+    fn eliminate_nulling<R>(&self, rule: &R, which: BinarizedRhsSubset) -> Self where R: GrammarRule;
 }
 
 /// Trait for history types that allow the rule to have its precedence assigned.
@@ -57,11 +56,14 @@ pub trait RewriteSequence {
     /// Returns a history. May record the rewrite.
     fn sequence<H, S>(&self, top: &Sequence<H, S>) -> Self::Rewritten where S: GrammarSymbol;
     /// Returns a history. May record the rewrite.
-    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol;
+    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
+        where S: GrammarSymbol;
 }
 
 impl Action for NullHistory {
-    fn no_op(&self) -> Self { NullHistory }
+    fn no_op(&self) -> Self {
+        NullHistory
+    }
 }
 
 impl Binarize for NullHistory {
@@ -89,20 +91,26 @@ impl RewriteSequence for NullHistory {
         NullHistory
     }
 
-    fn bottom<S>(&self, _rhs: S, _sep: Option<S>, _new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol {
+    fn bottom<S>(&self, _rhs: S, _sep: Option<S>, _new_rhs: &[S]) -> Self::Rewritten
+        where S: GrammarSymbol
+    {
         NullHistory
     }
 }
 
-impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence {
+impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence
+{
     type Rewritten = T::Rewritten;
 
     fn sequence<H, S>(&self, top: &Sequence<H, S>) -> Self::Rewritten
-            where S: GrammarSymbol {
+        where S: GrammarSymbol
+    {
         (**self).sequence(top)
     }
 
-    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol {
+    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
+        where S: GrammarSymbol
+    {
         (**self).bottom(rhs, sep, new_rhs)
     }
 }
@@ -124,7 +132,7 @@ impl<'a, H, S> CloneHistory<'a, H, S> {
     pub fn new(history: &'a H) -> Self {
         CloneHistory {
             history: history,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 }

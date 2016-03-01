@@ -9,11 +9,14 @@ use rule::terminal_set::TerminalSet;
 use symbol::GrammarSymbol;
 
 /// FIRST sets.
-pub struct FirstSets<S> where S: GrammarSymbol {
+pub struct FirstSets<S>
+    where S: GrammarSymbol
+{
     map: PerSymbolSets<S>,
 }
 
-impl<S> FirstSets<S> where S: GrammarSymbol {
+impl<S> FirstSets<S> where S: GrammarSymbol
+{
     /// Compute all FIRST sets of the grammar.
     ///
     /// We define a binary relation FIRST(N, S), in which N is related to S
@@ -21,13 +24,12 @@ impl<S> FirstSets<S> where S: GrammarSymbol {
     /// α is a nullable string of symbols.
     ///
     /// We compute the transitive closure of this relation.
-    pub fn new<'a, G>(grammar: &'a G) -> Self where
-                G::TerminalSet: TerminalSet<Symbol=S>,
-                G: ContextFree<Symbol=S>,
-                &'a G: ContextFreeRef<'a, Target=G> {
-        let mut this = FirstSets {
-            map: BTreeMap::new(),
-        };
+    pub fn new<'a, G>(grammar: &'a G) -> Self
+        where G::TerminalSet: TerminalSet<Symbol = S>,
+              G: ContextFree<Symbol = S>,
+              &'a G: ContextFreeRef<'a, Target = G>
+    {
+        let mut this = FirstSets { map: BTreeMap::new() };
 
         let mut lookahead = vec![];
         let mut changed = true;
@@ -53,8 +55,9 @@ impl<S> FirstSets<S> where S: GrammarSymbol {
     }
 
     /// Compute a FIRST set.
-    fn first_set_collect<T>(&self, terminal_set: &T, vec: &mut Vec<Option<S>>, rhs: &[S]) where
-                T: TerminalSet<Symbol=S> {
+    fn first_set_collect<T>(&self, terminal_set: &T, vec: &mut Vec<Option<S>>, rhs: &[S])
+        where T: TerminalSet<Symbol = S>
+    {
         for &sym in rhs {
             let mut nullable = false;
             if terminal_set.has_sym(sym) {

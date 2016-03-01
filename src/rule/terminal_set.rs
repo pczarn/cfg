@@ -25,7 +25,8 @@ pub struct TerminalBitSet<S> {
     marker: PhantomData<S>,
 }
 
-impl<S> TerminalSet for TerminalBitSet<S> where S: GrammarSymbol {
+impl<S> TerminalSet for TerminalBitSet<S> where S: GrammarSymbol
+{
     type Symbol = S;
 
     fn has_sym(&self, sym: S) -> bool {
@@ -39,10 +40,11 @@ impl<S> TerminalSet for TerminalBitSet<S> where S: GrammarSymbol {
 
 impl<S> TerminalBitSet<S> {
     /// Constructs a `TerminalBitSet`.
-    pub fn new<'a, G>(grammar: &'a G) -> Self where
-                G: ContextFree<Symbol=S>,
-                &'a G: ContextFreeRef<'a, Target=G>,
-                S: GrammarSymbol {
+    pub fn new<'a, G>(grammar: &'a G) -> Self
+        where G: ContextFree<Symbol = S>,
+              &'a G: ContextFreeRef<'a, Target = G>,
+              S: GrammarSymbol
+    {
         let mut bit_vec = BitVec::from_elem(grammar.num_syms(), true);
 
         for rule in grammar.rules() {

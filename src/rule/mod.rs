@@ -24,18 +24,27 @@ pub trait GrammarRule {
     fn history(&self) -> &Self::History;
 }
 
-impl<'a, R> GrammarRule for &'a R where R: GrammarRule {
+impl<'a, R> GrammarRule for &'a R where R: GrammarRule
+{
     type History = R::History;
     type Symbol = R::Symbol;
 
-    fn lhs(&self) -> Self::Symbol { (**self).lhs() }
-    fn rhs(&self) -> &[Self::Symbol] { (**self).rhs() }
-    fn history(&self) -> &Self::History { (**self).history() }
+    fn lhs(&self) -> Self::Symbol {
+        (**self).lhs()
+    }
+    fn rhs(&self) -> &[Self::Symbol] {
+        (**self).rhs()
+    }
+    fn history(&self) -> &Self::History {
+        (**self).history()
+    }
 }
 
 /// Typical grammar rule representation.
 #[derive(Clone, Debug)]
-pub struct Rule<H, S> where S: GrammarSymbol {
+pub struct Rule<H, S>
+    where S: GrammarSymbol
+{
     lhs: S,
     /// The rule's right-hand side.
     pub rhs: Vec<S>,
@@ -43,7 +52,8 @@ pub struct Rule<H, S> where S: GrammarSymbol {
     pub history: H,
 }
 
-impl<H, S> GrammarRule for Rule<H, S> where S: GrammarSymbol {
+impl<H, S> GrammarRule for Rule<H, S> where S: GrammarSymbol
+{
     type Symbol = S;
     type History = H;
 
@@ -60,7 +70,8 @@ impl<H, S> GrammarRule for Rule<H, S> where S: GrammarSymbol {
     }
 }
 
-impl<H, S> Rule<H, S> where S: GrammarSymbol {
+impl<H, S> Rule<H, S> where S: GrammarSymbol
+{
     /// Creates a new rule.
     pub fn new(lhs: S, rhs: Vec<S>, history: H) -> Self {
         Rule {
@@ -72,7 +83,10 @@ impl<H, S> Rule<H, S> where S: GrammarSymbol {
 }
 
 /// References rule's components.
-pub struct RuleRef<'a, H, S> where S: GrammarSymbol + 'a, H: 'a {
+pub struct RuleRef<'a, H, S>
+    where S: GrammarSymbol + 'a,
+          H: 'a
+{
     /// Left-hand side.
     pub lhs: S,
     /// Right-hand side.
@@ -82,10 +96,12 @@ pub struct RuleRef<'a, H, S> where S: GrammarSymbol + 'a, H: 'a {
 }
 
 // Can't derive because of the type parameter.
-impl<'a, H, S> Copy for RuleRef<'a, H, S> where S: GrammarSymbol {}
+impl<'a, H, S> Copy for RuleRef<'a, H, S> where S: GrammarSymbol
+{}
 
 // Can't derive because of the where clause.
-impl<'a, H, S> Clone for RuleRef<'a, H, S> where S: GrammarSymbol {
+impl<'a, H, S> Clone for RuleRef<'a, H, S> where S: GrammarSymbol
+{
     fn clone(&self) -> Self {
         RuleRef {
             lhs: self.lhs,
@@ -95,7 +111,8 @@ impl<'a, H, S> Clone for RuleRef<'a, H, S> where S: GrammarSymbol {
     }
 }
 
-impl<'a, H, S> GrammarRule for RuleRef<'a, H, S> where S: GrammarSymbol {
+impl<'a, H, S> GrammarRule for RuleRef<'a, H, S> where S: GrammarSymbol
+{
     type Symbol = S;
     type History = H;
 

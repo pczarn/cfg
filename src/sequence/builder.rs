@@ -17,10 +17,11 @@ pub struct SequenceRuleBuilder<H, D, S> where S: GrammarSymbol {
     destination: D,
 }
 
-impl<H, D, S> SequenceRuleBuilder<H, D, S> where
-            D: SequenceDestination<H, Symbol=S>,
-            H: RewriteSequence,
-            S: GrammarSymbol {
+impl<H, D, S> SequenceRuleBuilder<H, D, S>
+    where D: SequenceDestination<H, Symbol = S>,
+          H: RewriteSequence,
+          S: GrammarSymbol
+{
     /// Creates a sequence rule builder.
     pub fn new(destination: D) -> Self {
         SequenceRuleBuilder {
@@ -70,11 +71,13 @@ impl<H, D, S> SequenceRuleBuilder<H, D, S> where
 
     /// Adds a sequence rule to the grammar.
     #[cfg(feature = "nightly")]
-    pub fn rhs_with_range<T>(mut self, rhs: S, range: T) -> Self where
-                T: RangeArgument<u32>,
-                H: Default {
+    pub fn rhs_with_range<T>(mut self, rhs: S, range: T) -> Self
+        where T: RangeArgument<u32>,
+              H: Default
+    {
         let history = self.history.take();
-        self.inclusive(range.start().cloned().unwrap_or(0), range.end().cloned().map(|end| end - 1))
+        self.inclusive(range.start().cloned().unwrap_or(0),
+                       range.end().cloned().map(|end| end - 1))
             .rhs(rhs)
     }
 
