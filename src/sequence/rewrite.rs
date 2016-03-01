@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 
-use history::{Action, CloneHistory, RewriteSequence};
+use history::{Action, RewriteSequence, HistorySource};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
 use sequence::{Separator, Sequence};
@@ -24,6 +24,7 @@ pub struct SequencesToProductions<H, D>
     map: HashMap<PartialSequence<D::Symbol>, D::Symbol>,
     history: Option<H>,
     default_history: Option<H::Rewritten>,
+    rhs: Option<D::Symbol>,
 }
 
 // A key into a private map.
@@ -62,6 +63,7 @@ impl<H, S, D> SequencesToProductions<H, D>
             map: HashMap::new(),
             history: None,
             default_history: None,
+            rhs: None,
         }
     }
 
@@ -82,23 +84,30 @@ impl<H, S, D> SequencesToProductions<H, D>
         self.map.clear();
         let seq_history = top.history.sequence(&top);
         self.history = Some(top.history);
-        self.stack.push(Sequence {
+        let top = Sequence {
             lhs: top.lhs,
             rhs: top.rhs,
             start: top.start,
             end: top.end,
             separator: top.separator,
-            history: seq_history,
-        });
-
+            history: seq_history.no_op(),
+        };
+        self.default_history = Some(seq_history);
+        self.rhs = Some(top.rhs);
+        self.reduce(top);
+        self.default_history = None;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
             self.reduce(seq);
         }
     }
 
-    fn rule(&mut self, lhs: S) -> RuleBuilder<&mut D, CloneHistory<H::Rewritten, S>> {
-        let default = CloneHistory::new(self.default_history.as_ref().unwrap());
+    fn rule(&mut self, lhs: S) -> RuleBuilder<&mut D, DefaultSeqHistory<H, S>> {
+        let default = DefaultSeqHistory {
+            default: self.default_history.as_ref(),
+            top: self.history.as_ref().unwrap(),
+            elem: self.rhs.unwrap(),
+        };
         RuleBuilder::new(&mut self.destination).rule(lhs).default_history(default)
     }
 
@@ -126,17 +135,13 @@ impl<H, S, D> SequencesToProductions<H, D>
                 });
                 lhs
             }
-            Entry::Occupied(lhs) => {
-                *lhs.get()
-            }
+            Entry::Occupied(lhs) => *lhs.get(),
         }
     }
 
     fn reduce(&mut self, sequence: Sequence<H::Rewritten, S>) {
-        let Sequence { lhs, rhs, start, end, separator, ref history } = sequence;
-        let sequence = Sequence { lhs: lhs, rhs: rhs, start: start, end: end,
-            separator: separator, history: history.no_op() };
-        self.default_history = Some(history.clone());
+        let Sequence { lhs, rhs, start, end, separator, .. } = sequence;
+        // TODO optimize reductions
 
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
@@ -152,7 +157,7 @@ impl<H, S, D> SequencesToProductions<H, D>
                 // seq ::= sym sep
                 self.rule(lhs).rhs([sym, sep]);
             }
-            (_, 0, end) => {
+            (_, _, _) if start == 0 => {
                 // seq ::= epsilon | sym
                 self.rule(lhs).rhs([]);
                 if end != Some(0) {
@@ -160,23 +165,21 @@ impl<H, S, D> SequencesToProductions<H, D>
                     self.rule(lhs).rhs([sym]);
                 }
             }
-            (separator, 1, None) => {
+            (_, _, _) if start == 1 && end == None => {
                 // seq ::= item
                 self.rule(lhs).rhs([rhs]);
                 // Left recursive
                 // seq ::= seq sep item
                 if let Proper(sep) = separator {
-                    let orig = self.history.as_ref().unwrap().bottom(rhs, Some(sep), &[lhs, sep, rhs]);
-                    self.rule(lhs).rhs_with_history([lhs, sep, rhs], orig);
+                    self.rule(lhs).rhs([lhs, sep, rhs]);
                 } else {
-                    let orig = self.history.as_ref().unwrap().bottom(rhs, None, &[lhs, rhs]);
-                    self.rule(lhs).rhs_with_history([lhs, rhs], orig);
+                    self.rule(lhs).rhs([lhs, rhs]);
                 }
             }
-            (_, 1, Some(1)) => {
+            (_, _, _) if (start, end) == (1, Some(1)) => {
                 self.rule(lhs).rhs([rhs]);
             }
-            (_, 1, Some(2)) => {
+            (_, _, _) if (start, end) == (1, Some(2)) => {
                 let sym1 = self.recurse(sequence.clone().inclusive(1, Some(1)));
                 let sym2 = self.recurse(sequence.clone().inclusive(2, Some(2)));
                 // seq ::= sym1 | sym2
@@ -184,21 +187,23 @@ impl<H, S, D> SequencesToProductions<H, D>
                     .rhs([sym1])
                     .rhs([sym2]);
             }
-            (separator, 1, Some(end)) => {
+            (_, _, Some(end)) if start == 1 => { // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
-                let (seq1, seq2) = (sequence.clone().inclusive(start, Some(pow2)),
-                                    sequence.clone().inclusive(start, Some(end - pow2)));
-                let rhs = &[self.recurse(seq1.separator(separator.prefix_separator())),
-                            self.recurse(seq2.separator(separator))];
+                let (seq1, seq2) = (sequence.clone().inclusive(0, Some(pow2)),
+                                    sequence.clone().inclusive(1, Some(end - pow2)));
+                let rhs1 = self.recurse(seq1.separator(separator.prefix_separator()));
+                let rhs2 = self.recurse(seq2.separator(separator));
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs(rhs);
+                self.rule(lhs).rhs([rhs1, rhs2]);
             }
             // Bug in rustc. Must use comparison.
             (Proper(sep), start, end) if start == 2 && end == Some(2) => {
-                let orig = self.history.as_ref().unwrap().bottom(rhs, Some(sep), &[rhs, sep, rhs]);
-                self.rule(lhs).rhs_with_history([rhs, sep, rhs], orig);
+                self.rule(lhs).rhs([rhs, sep, rhs]);
             }
-            (separator, 2 ... 0xFFFF_FFFF, end) => {
+            (_, _, _) if start == 2 && end == Some(2) => {
+                self.rule(lhs).rhs([rhs, rhs]);
+            }
+            (_, _, end) if start >= 2 => {
                 // to do infinity
                 let (seq1, seq2) = if Some(start) == end {
                     // A "block"
@@ -207,15 +212,35 @@ impl<H, S, D> SequencesToProductions<H, D>
                      sequence.clone().inclusive(start - pow2, Some(start - pow2)))
                 } else {
                     // A "span"
-                    (sequence.clone().inclusive(start, Some(start)),
-                     sequence.clone().inclusive(1, end.map(|n| n - start - 1)))
+                    (sequence.clone().inclusive(start - 1, Some(start - 1)),
+                     sequence.clone().inclusive(1, end.map(|end| end - start + 1)))
                 };
-                let rhs = &[self.recurse(seq1.separator(separator.prefix_separator())),
-                            self.recurse(seq2.separator(separator))];
+                let (rhs1, rhs2) = (self.recurse(seq1.separator(separator.prefix_separator())),
+                                    self.recurse(seq2.separator(separator)));
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs(rhs);
+                self.rule(lhs).rhs([rhs1, rhs2]);
             }
-            _ => panic!()
+            _ => panic!(),
+        }
+    }
+}
+
+struct DefaultSeqHistory<'a, H: 'a, S> where H: RewriteSequence {
+    default: Option<&'a H::Rewritten>,
+    top: &'a H,
+    elem: S,
+}
+
+impl<'a, H, S> HistorySource<H::Rewritten, S> for DefaultSeqHistory<'a, H, S>
+    where H: RewriteSequence,
+          H::Rewritten: Clone,
+          S: GrammarSymbol,
+{
+    fn build(&mut self, _lhs: S, rhs: &[S]) -> H::Rewritten {
+        if let Some(default) = self.default {
+            default.clone()
+        } else {
+            self.top.bottom(self.elem, None, rhs)
         }
     }
 }

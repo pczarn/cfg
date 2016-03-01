@@ -104,9 +104,9 @@ impl SymbolSource for ConsecutiveSymbols {
     }
 }
 
-/// Trait used to generate terminal symbols.
+/// Trait used to generate symbols.
 pub trait SymbolContainer<S: GrammarSymbol> {
-    /// Generates 
+    /// Generates symbols.
     fn generate<Ss>(source: Ss) -> Self where Ss: SymbolSource<Symbol = S>;
 }
 

@@ -116,9 +116,9 @@ impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence
 }
 
 /// A trait for history factories.
-pub trait HistoryFn<H, S> {
+pub trait HistorySource<H, S> {
     /// Create a history.
-    fn call_mut(&mut self, lhs: S, rhs: &[S]) -> H;
+    fn build(&mut self, lhs: S, rhs: &[S]) -> H;
 }
 
 /// Clone history.
@@ -137,15 +137,16 @@ impl<'a, H, S> CloneHistory<'a, H, S> {
     }
 }
 
-impl<'a, H, S> HistoryFn<H, S> for CloneHistory<'a, H, S> where
-            H: Clone,
-            S: GrammarSymbol {
-    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
+impl<'a, H, S> HistorySource<H, S> for CloneHistory<'a, H, S>
+    where H: Clone,
+          S: GrammarSymbol
+{
+    fn build(&mut self, _lhs: S, _rhs: &[S]) -> H {
         self.history.clone()
     }
 }
 
-/// Default history.
+/// Factory of default histories.
 pub struct DefaultHistory<H, S>(PhantomData<(H, S)>);
 
 impl<H, S> DefaultHistory<H, S> {
@@ -155,10 +156,21 @@ impl<H, S> DefaultHistory<H, S> {
     }
 }
 
-impl<H, S> HistoryFn<H, S> for DefaultHistory<H, S> where
-            H: Default,
-            S: GrammarSymbol {
-    fn call_mut(&mut self, _lhs: S, _rhs: &[S]) -> H {
+impl<H, S> HistorySource<H, S> for DefaultHistory<H, S>
+    where H: Default,
+          S: GrammarSymbol
+{
+    fn build(&mut self, _lhs: S, _rhs: &[S]) -> H {
         H::default()
+    }
+}
+
+/// A source that only works for building NullHistory.
+#[derive(Clone, Copy)]
+pub struct NullHistorySource;
+
+impl<S> HistorySource<NullHistory, S> for NullHistorySource {
+    fn build(&mut self, _lhs: S, _rhs: &[S]) -> NullHistory {
+        NullHistory
     }
 }

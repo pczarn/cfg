@@ -2,18 +2,17 @@
 
 use std::convert::AsRef;
 
-use history::{AssignPrecedence, DefaultHistory, HistoryFn};
+use history::{AssignPrecedence, HistorySource, NullHistorySource};
 use precedence::PrecedencedRuleBuilder;
 use rule::container::RuleContainer;
-use symbol::SymbolSource;
 
 /// The rule builder.
-pub struct RuleBuilder<C, F = DefaultHistory<<C as RuleContainer>::History,
-                                             <C as SymbolSource>::Symbol>>
-        where C: RuleContainer {
+pub struct RuleBuilder<C, Hs = NullHistorySource>
+    where C: RuleContainer
+{
     lhs: Option<C::Symbol>,
     history: Option<C::History>,
-    default_history: F,
+    history_state: Hs,
     rules: C,
 }
 
@@ -24,19 +23,20 @@ impl<C> RuleBuilder<C> where C: RuleContainer
         RuleBuilder {
             lhs: None,
             history: None,
-            default_history: DefaultHistory::new(),
+            history_state: NullHistorySource,
             rules: rules,
         }
     }
 }
 
-impl<C, F> RuleBuilder<C, F> where C: RuleContainer {
+impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
+{
     /// Sets the default history source.
-    pub fn default_history<F2>(self, f: F2) -> RuleBuilder<C, F2> {
+    pub fn default_history<Hs2>(self, state: Hs2) -> RuleBuilder<C, Hs2> {
         RuleBuilder {
             lhs: self.lhs,
             history: self.history,
-            default_history: f,
+            history_state: state,
             rules: self.rules,
         }
     }
@@ -57,12 +57,13 @@ impl<C, F> RuleBuilder<C, F> where C: RuleContainer {
 
     /// Adds a rule alternative to the grammar. If history wasn't provided, the rule has the
     /// `Default` history.
-    pub fn rhs<Sr>(mut self, syms: Sr) -> Self where
-                Sr: AsRef<[C::Symbol]>,
-                F: HistoryFn<C::History, C::Symbol> {
-        let history = self.history.take().unwrap_or_else(||
-            self.default_history.call_mut(self.lhs.unwrap(), syms.as_ref())
-        );
+    pub fn rhs<Sr>(mut self, syms: Sr) -> Self
+        where Sr: AsRef<[C::Symbol]>,
+              Hs: HistorySource<C::History, C::Symbol>,
+    {
+        let history = self.history.take().unwrap_or_else(|| {
+            self.history_state.build(self.lhs.unwrap(), syms.as_ref())
+        });
         self.rhs_with_history(syms, history)
     }
 

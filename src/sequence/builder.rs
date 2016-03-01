@@ -3,17 +3,20 @@
 #[cfg(feature = "nightly")]
 use collections::range::RangeArgument;
 
-use history::RewriteSequence;
+use history::{RewriteSequence, NullHistorySource, HistorySource};
 use sequence::{Separator, Sequence};
 use sequence::destination::SequenceDestination;
 use symbol::GrammarSymbol;
 
 /// Sequence rule builder.
-pub struct SequenceRuleBuilder<H, D, S> where S: GrammarSymbol {
+pub struct SequenceRuleBuilder<H, D, S, Hs = NullHistorySource>
+    where S: GrammarSymbol
+{
     lhs: Option<S>,
     range: Option<(u32, Option<u32>)>,
     separator: Separator<S>,
     history: Option<H>,
+    history_state: Hs,
     destination: D,
 }
 
@@ -28,8 +31,27 @@ impl<H, D, S> SequenceRuleBuilder<H, D, S>
             lhs: None,
             range: None,
             history: None,
+            history_state: NullHistorySource,
             separator: Separator::Null,
             destination: destination,
+        }
+    }
+}
+
+impl<H, D, S, Hs> SequenceRuleBuilder<H, D, S, Hs>
+    where D: SequenceDestination<H, Symbol = S>,
+          H: RewriteSequence,
+          S: GrammarSymbol
+{
+    /// Sets the default history source.
+    pub fn default_history<Hs2>(self, state: Hs2) -> SequenceRuleBuilder<H, D, S, Hs2> {
+        SequenceRuleBuilder {
+            lhs: self.lhs,
+            range: self.range,
+            history: self.history,
+            history_state: state,
+            separator: self.separator,
+            destination: self.destination,
         }
     }
 
@@ -64,9 +86,13 @@ impl<H, D, S> SequenceRuleBuilder<H, D, S>
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs(mut self, rhs: S) -> Self where H: Default {
-        let history = self.history.take();
-        self.rhs_with_history(rhs, history.unwrap_or_else(|| H::default()))
+    pub fn rhs(mut self, rhs: S) -> Self
+        where Hs: HistorySource<H, S>
+    {
+        let history = self.history.take().unwrap_or_else(||
+            self.history_state.build(self.lhs.unwrap(), &[rhs])
+        );
+        self.rhs_with_history(rhs, history)
     }
 
     /// Adds a sequence rule to the grammar.
@@ -83,7 +109,7 @@ impl<H, D, S> SequenceRuleBuilder<H, D, S>
 
     /// Adds a sequence rule to the grammar.
     pub fn rhs_with_history(mut self, rhs: S, history: H) -> Self {
-        let (start, end) = self.range.take().unwrap();
+        let (start, end) = self.range.take().expect("expected inclusive(n, m)");
         self.destination.add_sequence(Sequence {
             lhs: self.lhs.unwrap(),
             rhs: rhs,
