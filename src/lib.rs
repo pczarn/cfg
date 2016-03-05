@@ -32,6 +32,7 @@ mod grammar;
 pub mod history;
 pub mod precedence;
 pub mod prediction;
+pub mod remap;
 mod rhs_closure;
 pub mod rule;
 pub mod sequence;
