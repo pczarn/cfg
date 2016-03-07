@@ -14,7 +14,6 @@ license = "MIT/Apache-2.0"
 
 [lib]
 name = "cfg"
-crate_type = ["dylib", "rlib"]
 
 [dependencies]
 bit-matrix = "0.1"
