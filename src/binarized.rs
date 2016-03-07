@@ -149,7 +149,7 @@ impl<H> BinarizedCfg<H>
             let mut rewritten_rules = Vec::new();
             for rule in &self.rules {
                 let left_nullable = nullable[rule.rhs0().into()];
-                let right_nullable = rule.rhs1().map(|s| nullable[s.into()]).unwrap_or(true);
+                let right_nullable = rule.rhs1().map_or(true, |s| nullable[s.into()]);
                 if left_nullable && right_nullable {
                     // The rule is copied to the nulling grammar.
                     let history = rule.history().eliminate_nulling(rule, All);
@@ -175,7 +175,7 @@ impl<H> BinarizedCfg<H>
                 // that were made unproductive as a result of `A ::= epsilon` rule elimination.
                 // Otherwise, some of our nonterminal symbols might  terminal.
                 let left_productive = productive[rule.rhs0().into()];
-                let right_productive = rule.rhs1().map(|s| productive[s.into()]).unwrap_or(true);
+                let right_productive = rule.rhs1().map_or(true, |s| productive[s.into()]);
                 left_productive && right_productive
             });
         }
@@ -196,20 +196,23 @@ impl<H> ContextFree for BinarizedCfg<H>
     }
 }
 
+pub type BinarizedRules<'a, H> =
+    iter::Chain<
+        LhsWithHistoryToRuleRef<
+            iter::Enumerate<
+                slice::Iter<'a, Option<H>>
+            >
+        >,
+        BinarizedRuleToRuleRef<
+            slice::Iter<'a, BinarizedRule<H>>
+        >
+    >;
+
 impl<'a, H> ContextFreeRef<'a> for &'a BinarizedCfg<H>
     where H: Binarize + 'a
 {
     type RuleRef = RuleRef<'a, H>;
-    type Rules =    iter::Chain<
-                        LhsWithHistoryToRuleRef<
-                            iter::Enumerate<
-                                slice::Iter<'a, Option<H>>
-                            >
-                        >,
-                        BinarizedRuleToRuleRef<
-                            slice::Iter<'a, BinarizedRule<H>>
-                        >
-                    >;
+    type Rules = BinarizedRules<'a, H>;
 
     fn rules(self) -> Self::Rules {
         LhsWithHistoryToRuleRef::new(self.nulling.iter().enumerate())

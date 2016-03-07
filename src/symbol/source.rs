@@ -44,24 +44,28 @@ pub trait SymbolContainer {
 }
 
 macro_rules! impl_generate {
-    (Symbol $(, $t:ident)*) => (
-        impl SymbolContainer for ( Symbol $(, $t)* ) {
+    (Symbol, next_sym, $($T:ident, $next_sym:ident,)*) => (
+        impl SymbolContainer for ( Symbol $(, $T)* ) {
             fn generate(source: &mut SymbolSource) -> Self {
-                ({ let x: Symbol = source.next_sym(); x }
-                 $(, { let x: $t = source.next_sym(); x })*)
+                (source.next_sym()
+                 $(, source.$next_sym())*)
             }
         }
-        impl_generate!($($t),*);
+        impl_generate!($($T, $next_sym,)*);
     );
     // base case
     () => {}
 }
 
 impl_generate!(
-    Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
-    Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
-    Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
-    Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
 );
 
 /// Iterator for generating symbols.

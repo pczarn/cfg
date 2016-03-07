@@ -33,7 +33,7 @@ impl FirstSets {
             let terminal_set = SymbolBitSet::terminal_set(&grammar);
             for rule in grammar.rules() {
                 this.first_set_collect(&terminal_set, &mut lookahead, rule.rhs());
-                let first_set = this.map.entry(rule.lhs()).or_insert_with(|| BTreeSet::new());
+                let first_set = this.map.entry(rule.lhs()).or_insert_with(BTreeSet::new);
                 let prev_cardinality = first_set.len();
                 first_set.extend(lookahead.iter().cloned());
                 lookahead.clear();

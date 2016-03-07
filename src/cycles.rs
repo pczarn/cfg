@@ -138,7 +138,7 @@ impl<'a, G> Cycles<&'a mut G>
                     changed = true;
                 }
                 let mut rhs = rhs.to_vec();
-                for sym in rhs.iter_mut() {
+                for sym in &mut rhs {
                     if let Some(&Some(new_sym)) = translation.get(sym) {
                         *sym = new_sym;
                         changed = true;
@@ -167,7 +167,7 @@ impl<'a, G> Iterator for CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>:
             return None;
         }
 
-        while let Some(rule) = self.rules.next() {
+        for rule in &mut self.rules {
             if rule.rhs().len() == 1 && self.cycles.unit_derivation[(rule.rhs()[0].into(),
                                                                      rule.lhs().into())] {
                 return Some(rule);

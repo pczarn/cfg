@@ -64,7 +64,7 @@ impl SymbolBitSet {
 impl<'a> Iterator for Iter<'a> {
     type Item = Symbol;
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some((id, is_present)) = self.iter.next() {
+        for (id, is_present) in &mut self.iter {
             if is_present {
                 return Some(Symbol::from(id));
             }

@@ -23,7 +23,7 @@ impl FollowSets {
         let mut this = FollowSets { map: BTreeMap::new() };
 
         for rule in grammar.rules() {
-            let follow_set = this.map.entry(rule.lhs()).or_insert_with(|| BTreeSet::new());
+            let follow_set = this.map.entry(rule.lhs()).or_insert_with(BTreeSet::new);
             if rule.lhs() == start_sym {
                 follow_set.insert(None);
             }

@@ -194,10 +194,11 @@ impl<'a, G> Iterator for UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rule
             return None;
         }
 
-        while let Some(rule) = self.rules.next() {
+        for rule in &mut self.rules {
             let lhs = rule.lhs().usize();
-            let productive = rule.rhs().iter().all(|sym| self.usefulness.productivity[sym.usize()]);
-            let reachable = self.usefulness.reachable_syms[lhs];
+            let usefulness = &self.usefulness;
+            let productive = rule.rhs().iter().all(|sym| usefulness.productivity[sym.usize()]);
+            let reachable = usefulness.reachable_syms[lhs];
 
             if !reachable || !productive {
                 return Some(UselessRule {

@@ -90,11 +90,7 @@ impl<'a, H> Copy for RuleRef<'a, H> {}
 // Can't derive because of the where clause.
 impl<'a, H> Clone for RuleRef<'a, H> {
     fn clone(&self) -> Self {
-        RuleRef {
-            lhs: self.lhs,
-            rhs: self.rhs,
-            history: self.history.clone(),
-        }
+        *self
     }
 }
 

@@ -41,7 +41,7 @@ impl<R> RhsClosure<R>
             }
         }
 
-        let derived_by = &self.derived_by;
+        let derived_by = &self.derived_by[..];
         while let Some(work_sym) = self.work_stack.pop() {
             for &(_, rule) in find(derived_by, work_sym) {
                 if !property[rule.lhs().usize()] &&
@@ -61,7 +61,7 @@ impl<R> RhsClosure<R>
             }
         }
 
-        let derived_by = &self.derived_by;
+        let derived_by = &self.derived_by[..];
         while let Some(work_sym) = self.work_stack.pop() {
             for &(_, rule) in find(derived_by, work_sym) {
                 let maybe_work_value = rule.rhs().iter().fold(Some(0), |acc, elem| {
@@ -86,13 +86,13 @@ impl<R> RhsClosure<R>
     }
 }
 
-fn find<S, R>(vec: &Vec<(S, R)>, key_sym: S) -> &[(S, R)]
+fn find<S, R>(derived_by: &[(S, R)], key_sym: S) -> &[(S, R)]
     where S: Copy + Ord
 {
-    match vec.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(key_sym, Less))) {
+    match derived_by.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(key_sym, Less))) {
         Err(idx) => {
-            let len = vec[idx..].iter().take_while(|t| t.0 == key_sym).count();
-            &vec[idx..idx + len]
+            let len = derived_by[idx..].iter().take_while(|t| t.0 == key_sym).count();
+            &derived_by[idx..idx + len]
         }
         Ok(_) => unreachable!(),
     }

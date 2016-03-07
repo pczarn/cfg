@@ -112,7 +112,7 @@ impl<'a, G> MinimalDistance<'a, G>
 
 /// Updates a value with a minimum of two values.
 fn set_min(current: &mut Option<u32>, new: u32) -> bool {
-    if let &mut Some(ref mut current) = current {
+    if let Some(ref mut current) = *current {
         if *current > new {
             *current = new;
             true
