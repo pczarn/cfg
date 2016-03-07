@@ -5,12 +5,13 @@ use std::convert::AsRef;
 use history::{AssignPrecedence, HistorySource, NullHistorySource};
 use precedence::PrecedencedRuleBuilder;
 use rule::container::RuleContainer;
+use symbol::Symbol;
 
 /// The rule builder.
 pub struct RuleBuilder<C, Hs = NullHistorySource>
     where C: RuleContainer
 {
-    lhs: Option<C::Symbol>,
+    lhs: Option<Symbol>,
     history: Option<C::History>,
     history_state: Hs,
     rules: C,
@@ -42,7 +43,7 @@ impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
     }
 
     /// Starts building a new rule with the given LHS.
-    pub fn rule(mut self, lhs: C::Symbol) -> Self {
+    pub fn rule(mut self, lhs: Symbol) -> Self {
         self.lhs = Some(lhs);
         self.history = None;
         self
@@ -58,8 +59,8 @@ impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
     /// Adds a rule alternative to the grammar. If history wasn't provided, the rule has the
     /// `Default` history.
     pub fn rhs<Sr>(mut self, syms: Sr) -> Self
-        where Sr: AsRef<[C::Symbol]>,
-              Hs: HistorySource<C::History, C::Symbol>,
+        where Sr: AsRef<[Symbol]>,
+              Hs: HistorySource<C::History>,
     {
         let history = self.history.take().unwrap_or_else(|| {
             self.history_state.build(self.lhs.unwrap(), syms.as_ref())
@@ -69,14 +70,14 @@ impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
     pub fn rhs_with_history<Sr>(mut self, syms: Sr, history: C::History) -> Self
-        where Sr: AsRef<[C::Symbol]>,
+        where Sr: AsRef<[Symbol]>,
     {
         self.rules.add_rule(self.lhs.unwrap(), syms.as_ref(), history);
         self
     }
 
     /// Starts building a new precedenced rule.
-    pub fn precedenced_rule(self, lhs: C::Symbol) -> PrecedencedRuleBuilder<C>
+    pub fn precedenced_rule(self, lhs: Symbol) -> PrecedencedRuleBuilder<C>
         where C::History: AssignPrecedence + Default
     {
         PrecedencedRuleBuilder::new(self.rules, lhs)

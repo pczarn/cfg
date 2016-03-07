@@ -41,4 +41,4 @@ pub mod usefulness;
 pub use binarized::BinarizedCfg;
 pub use grammar::{Cfg, ContextFree, ContextFreeRef, ContextFreeMut};
 pub use rule::GrammarRule;
-pub use symbol::SymbolSource;
+pub use symbol::Symbol;

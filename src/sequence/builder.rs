@@ -6,24 +6,21 @@ use collections::range::RangeArgument;
 use history::{RewriteSequence, NullHistorySource, HistorySource};
 use sequence::{Separator, Sequence};
 use sequence::destination::SequenceDestination;
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
 /// Sequence rule builder.
-pub struct SequenceRuleBuilder<H, D, S, Hs = NullHistorySource>
-    where S: GrammarSymbol
-{
-    lhs: Option<S>,
+pub struct SequenceRuleBuilder<H, D, Hs = NullHistorySource> {
+    lhs: Option<Symbol>,
     range: Option<(u32, Option<u32>)>,
-    separator: Separator<S>,
+    separator: Separator,
     history: Option<H>,
     history_state: Hs,
     destination: D,
 }
 
-impl<H, D, S> SequenceRuleBuilder<H, D, S>
-    where D: SequenceDestination<H, Symbol = S>,
+impl<H, D> SequenceRuleBuilder<H, D>
+    where D: SequenceDestination<H>,
           H: RewriteSequence,
-          S: GrammarSymbol
 {
     /// Creates a sequence rule builder.
     pub fn new(destination: D) -> Self {
@@ -38,13 +35,12 @@ impl<H, D, S> SequenceRuleBuilder<H, D, S>
     }
 }
 
-impl<H, D, S, Hs> SequenceRuleBuilder<H, D, S, Hs>
-    where D: SequenceDestination<H, Symbol = S>,
+impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
+    where D: SequenceDestination<H>,
           H: RewriteSequence,
-          S: GrammarSymbol
 {
     /// Sets the default history source.
-    pub fn default_history<Hs2>(self, state: Hs2) -> SequenceRuleBuilder<H, D, S, Hs2> {
+    pub fn default_history<Hs2>(self, state: Hs2) -> SequenceRuleBuilder<H, D, Hs2> {
         SequenceRuleBuilder {
             lhs: self.lhs,
             range: self.range,
@@ -56,19 +52,19 @@ impl<H, D, S, Hs> SequenceRuleBuilder<H, D, S, Hs>
     }
 
     /// Starts building a sequence rule.
-    pub fn sequence(mut self, lhs: S) -> Self {
+    pub fn sequence(mut self, lhs: Symbol) -> Self {
         self.lhs = Some(lhs);
         self
     }
 
     /// Assigns the separator symbol and mode of separation.
-    pub fn separator(mut self, sep: Separator<S>) -> Self {
+    pub fn separator(mut self, sep: Separator) -> Self {
         self.separator = sep;
         self
     }
 
     /// Sets proper separation with the given separator symbol.
-    pub fn intersperse(self, sym: S) -> Self {
+    pub fn intersperse(self, sym: Symbol) -> Self {
         self.separator(Separator::Proper(sym))
     }
 
@@ -86,8 +82,8 @@ impl<H, D, S, Hs> SequenceRuleBuilder<H, D, S, Hs>
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs(mut self, rhs: S) -> Self
-        where Hs: HistorySource<H, S>
+    pub fn rhs(mut self, rhs: Symbol) -> Self
+        where Hs: HistorySource<H>
     {
         let history = self.history.take().unwrap_or_else(|| {
             if let Some(sep) = self.separator.into() {
@@ -112,7 +108,7 @@ impl<H, D, S, Hs> SequenceRuleBuilder<H, D, S, Hs>
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs_with_history(mut self, rhs: S, history: H) -> Self {
+    pub fn rhs_with_history(mut self, rhs: Symbol, history: H) -> Self {
         let (start, end) = self.range.take().expect("expected inclusive(n, m)");
         self.destination.add_sequence(Sequence {
             lhs: self.lhs.unwrap(),

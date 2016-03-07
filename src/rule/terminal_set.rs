@@ -1,36 +1,27 @@
 //! Informs whether symbols are terminal or nonterminal.
 
-use std::marker::PhantomData;
-
 use bit_vec::BitVec;
 
 use grammar::{ContextFree, ContextFreeRef};
 use rule::GrammarRule;
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
 /// Informs whether symbols are terminal or nonterminal.
 pub trait TerminalSet {
-    /// Type of symbols.
-    type Symbol: GrammarSymbol;
-
     /// Checks whether a given symbol is in this set.
-    fn has_sym(&self, sym: Self::Symbol) -> bool;
+    fn has_sym(&self, sym: Symbol) -> bool;
     /// Converts into a bit vector.
     fn into_bit_vec(self) -> BitVec;
 }
 
 /// Information about whether symbols are terminal or nonterminal, in the form of a bit vector.
-pub struct TerminalBitSet<S> {
+pub struct TerminalBitSet {
     bit_vec: BitVec,
-    marker: PhantomData<S>,
 }
 
-impl<S> TerminalSet for TerminalBitSet<S> where S: GrammarSymbol
-{
-    type Symbol = S;
-
-    fn has_sym(&self, sym: S) -> bool {
-        self.bit_vec[sym.usize()]
+impl TerminalSet for TerminalBitSet {
+    fn has_sym(&self, sym: Symbol) -> bool {
+        self.bit_vec[sym.into()]
     }
 
     fn into_bit_vec(self) -> BitVec {
@@ -38,24 +29,22 @@ impl<S> TerminalSet for TerminalBitSet<S> where S: GrammarSymbol
     }
 }
 
-impl<S> TerminalBitSet<S> {
+impl TerminalBitSet {
     /// Constructs a `TerminalBitSet`.
     pub fn new<'a, G>(grammar: &'a G) -> Self
-        where G: ContextFree<Symbol = S>,
+        where G: ContextFree,
               &'a G: ContextFreeRef<'a, Target = G>,
-              S: GrammarSymbol
     {
         let mut bit_vec = BitVec::from_elem(grammar.num_syms(), true);
 
         for rule in grammar.rules() {
             if !rule.rhs().is_empty() {
-                bit_vec.set(rule.lhs().usize(), false);
+                bit_vec.set(rule.lhs().into(), false);
             }
         }
 
         TerminalBitSet {
             bit_vec: bit_vec,
-            marker: PhantomData,
         }
     }
 }

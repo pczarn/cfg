@@ -4,22 +4,20 @@ use bit_vec::BitVec;
 
 use grammar::{ContextFree, ContextFreeRef};
 use rule::GrammarRule;
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
-pub struct RhsClosure<G, R>
-    where G: ContextFree
-{
-    derived_by: Vec<(G::Symbol, R)>,
-    work_stack: Vec<G::Symbol>,
+pub struct RhsClosure<R> {
+    derived_by: Vec<(Symbol, R)>,
+    work_stack: Vec<Symbol>,
 }
 
-impl<G, R> RhsClosure<G, R>
-    where G: ContextFree,
-          R: Copy + GrammarRule<History = G::History, Symbol = G::Symbol>
+impl<R> RhsClosure<R>
+    where R: Copy + GrammarRule
 {
     /// Records information which is needed to calculate the RHS transitive closure.
-    pub fn new<'a>(grammar: &'a G) -> Self
-        where &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
+    pub fn new<'a, G>(grammar: &'a G) -> Self
+        where G: ContextFree<History = R::History>,
+              &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
               R: 'a
     {
         let mut derived_by = Vec::with_capacity(2 * grammar.rules().size_hint().0);
@@ -39,7 +37,7 @@ impl<G, R> RhsClosure<G, R>
     pub fn rhs_closure(&mut self, property: &mut BitVec) {
         for (sym_id, sym_has_property) in property.iter().enumerate() {
             if sym_has_property {
-                self.work_stack.push(G::Symbol::from(sym_id as u64));
+                self.work_stack.push(Symbol::from(sym_id));
             }
         }
 

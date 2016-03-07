@@ -8,7 +8,7 @@ use rhs_closure::RhsClosure;
 use rule::GrammarRule;
 use rule::container::RuleContainer;
 use rule::terminal_set::TerminalSet;
-use symbol::{SymbolSource, GrammarSymbol};
+use symbol::Symbol;
 
 /// Contains the information about usefulness of the grammar's rules.
 /// Useful rules are both reachable and productive.
@@ -125,13 +125,13 @@ impl<'a, G> Usefulness<&'a mut G>
 
     /// Checks whether a symbol is productive. Can be used to determine the precise reason
     /// of a rule's unproductiveness.
-    pub fn productivity(&self, sym: G::Symbol) -> bool {
+    pub fn productivity(&self, sym: Symbol) -> bool {
         self.productivity[sym.usize()]
     }
 
     /// Sets symbol reachability. Takes an array of reachable symbols.
     pub fn reachable<Sr>(mut self, syms: Sr) -> Self
-        where Sr: AsRef<[G::Symbol]>
+        where Sr: AsRef<[Symbol]>
     {
         for &sym in syms.as_ref().iter() {
             let reachability = self.reachability[sym.usize()].iter();

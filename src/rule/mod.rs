@@ -7,19 +7,17 @@ pub mod builder;
 pub mod container;
 pub mod terminal_set;
 
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
 /// Trait for rules of a context-free grammar.
 pub trait GrammarRule {
     /// The type of history carried with the rule.
     type History;
-    /// The type of symbols.
-    type Symbol: GrammarSymbol;
 
     /// Returns the rule's left-hand side.
-    fn lhs(&self) -> Self::Symbol;
+    fn lhs(&self) -> Symbol;
     /// Returns the rule's right-hand side.
-    fn rhs(&self) -> &[Self::Symbol];
+    fn rhs(&self) -> &[Symbol];
     /// Returns a reference to the history carried with the rule.
     fn history(&self) -> &Self::History;
 }
@@ -27,12 +25,11 @@ pub trait GrammarRule {
 impl<'a, R> GrammarRule for &'a R where R: GrammarRule
 {
     type History = R::History;
-    type Symbol = R::Symbol;
 
-    fn lhs(&self) -> Self::Symbol {
+    fn lhs(&self) -> Symbol {
         (**self).lhs()
     }
-    fn rhs(&self) -> &[Self::Symbol] {
+    fn rhs(&self) -> &[Symbol] {
         (**self).rhs()
     }
     fn history(&self) -> &Self::History {
@@ -42,26 +39,22 @@ impl<'a, R> GrammarRule for &'a R where R: GrammarRule
 
 /// Typical grammar rule representation.
 #[derive(Clone, Debug)]
-pub struct Rule<H, S>
-    where S: GrammarSymbol
-{
-    lhs: S,
+pub struct Rule<H> {
+    lhs: Symbol,
     /// The rule's right-hand side.
-    pub rhs: Vec<S>,
+    pub rhs: Vec<Symbol>,
     /// The rule's history.
     pub history: H,
 }
 
-impl<H, S> GrammarRule for Rule<H, S> where S: GrammarSymbol
-{
-    type Symbol = S;
+impl<H> GrammarRule for Rule<H> {
     type History = H;
 
-    fn lhs(&self) -> S {
+    fn lhs(&self) -> Symbol {
         self.lhs
     }
 
-    fn rhs(&self) -> &[S] {
+    fn rhs(&self) -> &[Symbol] {
         &self.rhs
     }
 
@@ -70,10 +63,9 @@ impl<H, S> GrammarRule for Rule<H, S> where S: GrammarSymbol
     }
 }
 
-impl<H, S> Rule<H, S> where S: GrammarSymbol
-{
+impl<H> Rule<H> {
     /// Creates a new rule.
-    pub fn new(lhs: S, rhs: Vec<S>, history: H) -> Self {
+    pub fn new(lhs: Symbol, rhs: Vec<Symbol>, history: H) -> Self {
         Rule {
             lhs: lhs,
             rhs: rhs,
@@ -83,25 +75,20 @@ impl<H, S> Rule<H, S> where S: GrammarSymbol
 }
 
 /// References rule's components.
-pub struct RuleRef<'a, H, S>
-    where S: GrammarSymbol + 'a,
-          H: 'a
-{
+pub struct RuleRef<'a, H: 'a> {
     /// Left-hand side.
-    pub lhs: S,
+    pub lhs: Symbol,
     /// Right-hand side.
-    pub rhs: &'a [S],
+    pub rhs: &'a [Symbol],
     /// The rule's history.
     pub history: &'a H,
 }
 
 // Can't derive because of the type parameter.
-impl<'a, H, S> Copy for RuleRef<'a, H, S> where S: GrammarSymbol
-{}
+impl<'a, H> Copy for RuleRef<'a, H> {}
 
 // Can't derive because of the where clause.
-impl<'a, H, S> Clone for RuleRef<'a, H, S> where S: GrammarSymbol
-{
+impl<'a, H> Clone for RuleRef<'a, H> {
     fn clone(&self) -> Self {
         RuleRef {
             lhs: self.lhs,
@@ -111,16 +98,14 @@ impl<'a, H, S> Clone for RuleRef<'a, H, S> where S: GrammarSymbol
     }
 }
 
-impl<'a, H, S> GrammarRule for RuleRef<'a, H, S> where S: GrammarSymbol
-{
-    type Symbol = S;
+impl<'a, H> GrammarRule for RuleRef<'a, H> {
     type History = H;
 
-    fn lhs(&self) -> S {
+    fn lhs(&self) -> Symbol {
         self.lhs
     }
 
-    fn rhs(&self) -> &[S] {
+    fn rhs(&self) -> &[Symbol] {
         self.rhs
     }
 

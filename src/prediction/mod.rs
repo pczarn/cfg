@@ -7,8 +7,10 @@ mod follow;
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use symbol::Symbol;
+
 pub use self::first::FirstSets;
 pub use self::follow::FollowSets;
 
 /// The representation of FIRST and FOLLOW sets.
-pub type PerSymbolSets<S> = BTreeMap<S, BTreeSet<Option<S>>>;
+pub type PerSymbolSets = BTreeMap<Symbol, BTreeSet<Option<Symbol>>>;

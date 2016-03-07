@@ -7,7 +7,7 @@ use history::{AssignPrecedence, NullHistorySource, HistorySource};
 use rule::{GrammarRule, Rule, RuleRef};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
-use symbol::SymbolSource;
+use symbol::Symbol;
 
 use self::Associativity::*;
 
@@ -31,14 +31,14 @@ pub struct PrecedencedRuleBuilder<D, Hs = NullHistorySource>
           D::History: AssignPrecedence + Default
 {
     rules: Option<D>,
-    lhs: D::Symbol,
-    tighter_lhs: D::Symbol,
-    current_lhs: D::Symbol,
+    lhs: Symbol,
+    tighter_lhs: Symbol,
+    current_lhs: Symbol,
     history: Option<D::History>,
     history_state: Option<Hs>,
     assoc: Associativity,
     looseness: u32,
-    rules_with_group_assoc: Vec<Rule<D::History, D::Symbol>>,
+    rules_with_group_assoc: Vec<Rule<D::History>>,
 }
 
 impl<D> PrecedencedRuleBuilder<D>
@@ -46,7 +46,7 @@ impl<D> PrecedencedRuleBuilder<D>
           D::History: AssignPrecedence + Default
 {
     /// Returns a precedenced rule builder.
-    pub fn new(mut rules: D, lhs: D::Symbol) -> Self {
+    pub fn new(mut rules: D, lhs: Symbol) -> Self {
         let tightest_lhs = rules.next_sym();
         PrecedencedRuleBuilder {
             rules: Some(rules),
@@ -83,12 +83,12 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
 
     /// Starts building a new precedenced rule. The differences in precedence among rules only
     /// matter within a particular precedenced rule.
-    pub fn precedenced_rule(mut self, lhs: D::Symbol) -> PrecedencedRuleBuilder<D, Hs> {
+    pub fn precedenced_rule(mut self, lhs: Symbol) -> PrecedencedRuleBuilder<D, Hs> {
         self.finalize().precedenced_rule(lhs).default_history(self.history_state.take().unwrap())
     }
 
     /// Starts building a new grammar rule.
-    pub fn rule(mut self, lhs: D::Symbol) -> RuleBuilder<D, Hs> {
+    pub fn rule(mut self, lhs: Symbol) -> RuleBuilder<D, Hs> {
         self.finalize().rule(lhs).default_history(self.history_state.take().unwrap())
     }
 
@@ -101,8 +101,8 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
 
     /// Creates a rule alternative. If history wasn't provided, the rule has the `Default` history.
     pub fn rhs<S>(mut self, syms: S) -> Self
-        where S: AsRef<[D::Symbol]>,
-              Hs: HistorySource<D::History, D::Symbol>
+        where S: AsRef<[Symbol]>,
+              Hs: HistorySource<D::History>
     {
         let history = self.history.take().unwrap_or_else(||
             self.history_state.as_mut().unwrap().build(self.lhs, syms.as_ref())
@@ -112,7 +112,7 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
 
     /// Creates a rule alternative with the given RHS and history.
     pub fn rhs_with_history<S>(mut self, syms: S, history: D::History) -> Self
-        where S: AsRef<[D::Symbol]>
+        where S: AsRef<[Symbol]>
     {
         let syms = syms.as_ref();
         let this_rule_ref = RuleRef {
@@ -154,7 +154,6 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
     /// Assigns the associativity, which influences the next call to `rhs` or `rhs_with_history`.
     pub fn associativity(mut self, assoc: Associativity) -> Self
         where D::History: AssignPrecedence,
-              D: SymbolSource
     {
         self.assoc = assoc;
         self

@@ -4,6 +4,7 @@ mod support;
 
 use cfg::*;
 use cfg::usefulness::Usefulness;
+use cfg::rule::container::RuleContainer;
 
 #[test]
 fn test_binarize() {
@@ -60,7 +61,7 @@ fn test_binarize_very_long_rule() {
     let mut cfg: Cfg = Cfg::new();
     let start = cfg.sym();
 
-    let mut long_rhs = cfg.generate().take(100).collect::<Vec<_>>();
+    let mut long_rhs = cfg.sym_source_mut().generate().take(100).collect::<Vec<_>>();
     long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
     cfg.rule(start).rhs(long_rhs);
 
@@ -71,7 +72,7 @@ fn test_binarize_very_long_rule() {
     let mut equivalent = BinarizedCfg::new();
     let start = equivalent.sym();
 
-    let mut long_rhs = equivalent.generate().take(100).collect::<Vec<_>>();
+    let mut long_rhs = equivalent.sym_source_mut().generate().take(100).collect::<Vec<_>>();
     long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
     equivalent.rule(start).rhs(long_rhs);
     support::assert_eq_rules(equivalent.rules(), cfg.rules());

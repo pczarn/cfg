@@ -4,9 +4,9 @@
 use std::marker::PhantomData;
 
 use rule::GrammarRule;
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
-/// Used to inform which symbols on a rule's RHS are nullable, and will be eliminated.
+/// Used to inform which symbols on a rule'Symbol RHS are nullable, and will be eliminated.
 #[derive(Clone, Copy)]
 pub enum BinarizedRhsSubset {
     /// The first of two symbols.
@@ -53,10 +53,9 @@ pub trait RewriteSequence {
     type Rewritten;
 
     /// Returns a history. May record the rewrite.
-    fn top<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten where S: GrammarSymbol;
+    fn top(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten;
     /// Returns a history. May record the rewrite.
-    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
-        where S: GrammarSymbol;
+    fn bottom(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten;
 }
 
 impl Action for NullHistory {
@@ -86,13 +85,11 @@ impl AssignPrecedence for NullHistory {
 impl RewriteSequence for NullHistory {
     type Rewritten = Self;
 
-    fn top<S>(&self, _rhs: S, _sep: Option<S>, _new_rhs: &[S]) -> Self {
+    fn top(&self, _rhs: Symbol, _sep: Option<Symbol>, _new: &[Symbol]) -> Self {
         NullHistory
     }
 
-    fn bottom<S>(&self, _rhs: S, _sep: Option<S>, _new_rhs: &[S]) -> Self::Rewritten
-        where S: GrammarSymbol
-    {
+    fn bottom(&self, _rhs: Symbol, _sep: Option<Symbol>, _new: &[Symbol]) -> Self {
         NullHistory
     }
 }
@@ -101,32 +98,28 @@ impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence
 {
     type Rewritten = T::Rewritten;
 
-    fn top<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
-        where S: GrammarSymbol
-    {
+    fn top(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten {
         (**self).top(rhs, sep, new_rhs)
     }
 
-    fn bottom<S>(&self, rhs: S, sep: Option<S>, new_rhs: &[S]) -> Self::Rewritten
-        where S: GrammarSymbol
-    {
+    fn bottom(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten {
         (**self).bottom(rhs, sep, new_rhs)
     }
 }
 
 /// A trait for history factories.
-pub trait HistorySource<H, S> {
+pub trait HistorySource<H> {
     /// Create a history.
-    fn build(&mut self, lhs: S, rhs: &[S]) -> H;
+    fn build(&mut self, lhs: Symbol, rhs: &[Symbol]) -> H;
 }
 
 /// Clone history.
-pub struct CloneHistory<'a, H: 'a, S> {
+pub struct CloneHistory<'a, H: 'a> {
     history: &'a H,
-    marker: PhantomData<S>,
+    marker: PhantomData<Symbol>,
 }
 
-impl<'a, H, S> CloneHistory<'a, H, S> {
+impl<'a, H> CloneHistory<'a, H> {
     /// Creates a cloned history factory.
     pub fn new(history: &'a H) -> Self {
         CloneHistory {
@@ -136,30 +129,28 @@ impl<'a, H, S> CloneHistory<'a, H, S> {
     }
 }
 
-impl<'a, H, S> HistorySource<H, S> for CloneHistory<'a, H, S>
+impl<'a, H> HistorySource<H> for CloneHistory<'a, H>
     where H: Clone,
-          S: GrammarSymbol
 {
-    fn build(&mut self, _lhs: S, _rhs: &[S]) -> H {
+    fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
         self.history.clone()
     }
 }
 
 /// Factory of default histories.
-pub struct DefaultHistory<H, S>(PhantomData<(H, S)>);
+pub struct DefaultHistory<H>(PhantomData<H>);
 
-impl<H, S> DefaultHistory<H, S> {
+impl<H> DefaultHistory<H> {
     /// Creates a default history factory.
     pub fn new() -> Self {
         DefaultHistory(PhantomData)
     }
 }
 
-impl<H, S> HistorySource<H, S> for DefaultHistory<H, S>
+impl<H> HistorySource<H> for DefaultHistory<H>
     where H: Default,
-          S: GrammarSymbol
 {
-    fn build(&mut self, _lhs: S, _rhs: &[S]) -> H {
+    fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
         H::default()
     }
 }
@@ -168,8 +159,8 @@ impl<H, S> HistorySource<H, S> for DefaultHistory<H, S>
 #[derive(Clone, Copy)]
 pub struct NullHistorySource;
 
-impl<S> HistorySource<NullHistory, S> for NullHistorySource {
-    fn build(&mut self, _lhs: S, _rhs: &[S]) -> NullHistory {
+impl HistorySource<NullHistory> for NullHistorySource {
+    fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> NullHistory {
         NullHistory
     }
 }

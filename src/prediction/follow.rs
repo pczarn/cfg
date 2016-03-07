@@ -6,24 +6,21 @@ use grammar::{ContextFree, ContextFreeRef};
 use prediction::{FirstSets, PerSymbolSets};
 use rule::GrammarRule;
 use rule::terminal_set::TerminalSet;
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
 /// FOLLOW sets.
-pub struct FollowSets<S>
-    where S: GrammarSymbol
-{
+pub struct FollowSets {
     /// Mapping from nonterminals to FOLLOW sets.
-    map: PerSymbolSets<S>,
+    map: PerSymbolSets,
 }
 
-impl<S> FollowSets<S> where S: GrammarSymbol
-{
+impl FollowSets {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
-    pub fn new<'a, G>(grammar: &'a G, start_sym: S, first_sets: &FirstSets<S>) -> Self
-        where G: ContextFree<Symbol = S>,
+    pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &FirstSets) -> Self
+        where G: ContextFree,
               &'a G: ContextFreeRef<'a, Target = G>,
-              G::TerminalSet: TerminalSet<Symbol = S>
+              G::TerminalSet: TerminalSet
     {
         let mut this = FollowSets { map: BTreeMap::new() };
 
@@ -65,7 +62,7 @@ impl<S> FollowSets<S> where S: GrammarSymbol
     }
 
     /// Returns a reference to FOLLOW sets.
-    pub fn follow_sets(&self) -> &PerSymbolSets<S> {
+    pub fn follow_sets(&self) -> &PerSymbolSets {
         &self.map
     }
 }

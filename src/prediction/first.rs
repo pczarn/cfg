@@ -6,17 +6,14 @@ use grammar::{ContextFree, ContextFreeRef};
 use prediction::PerSymbolSets;
 use rule::GrammarRule;
 use rule::terminal_set::TerminalSet;
-use symbol::GrammarSymbol;
+use symbol::Symbol;
 
 /// FIRST sets.
-pub struct FirstSets<S>
-    where S: GrammarSymbol
-{
-    map: PerSymbolSets<S>,
+pub struct FirstSets {
+    map: PerSymbolSets,
 }
 
-impl<S> FirstSets<S> where S: GrammarSymbol
-{
+impl FirstSets {
     /// Compute all FIRST sets of the grammar.
     ///
     /// We define a binary relation FIRST(N, S), in which N is related to S
@@ -25,8 +22,8 @@ impl<S> FirstSets<S> where S: GrammarSymbol
     ///
     /// We compute the transitive closure of this relation.
     pub fn new<'a, G>(grammar: &'a G) -> Self
-        where G::TerminalSet: TerminalSet<Symbol = S>,
-              G: ContextFree<Symbol = S>,
+        where G::TerminalSet: TerminalSet,
+              G: ContextFree,
               &'a G: ContextFreeRef<'a, Target = G>
     {
         let mut this = FirstSets { map: BTreeMap::new() };
@@ -50,13 +47,13 @@ impl<S> FirstSets<S> where S: GrammarSymbol
     }
 
     /// Returns a reference to FIRST sets.
-    pub fn first_sets(&self) -> &PerSymbolSets<S> {
+    pub fn first_sets(&self) -> &PerSymbolSets {
         &self.map
     }
 
     /// Compute a FIRST set.
-    fn first_set_collect<T>(&self, terminal_set: &T, vec: &mut Vec<Option<S>>, rhs: &[S])
-        where T: TerminalSet<Symbol = S>
+    fn first_set_collect<T>(&self, terminal_set: &T, vec: &mut Vec<Option<Symbol>>, rhs: &[Symbol])
+        where T: TerminalSet
     {
         for &sym in rhs {
             let mut nullable = false;

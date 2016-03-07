@@ -2,8 +2,9 @@ extern crate cfg;
 
 mod support;
 
-use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule, SymbolSource};
+use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule};
 use cfg::cycles::Cycles;
+use cfg::rule::container::RuleContainer;
 
 #[test]
 fn test_remove_cycles() {

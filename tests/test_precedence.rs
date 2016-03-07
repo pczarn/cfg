@@ -2,8 +2,9 @@ extern crate cfg;
 
 mod support;
 
-use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule, SymbolSource};
+use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule};
 use cfg::precedence::Associativity::*;
+use cfg::rule::container::RuleContainer;
 use cfg::usefulness::Usefulness;
 
 #[test]

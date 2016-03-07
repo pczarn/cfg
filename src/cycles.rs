@@ -7,7 +7,7 @@ use bit_vec::BitVec;
 
 use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
 use rule::GrammarRule;
-use symbol::{SymbolSource, GrammarSymbol};
+use symbol::Symbol;
 
 /// Provides information about cycles among unit derivations in the grammar. There are two ways of
 /// pruning cycles.
@@ -28,7 +28,7 @@ fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix
     where G: ContextFree,
           &'a G: ContextFreeRef<'a, Target = G>
 {
-    let num_syms = grammar.sym_source().num_syms();
+    let num_syms = grammar.num_syms();
     let mut unit_derivation = BitMatrix::new(num_syms, num_syms);
 
     for rule in grammar.rules() {
@@ -36,7 +36,7 @@ fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix
         // a directed graph. The rule `A ::= A` is then presented as a self-loop. Self-loops
         // aren't cycles.
         if rule.rhs().len() == 1 && rule.lhs() != rule.rhs()[0] {
-            unit_derivation.set(rule.lhs().usize(), rule.rhs()[0].usize(), true);
+            unit_derivation.set(rule.lhs().into(), rule.rhs()[0].into(), true);
         }
     }
 
@@ -89,7 +89,7 @@ impl<'a, G> Cycles<&'a mut G>
         if !self.cycle_free {
             let unit_derivation = &self.unit_derivation;
             self.grammar.retain(|lhs, rhs, _| {
-                rhs.len() != 1 || !unit_derivation[(rhs[0].usize(), lhs.usize())]
+                rhs.len() != 1 || !unit_derivation[(rhs[0].into(), lhs.into())]
             });
         }
     }
@@ -107,8 +107,8 @@ impl<'a, G> Cycles<&'a mut G>
             let unit_derivation = &self.unit_derivation;
             self.grammar.retain(|lhs_sym, rhs, _| {
                 // We have `A ::= B`.
-                let lhs = lhs_sym.usize();
-                if rhs.len() == 1 && unit_derivation[(rhs[0].usize(), lhs)] {
+                let lhs = lhs_sym.into();
+                if rhs.len() == 1 && unit_derivation[(rhs[0].into(), lhs)] {
                     // `B` derives `A`.
                     if !translation.contains_key(&lhs_sym) {
                         // Start rewrite. Check which symbols participate in this cycle.
@@ -118,7 +118,7 @@ impl<'a, G> Cycles<&'a mut G>
                         }
                         for (i, is_in_cycle) in row.iter().enumerate() {
                             if is_in_cycle {
-                                translation.insert(G::Symbol::from(i as u64), Some(lhs_sym));
+                                translation.insert(Symbol::from(i), Some(lhs_sym));
                             }
                         }
                         translation.insert(lhs_sym, None);
@@ -168,8 +168,8 @@ impl<'a, G> Iterator for CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>:
         }
 
         while let Some(rule) = self.rules.next() {
-            if rule.rhs().len() == 1 && self.cycles.unit_derivation[(rule.rhs()[0].usize(),
-                                                                     rule.lhs().usize())] {
+            if rule.rhs().len() == 1 && self.cycles.unit_derivation[(rule.rhs()[0].into(),
+                                                                     rule.lhs().into())] {
                 return Some(rule);
             }
         }
