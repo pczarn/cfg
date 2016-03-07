@@ -11,7 +11,9 @@ The following features are implemented thus far:
 * useless rule detection and elimination,
 * grammar binarization,
 * nulling rule elimination for binarized grammars,
-* FIRST and FOLLOW set computation.
+* FIRST and FOLLOW set computation,
+* minimal distance computation,
+* unused symbol removal.
 
 ## Building grammars
 
@@ -19,8 +21,8 @@ The following features are implemented thus far:
 
 ### Generating symbols
 
-The easiest way of generating symbols is with the `sym` method. The start symbol
-isn't generated, because it's constant for all grammars.
+The easiest way of generating symbols is with the `sym` method. The library is unaware
+of the start symbol.
 
 ```rust
 let mut grammar: Cfg = Cfg::new();
@@ -44,7 +46,7 @@ optional separation. Aside from separation, they closely resemble regular
 expression repetitions.
 
 ```rust
-grammar.sequence(number).rhs(digit, 1..);
+grammar.sequence(number).inclusive(1, None).rhs(digit);
 ```
 
 ### Building precedenced rules
@@ -75,7 +77,6 @@ grammar.precedenced_rule(expr)
 
 Your grammar type has to implement several traits:
 
-* `SymbolSource`
 * `RuleContainer`
 * `ContextFree`
 * `ContextFreeRef`
