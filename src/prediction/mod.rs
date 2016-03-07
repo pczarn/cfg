@@ -2,6 +2,7 @@
 
 // Based on code by Niko Matsakis.
 
+mod distance;
 mod first;
 mod follow;
 
@@ -9,6 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use symbol::Symbol;
 
+pub use self::distance::MinimalDistance;
 pub use self::first::FirstSets;
 pub use self::follow::FollowSets;
 
