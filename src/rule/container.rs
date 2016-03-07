@@ -1,6 +1,5 @@
 //! Abstraction for collections of rules.
 
-use rule::terminal_set::TerminalSet;
 use symbol::{Symbol, SymbolSource};
 use symbol::source::SymbolContainer;
 
@@ -8,8 +7,6 @@ use symbol::source::SymbolContainer;
 pub trait RuleContainer {
     /// The type of history carried with the rule.
     type History;
-    /// The type of information about whether symbols are terminal or nonterminal.
-    type TerminalSet: TerminalSet;
 
     /// Returns an immutable reference to the grammar's symbol source.
     fn sym_source(&self) -> &SymbolSource;
@@ -41,16 +38,11 @@ pub trait RuleContainer {
         where F: FnMut(Symbol, &[Symbol], &Self::History) -> bool;
     /// Inserts a rule with `lhs` and `rhs` on its LHS and RHS. The rule carries `history`.
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: Self::History);
-    /// Gathers information about whether symbols are terminal or nonterminal.
-    ///
-    /// Constructs a data structure in O(n) time.
-    fn terminal_set(&self) -> Self::TerminalSet;
 }
 
 impl<'a, D> RuleContainer for &'a mut D where D: RuleContainer
 {
     type History = D::History;
-    type TerminalSet = D::TerminalSet;
 
     fn sym_source(&self) -> &SymbolSource {
         (**self).sym_source()
@@ -68,9 +60,5 @@ impl<'a, D> RuleContainer for &'a mut D where D: RuleContainer
 
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: Self::History) {
         (**self).add_rule(lhs, rhs, history);
-    }
-
-    fn terminal_set(&self) -> Self::TerminalSet {
-        (**self).terminal_set()
     }
 }

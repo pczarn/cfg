@@ -7,8 +7,7 @@ use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
 use rhs_closure::RhsClosure;
 use rule::GrammarRule;
 use rule::container::RuleContainer;
-use rule::terminal_set::TerminalSet;
-use symbol::Symbol;
+use symbol::{Symbol, SymbolBitSet};
 
 /// Contains the information about usefulness of the grammar's rules.
 /// Useful rules are both reachable and productive.
@@ -62,7 +61,7 @@ fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
     where G: ContextFree,
           &'a G: ContextFreeRef<'a, Target = G>
 {
-    let mut productive_syms = grammar.terminal_set().into_bit_vec();
+    let mut productive_syms = SymbolBitSet::terminal_set(&grammar).into_bit_vec();
     RhsClosure::new(grammar).rhs_closure(&mut productive_syms);
     productive_syms
 }

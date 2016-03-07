@@ -4,7 +4,6 @@ use cfg::*;
 use cfg::history::{Action, RewriteSequence};
 use cfg::rule::container::RuleContainer;
 use cfg::prediction::MinimalDistance;
-use cfg::symbol::Symbol;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct History {

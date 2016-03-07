@@ -5,8 +5,7 @@ use std::cmp;
 use grammar::{ContextFree, ContextFreeRef};
 use rhs_closure::RhsClosure;
 use rule::GrammarRule;
-use rule::terminal_set::TerminalSet;
-use symbol::Symbol;
+use symbol::{Symbol, SymbolBitSet};
 
 /// Calculation of minimum distance from one part of the grammar to another.
 /// Similar to multi-source shortest path search in a graph.
@@ -53,10 +52,9 @@ impl<'a, G> MinimalDistance<'a, G>
 
     fn minimal_sentence_lengths(&mut self) {
         // The distance for terminals is 1.
-        for (id, is_terminal) in self.grammar.terminal_set().into_bit_vec().into_iter().enumerate() {
-            if is_terminal {
-                self.min_of[id] = Some(1);
-            }
+        let terminal_set = SymbolBitSet::terminal_set(&self.grammar);
+        for terminal in terminal_set.iter() {
+            self.min_of[terminal.usize()] = Some(1);
         }
         // The distance for nullable symbols is 0.
         for rule in self.grammar.rules() {

@@ -3,10 +3,12 @@
 
 #[cfg_attr(feature = "nightly", path = "repr_nightly.rs")]
 mod repr;
+pub mod set;
 pub mod source;
 
 use std::convert::{From, Into};
 
+pub use self::set::SymbolBitSet;
 pub use self::source::SymbolSource;
 pub use self::repr::Symbol;
 use self::repr::SymbolRepr;

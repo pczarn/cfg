@@ -5,8 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use grammar::{ContextFree, ContextFreeRef};
 use prediction::{FirstSets, PerSymbolSets};
 use rule::GrammarRule;
-use rule::terminal_set::TerminalSet;
-use symbol::Symbol;
+use symbol::{Symbol, SymbolBitSet};
 
 /// FOLLOW sets.
 pub struct FollowSets {
@@ -19,8 +18,7 @@ impl FollowSets {
     /// Returns FollowSets.
     pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &FirstSets) -> Self
         where G: ContextFree,
-              &'a G: ContextFreeRef<'a, Target = G>,
-              G::TerminalSet: TerminalSet
+              &'a G: ContextFreeRef<'a, Target = G>
     {
         let mut this = FollowSets { map: BTreeMap::new() };
 
@@ -34,7 +32,7 @@ impl FollowSets {
         let mut changed = true;
         while changed {
             changed = false;
-            let terminal_set = grammar.terminal_set();
+            let terminal_set = SymbolBitSet::terminal_set(&grammar);
             for rule in grammar.rules() {
                 let mut follow_set = this.map.get(&rule.lhs()).unwrap().clone();
 

@@ -8,7 +8,6 @@ use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
-use rule::terminal_set::TerminalBitSet;
 use sequence::Sequence;
 use sequence::builder::SequenceRuleBuilder;
 use sequence::rewrite::SequencesToProductions;
@@ -160,7 +159,6 @@ impl<H, Hs> RuleContainer for Cfg<H, Hs>
     where Hs: Clone + RewriteSequence<Rewritten = H>,
 {
     type History = H;
-    type TerminalSet = TerminalBitSet;
 
     fn sym_source(&self) -> &SymbolSource {
         &self.sym_source
@@ -178,9 +176,5 @@ impl<H, Hs> RuleContainer for Cfg<H, Hs>
 
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: H) {
         self.rules.push(Rule::new(lhs, rhs.to_vec(), history));
-    }
-
-    fn terminal_set(&self) -> Self::TerminalSet {
-        TerminalBitSet::new(self)
     }
 }

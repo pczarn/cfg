@@ -5,7 +5,6 @@
 
 pub mod builder;
 pub mod container;
-pub mod terminal_set;
 
 use symbol::Symbol;
 

@@ -11,7 +11,6 @@ use history::BinarizedRhsSubset::*;
 use rhs_closure::RhsClosure;
 use rule::{GrammarRule, RuleRef};
 use rule::container::RuleContainer;
-use rule::terminal_set::TerminalBitSet;
 use symbol::{Symbol, SymbolSource};
 use symbol::source::SymbolContainer;
 
@@ -222,7 +221,6 @@ impl<H> RuleContainer for BinarizedCfg<H>
     where H: Binarize,
 {
     type History = H;
-    type TerminalSet = TerminalBitSet;
 
     fn sym_source(&self) -> &SymbolSource {
         &self.sym_source
@@ -286,10 +284,6 @@ impl<H> RuleContainer for BinarizedCfg<H>
                                            }
                                        }));
         }
-    }
-
-    fn terminal_set(&self) -> Self::TerminalSet {
-        TerminalBitSet::new(self)
     }
 }
 

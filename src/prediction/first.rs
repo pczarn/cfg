@@ -5,8 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use grammar::{ContextFree, ContextFreeRef};
 use prediction::PerSymbolSets;
 use rule::GrammarRule;
-use rule::terminal_set::TerminalSet;
-use symbol::Symbol;
+use symbol::{Symbol, SymbolBitSet};
 
 /// FIRST sets.
 pub struct FirstSets {
@@ -22,8 +21,7 @@ impl FirstSets {
     ///
     /// We compute the transitive closure of this relation.
     pub fn new<'a, G>(grammar: &'a G) -> Self
-        where G::TerminalSet: TerminalSet,
-              G: ContextFree,
+        where G: ContextFree,
               &'a G: ContextFreeRef<'a, Target = G>
     {
         let mut this = FirstSets { map: BTreeMap::new() };
@@ -32,7 +30,7 @@ impl FirstSets {
         let mut changed = true;
         while changed {
             changed = false;
-            let terminal_set = grammar.terminal_set();
+            let terminal_set = SymbolBitSet::terminal_set(&grammar);
             for rule in grammar.rules() {
                 this.first_set_collect(&terminal_set, &mut lookahead, rule.rhs());
                 let first_set = this.map.entry(rule.lhs()).or_insert_with(|| BTreeSet::new());
@@ -52,9 +50,7 @@ impl FirstSets {
     }
 
     /// Compute a FIRST set.
-    fn first_set_collect<T>(&self, terminal_set: &T, vec: &mut Vec<Option<Symbol>>, rhs: &[Symbol])
-        where T: TerminalSet
-    {
+    fn first_set_collect(&self, terminal_set: &SymbolBitSet, vec: &mut Vec<Option<Symbol>>, rhs: &[Symbol]) {
         for &sym in rhs {
             let mut nullable = false;
             if terminal_set.has_sym(sym) {
