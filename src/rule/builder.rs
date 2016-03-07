@@ -17,7 +17,8 @@ pub struct RuleBuilder<C, Hs = NullHistorySource>
     rules: C,
 }
 
-impl<C> RuleBuilder<C> where C: RuleContainer
+impl<C> RuleBuilder<C>
+    where C: RuleContainer
 {
     /// Creates a rule builder.
     pub fn new(rules: C) -> RuleBuilder<C> {
@@ -30,7 +31,8 @@ impl<C> RuleBuilder<C> where C: RuleContainer
     }
 }
 
-impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
+impl<C, Hs> RuleBuilder<C, Hs>
+    where C: RuleContainer
 {
     /// Sets the default history source.
     pub fn default_history<Hs2>(self, state: Hs2) -> RuleBuilder<C, Hs2> {
@@ -60,7 +62,7 @@ impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
     /// `Default` history.
     pub fn rhs<Sr>(mut self, syms: Sr) -> Self
         where Sr: AsRef<[Symbol]>,
-              Hs: HistorySource<C::History>,
+              Hs: HistorySource<C::History>
     {
         let history = self.history.take().unwrap_or_else(|| {
             self.history_state.build(self.lhs.unwrap(), syms.as_ref())
@@ -70,7 +72,7 @@ impl<C, Hs> RuleBuilder<C, Hs> where C: RuleContainer
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
     pub fn rhs_with_history<Sr>(mut self, syms: Sr, history: C::History) -> Self
-        where Sr: AsRef<[Symbol]>,
+        where Sr: AsRef<[Symbol]>
     {
         self.rules.add_rule(self.lhs.unwrap(), syms.as_ref(), history);
         self

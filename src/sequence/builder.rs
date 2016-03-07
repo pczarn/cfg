@@ -20,7 +20,7 @@ pub struct SequenceRuleBuilder<H, D, Hs = NullHistorySource> {
 
 impl<H, D> SequenceRuleBuilder<H, D>
     where D: SequenceDestination<H>,
-          H: RewriteSequence,
+          H: RewriteSequence
 {
     /// Creates a sequence rule builder.
     pub fn new(destination: D) -> Self {
@@ -37,7 +37,7 @@ impl<H, D> SequenceRuleBuilder<H, D>
 
 impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
     where D: SequenceDestination<H>,
-          H: RewriteSequence,
+          H: RewriteSequence
 {
     /// Sets the default history source.
     pub fn default_history<Hs2>(self, state: Hs2) -> SequenceRuleBuilder<H, D, Hs2> {

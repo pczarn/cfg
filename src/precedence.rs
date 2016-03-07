@@ -104,9 +104,9 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
         where S: AsRef<[Symbol]>,
               Hs: HistorySource<D::History>
     {
-        let history = self.history.take().unwrap_or_else(||
+        let history = self.history.take().unwrap_or_else(|| {
             self.history_state.as_mut().unwrap().build(self.lhs, syms.as_ref())
-        );
+        });
         self.rhs_with_history(syms.as_ref(), history)
     }
 
@@ -153,7 +153,7 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
 
     /// Assigns the associativity, which influences the next call to `rhs` or `rhs_with_history`.
     pub fn associativity(mut self, assoc: Associativity) -> Self
-        where D::History: AssignPrecedence,
+        where D::History: AssignPrecedence
     {
         self.assoc = assoc;
         self
@@ -185,7 +185,9 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
             destination.add_rule(rule.lhs(), &rule.rhs[..], rule.history);
         }
         // The associativity is not reset in the call to `rhs`.
-        RuleBuilder::new(destination).rule(self.lhs).rhs_with_history(&[loosest_lhs], Default::default())
+        RuleBuilder::new(destination)
+            .rule(self.lhs)
+            .rhs_with_history(&[loosest_lhs], Default::default())
     }
 }
 

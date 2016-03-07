@@ -40,7 +40,7 @@ struct PartialSequence {
 impl<H, D> SequenceDestination<H> for SequencesToProductions<H, D>
     where D: RuleContainer<History = H::Rewritten>,
           H: Clone + RewriteSequence,
-          H::Rewritten: Clone,
+          H::Rewritten: Clone
 {
     fn add_sequence(&mut self, seq: Sequence<H>) {
         self.rewrite(seq);
@@ -50,7 +50,7 @@ impl<H, D> SequenceDestination<H> for SequencesToProductions<H, D>
 impl<H, D> SequencesToProductions<H, D>
     where D: RuleContainer<History = H::Rewritten>,
           H: Clone + RewriteSequence,
-          H::Rewritten: Clone,
+          H::Rewritten: Clone
 {
     /// Initializes a rewrite.
     pub fn new(destination: D) -> Self {
@@ -185,7 +185,8 @@ impl<H, D> SequencesToProductions<H, D>
                     .rhs([sym1])
                     .rhs([sym2]);
             }
-            (_, _, Some(end)) if start == 1 => { // end >= 3
+            (_, _, Some(end)) if start == 1 => {
+                // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
                 let (seq1, seq2) = (sequence.clone().inclusive(0, Some(pow2)),
                                     sequence.clone().inclusive(1, Some(end - pow2)));
@@ -223,7 +224,9 @@ impl<H, D> SequencesToProductions<H, D>
     }
 }
 
-struct DefaultSeqHistory<'a, H: 'a> where H: RewriteSequence {
+struct DefaultSeqHistory<'a, H: 'a>
+    where H: RewriteSequence
+{
     top_history: &'a H,
     at_top: bool,
     elem: Symbol,
@@ -232,7 +235,7 @@ struct DefaultSeqHistory<'a, H: 'a> where H: RewriteSequence {
 
 impl<'a, H> HistorySource<H::Rewritten> for DefaultSeqHistory<'a, H>
     where H: RewriteSequence,
-          H::Rewritten: Clone,
+          H::Rewritten: Clone
 {
     fn build(&mut self, _lhs: Symbol, rhs: &[Symbol]) -> H::Rewritten {
         if self.at_top {

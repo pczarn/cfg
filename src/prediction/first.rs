@@ -50,7 +50,10 @@ impl FirstSets {
     }
 
     /// Compute a FIRST set.
-    fn first_set_collect(&self, terminal_set: &SymbolBitSet, vec: &mut Vec<Option<Symbol>>, rhs: &[Symbol]) {
+    fn first_set_collect(&self,
+                         terminal_set: &SymbolBitSet,
+                         vec: &mut Vec<Option<Symbol>>,
+                         rhs: &[Symbol]) {
         for &sym in rhs {
             let mut nullable = false;
             if terminal_set.has_sym(sym) {

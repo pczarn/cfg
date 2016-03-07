@@ -37,7 +37,8 @@ pub trait Binarize {
 /// eliminated from the RHS.
 pub trait EliminateNulling {
     /// Returns a history. May record the elimination.
-    fn eliminate_nulling<R>(&self, rule: &R, which: BinarizedRhsSubset) -> Self where R: GrammarRule;
+    fn eliminate_nulling<R>(&self, rule: &R, which: BinarizedRhsSubset) -> Self
+        where R: GrammarRule;
 }
 
 /// Trait for history types that allow the rule to have its precedence assigned.
@@ -94,7 +95,8 @@ impl RewriteSequence for NullHistory {
     }
 }
 
-impl<'a, T> RewriteSequence for &'a T where T: RewriteSequence
+impl<'a, T> RewriteSequence for &'a T
+    where T: RewriteSequence
 {
     type Rewritten = T::Rewritten;
 
@@ -130,7 +132,7 @@ impl<'a, H> CloneHistory<'a, H> {
 }
 
 impl<'a, H> HistorySource<H> for CloneHistory<'a, H>
-    where H: Clone,
+    where H: Clone
 {
     fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
         self.history.clone()
@@ -148,7 +150,7 @@ impl<H> DefaultHistory<H> {
 }
 
 impl<H> HistorySource<H> for DefaultHistory<H>
-    where H: Default,
+    where H: Default
 {
     fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
         H::default()

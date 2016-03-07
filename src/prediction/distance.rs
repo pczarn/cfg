@@ -19,7 +19,7 @@ pub struct MinimalDistance<'a, G: 'a> {
 
 impl<'a, G> MinimalDistance<'a, G>
     where G: ContextFree + 'a,
-          &'a G: ContextFreeRef<'a, Target=G>,
+          &'a G: ContextFreeRef<'a, Target = G>
 {
     /// Returns a new `MinimalDistance` for a grammar.
     pub fn new(grammar: &'a G) -> Self {

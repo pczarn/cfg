@@ -21,7 +21,8 @@ pub trait GrammarRule {
     fn history(&self) -> &Self::History;
 }
 
-impl<'a, R> GrammarRule for &'a R where R: GrammarRule
+impl<'a, R> GrammarRule for &'a R
+    where R: GrammarRule
 {
     type History = R::History;
 

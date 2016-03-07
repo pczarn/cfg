@@ -10,7 +10,9 @@ use rule::{Rule, GrammarRule};
 use symbol::{Symbol, SymbolSource};
 
 /// Remaps symbols and removes unused symbols.
-pub struct Remap<'a, G: 'a> where G: ContextFree {
+pub struct Remap<'a, G: 'a>
+    where G: ContextFree
+{
     grammar: &'a mut G,
     mapping: Mapping,
 }
@@ -55,7 +57,9 @@ impl<'a, G> Remap<'a, G>
 
     /// Remaps symbols to satisfy given ordering constraints. The argument
     /// must be a function that gives total order.
-    pub fn reorder_symbols<F>(&mut self, f: F) where F: Fn(Symbol, Symbol) -> Ordering {
+    pub fn reorder_symbols<F>(&mut self, f: F)
+        where F: Fn(Symbol, Symbol) -> Ordering
+    {
         // Create a new map from N to N symbols.
         let mut new_mapping = Mapping::new(self.grammar.num_syms());
         new_mapping.to_external = symbol_iter(self.grammar.num_syms()).collect();
@@ -72,17 +76,17 @@ impl<'a, G> Remap<'a, G>
     }
 
     // Translates symbols in rules to new symbol IDs.
-    fn remap_symbols<F>(&mut self, mut map: F) where F: FnMut(Symbol) -> Symbol {
+    fn remap_symbols<F>(&mut self, mut map: F)
+        where F: FnMut(Symbol) -> Symbol
+    {
         let mut added_rules = vec![];
         self.grammar.retain(|lhs, rhs, history| {
             if map(lhs) == lhs && rhs.iter().all(|&sym| map(sym) == sym) {
                 true
             } else {
-                added_rules.push(Rule::new(
-                    map(lhs),
-                    rhs.iter().cloned().map(&mut map).collect(),
-                    history.clone(),
-                ));
+                added_rules.push(Rule::new(map(lhs),
+                                           rhs.iter().cloned().map(&mut map).collect(),
+                                           history.clone()));
                 false
             }
         });
@@ -140,9 +144,10 @@ impl Mapping {
             };
         }
         // For mapping to external.
-        let remapped = other.to_external.iter().map(|middle| {
-            self.to_external[middle.usize()]
-        }).collect();
+        let remapped = other.to_external
+                            .iter()
+                            .map(|middle| self.to_external[middle.usize()])
+                            .collect();
         self.to_external = remapped;
     }
 }

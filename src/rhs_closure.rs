@@ -86,14 +86,14 @@ impl<R> RhsClosure<R>
     }
 }
 
-fn find<S, R>(vec: &Vec<(S, R)>, key_sym: S) -> &[(S, R)] where S: Copy + Ord {
+fn find<S, R>(vec: &Vec<(S, R)>, key_sym: S) -> &[(S, R)]
+    where S: Copy + Ord
+{
     match vec.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(key_sym, Less))) {
         Err(idx) => {
             let len = vec[idx..].iter().take_while(|t| t.0 == key_sym).count();
-            &vec[idx .. idx + len]
+            &vec[idx..idx + len]
         }
-        Ok(_) => {
-            unreachable!()
-        }
+        Ok(_) => unreachable!(),
     }
 }

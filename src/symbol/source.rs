@@ -61,7 +61,7 @@ impl_generate!(
     Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
     Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
     Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
-    Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol
+    Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol, Symbol,
 );
 
 /// Iterator for generating symbols.

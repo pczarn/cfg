@@ -16,18 +16,16 @@ pub struct SymbolBitSet {
 
 /// An iterator over a symbol set.
 pub struct Iter<'a> {
-    iter: iter::Enumerate<bit_vec::Iter<'a>>
+    iter: iter::Enumerate<bit_vec::Iter<'a>>,
 }
 
 impl SymbolBitSet {
     /// Constructs a `SymbolBitSet`.
     pub fn new<'a, G>(grammar: &'a G, elem: bool) -> Self
         where G: ContextFree,
-              &'a G: ContextFreeRef<'a, Target = G>,
+              &'a G: ContextFreeRef<'a, Target = G>
     {
-        SymbolBitSet {
-            bit_vec: BitVec::from_elem(grammar.num_syms(), elem),
-        }
+        SymbolBitSet { bit_vec: BitVec::from_elem(grammar.num_syms(), elem) }
     }
 
     /// Gathers information about whether symbols are terminal or nonterminal.
@@ -36,7 +34,7 @@ impl SymbolBitSet {
     /// Constructs a data structure in O(n) time.
     pub fn terminal_set<'a, G>(grammar: &'a G) -> Self
         where G: ContextFree,
-              &'a G: ContextFreeRef<'a, Target = G>,
+              &'a G: ContextFreeRef<'a, Target = G>
     {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {

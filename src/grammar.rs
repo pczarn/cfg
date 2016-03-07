@@ -31,7 +31,7 @@ pub trait ContextFree: RuleContainer + Sized {
     /// Returns a binarized weak equivalent of this grammar.
     fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History>
         where &'a Self: ContextFreeRef<'a, Target = Self>,
-              Self::History: Binarize + Clone + 'static,
+              Self::History: Binarize + Clone + 'static
     {
         BinarizedCfg::from_context_free(self)
     }
@@ -88,7 +88,7 @@ impl<H, Hs> Cfg<H, Hs> {
 impl<H, Hs> Cfg<H, Hs>
     where Hs: RewriteSequence<Rewritten = H>,
           H: Clone,
-          Hs: Clone,
+          Hs: Clone
 {
     /// Returns generated symbols.
     pub fn sym<T>(&mut self) -> T
@@ -108,8 +108,7 @@ impl<H, Hs> Cfg<H, Hs>
     }
 
     /// Starts building a sequence rule.
-    pub fn sequence(&mut self, lhs: Symbol)
-                    -> SequenceRuleBuilder<Hs, &mut Vec<Sequence<Hs>>> {
+    pub fn sequence(&mut self, lhs: Symbol) -> SequenceRuleBuilder<Hs, &mut Vec<Sequence<Hs>>> {
         SequenceRuleBuilder::new(&mut self.sequence_rules).sequence(lhs)
     }
 
@@ -130,7 +129,7 @@ impl<H, Hs> ContextFree for Cfg<H, Hs>
 {
     fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History>
         where &'a Self: ContextFreeRef<'a, Target = Self>,
-              H: Binarize + Clone + 'static,
+              H: Binarize + Clone + 'static
     {
         let mut grammar = BinarizedCfg::from_context_free(self);
         SequencesToProductions::rewrite_sequences(&self.sequence_rules[..], &mut grammar);
@@ -140,7 +139,7 @@ impl<H, Hs> ContextFree for Cfg<H, Hs>
 
 impl<'a, H, Hs> ContextFreeRef<'a> for &'a Cfg<H, Hs>
     where H: 'a,
-          Hs: Clone + RewriteSequence<Rewritten = H>,
+          Hs: Clone + RewriteSequence<Rewritten = H>
 {
     type RuleRef = <Self::Rules as Iterator>::Item;
     type Rules = slice::Iter<'a, Rule<H>>;
@@ -152,11 +151,12 @@ impl<'a, H, Hs> ContextFreeRef<'a> for &'a Cfg<H, Hs>
 
 impl<'a, H, Hs> ContextFreeMut<'a> for &'a mut Cfg<H, Hs>
     where H: 'a,
-          Hs: Clone + RewriteSequence<Rewritten = H> + 'a,
-{}
+          Hs: Clone + RewriteSequence<Rewritten = H> + 'a
+{
+}
 
 impl<H, Hs> RuleContainer for Cfg<H, Hs>
-    where Hs: Clone + RewriteSequence<Rewritten = H>,
+    where Hs: Clone + RewriteSequence<Rewritten = H>
 {
     type History = H;
 

@@ -62,7 +62,7 @@ impl<H> BinarizedCfg<H> {
     pub fn from_context_free<'a, G>(this: &'a G) -> BinarizedCfg<H>
         where G: ContextFree<History = H>,
               &'a G: ContextFreeRef<'a, Target = G>,
-              H: Binarize + Clone + 'static,
+              H: Binarize + Clone + 'static
     {
         let mut new_rule_count = 0;
         // Calculate rule vec capacity.
@@ -88,7 +88,9 @@ impl<H> BinarizedCfg<H> {
     }
 
     /// Sorts the rule array in place, using the argument to compare elements.
-    pub fn sort_by<F>(&mut self, compare: F) where F: FnMut(&BinarizedRule<H>, &BinarizedRule<H>) -> Ordering {
+    pub fn sort_by<F>(&mut self, compare: F)
+        where F: FnMut(&BinarizedRule<H>, &BinarizedRule<H>) -> Ordering
+    {
         self.rules.sort_by(compare);
     }
 
@@ -98,7 +100,9 @@ impl<H> BinarizedCfg<H> {
     }
 }
 
-impl<H> BinarizedCfg<H> where H: Binarize {
+impl<H> BinarizedCfg<H>
+    where H: Binarize
+{
     /// Returns generated symbols.
     pub fn sym<T>(&mut self) -> T
         where T: SymbolContainer
@@ -118,7 +122,7 @@ impl<H> BinarizedCfg<H> where H: Binarize {
 }
 
 impl<H> BinarizedCfg<H>
-    where H: Binarize + Clone + EliminateNulling,
+    where H: Binarize + Clone + EliminateNulling
 {
     /// Eliminates all rules of the form `A ::= epsilon`.
     ///
@@ -181,11 +185,11 @@ impl<H> BinarizedCfg<H>
 }
 
 impl<H> ContextFree for BinarizedCfg<H>
-    where H: Binarize,
+    where H: Binarize
 {
     fn binarize<'a>(&'a self) -> Self
         where &'a Self: ContextFreeRef<'a, Target = Self>,
-              H: Clone,
+              H: Clone
     {
         // This grammar is already binarized.
         self.clone()
@@ -193,7 +197,7 @@ impl<H> ContextFree for BinarizedCfg<H>
 }
 
 impl<'a, H> ContextFreeRef<'a> for &'a BinarizedCfg<H>
-    where H: Binarize + 'a,
+    where H: Binarize + 'a
 {
     type RuleRef = RuleRef<'a, H>;
     type Rules =    iter::Chain<
@@ -213,12 +217,10 @@ impl<'a, H> ContextFreeRef<'a> for &'a BinarizedCfg<H>
     }
 }
 
-impl<'a, H> ContextFreeMut<'a> for &'a mut BinarizedCfg<H>
-    where H: Binarize + 'a,
-{}
+impl<'a, H> ContextFreeMut<'a> for &'a mut BinarizedCfg<H> where H: Binarize + 'a {}
 
 impl<H> RuleContainer for BinarizedCfg<H>
-    where H: Binarize,
+    where H: Binarize
 {
     type History = H;
 
@@ -306,8 +308,7 @@ impl<H> GrammarRule for BinarizedRule<H> {
     }
 }
 
-impl<H> BinarizedRule<H>
-{
+impl<H> BinarizedRule<H> {
     pub fn new(lhs: Symbol, rhs: &[Symbol], history: H) -> Self {
         BinarizedRule {
             history: history,
@@ -355,8 +356,7 @@ impl<H> Ord for BinarizedRule<H> {
     }
 }
 
-impl<H> Eq for BinarizedRule<H>
-{}
+impl<H> Eq for BinarizedRule<H> {}
 
 pub struct BinarizedRuleToRuleRef<I> {
     iter: I,
@@ -371,7 +371,7 @@ impl<I> BinarizedRuleToRuleRef<I> {
 impl<'a, I, R, H> Iterator for BinarizedRuleToRuleRef<I>
     where I: Iterator<Item = &'a R>,
           R: GrammarRule<History = H> + 'a,
-          H: 'a,
+          H: 'a
 {
     type Item = RuleRef<'a, H>;
 
@@ -398,15 +398,13 @@ pub struct LhsWithHistoryToRuleRef<I> {
 
 impl<I> LhsWithHistoryToRuleRef<I> {
     pub fn new(iter: I) -> Self {
-        LhsWithHistoryToRuleRef {
-            iter: iter,
-        }
+        LhsWithHistoryToRuleRef { iter: iter }
     }
 }
 
 impl<'a, I, H> Iterator for LhsWithHistoryToRuleRef<I>
     where I: Iterator<Item = LhsWithHistory<'a, H>>,
-          H: 'a,
+          H: 'a
 {
     type Item = RuleRef<'a, H>;
 
