@@ -187,13 +187,6 @@ impl<H> BinarizedCfg<H>
 impl<H> ContextFree for BinarizedCfg<H>
     where H: Binarize
 {
-    fn binarize<'a>(&'a self) -> Self
-        where &'a Self: ContextFreeRef<'a, Target = Self>,
-              H: Clone
-    {
-        // This grammar is already binarized.
-        self.clone()
-    }
 }
 
 pub type BinarizedRules<'a, H> =

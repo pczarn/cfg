@@ -27,14 +27,6 @@ pub trait ContextFree: RuleContainer + Sized {
     {
         PrecedencedRuleBuilder::new(self, lhs)
     }
-
-    /// Returns a binarized weak equivalent of this grammar.
-    fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History>
-        where &'a Self: ContextFreeRef<'a, Target = Self>,
-              Self::History: Binarize + Clone + 'static
-    {
-        BinarizedCfg::from_context_free(self)
-    }
 }
 
 // Traits for working around the lack of higher-order type constructors, more commonly known as HKT
@@ -122,12 +114,9 @@ impl<H, Hs> Cfg<H, Hs>
         let sequence_rules = mem::replace(&mut self.sequence_rules, vec![]);
         SequencesToProductions::rewrite_sequences(&sequence_rules[..], self);
     }
-}
 
-impl<H, Hs> ContextFree for Cfg<H, Hs>
-    where Hs: Clone + RewriteSequence<Rewritten = H>
-{
-    fn binarize<'a>(&'a self) -> BinarizedCfg<Self::History>
+    /// Returns a binarized grammar which is weakly equivalent to this grammar.
+    pub fn binarize<'a>(&'a self) -> BinarizedCfg<H>
         where &'a Self: ContextFreeRef<'a, Target = Self>,
               H: Binarize + Clone + 'static
     {
@@ -135,6 +124,11 @@ impl<H, Hs> ContextFree for Cfg<H, Hs>
         SequencesToProductions::rewrite_sequences(&self.sequence_rules[..], &mut grammar);
         grammar
     }
+}
+
+impl<H, Hs> ContextFree for Cfg<H, Hs>
+    where Hs: Clone + RewriteSequence<Rewritten = H>
+{
 }
 
 impl<'a, H, Hs> ContextFreeRef<'a> for &'a Cfg<H, Hs>
