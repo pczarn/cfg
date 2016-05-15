@@ -164,14 +164,19 @@ impl<H, D> SequencesToProductions<H, D>
                 }
             }
             (_, _, _) if start == 1 && end == None => {
-                // seq ::= item
-                self.rule(lhs).rhs([rhs]);
-                // Left recursive
-                // seq ::= seq sep item
-                if let Proper(sep) = separator {
-                    self.rule(lhs).rhs([lhs, sep, rhs]);
+                if self.at_top {
+                    let rec = self.recurse(sequence);
+                    self.rule(lhs).rhs([rec]);
                 } else {
-                    self.rule(lhs).rhs([lhs, rhs]);
+                    // seq ::= item
+                    self.rule(lhs).rhs([rhs]);
+                    // Left recursive
+                    // seq ::= seq sep item
+                    if let Proper(sep) = separator {
+                        self.rule(lhs).rhs([lhs, sep, rhs]);
+                    } else {
+                        self.rule(lhs).rhs([lhs, rhs]);
+                    }
                 }
             }
             (_, _, _) if (start, end) == (1, Some(1)) => {
