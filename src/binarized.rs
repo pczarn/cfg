@@ -131,7 +131,7 @@ impl<H> BinarizedCfg<H>
     /// The language represented by the grammar is preserved, except for the possible lack of
     /// the empty string. Unproductive rules aren't preserved.
     pub fn eliminate_nulling_rules(&mut self) -> BinarizedCfg<H> {
-        let mut nulling_grammar = BinarizedCfg::new();
+        let mut nulling_grammar = BinarizedCfg::with_sym_source(self.sym_source.clone());
 
         if self.nulling.iter().any(|h| h.is_some()) {
             let mut nulling = mem::replace(&mut self.nulling, vec![]);

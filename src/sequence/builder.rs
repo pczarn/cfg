@@ -54,6 +54,7 @@ impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
     /// Starts building a sequence rule.
     pub fn sequence(mut self, lhs: Symbol) -> Self {
         self.lhs = Some(lhs);
+        self.separator = Separator::Null;
         self
     }
 
