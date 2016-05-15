@@ -7,7 +7,7 @@ use rule::GrammarRule;
 use symbol::Symbol;
 
 pub struct RhsClosure<R> {
-    derived_by: Vec<(Symbol, R)>,
+    inverse_derivation: Vec<(Symbol, R)>,
     work_stack: Vec<Symbol>,
 }
 
@@ -20,15 +20,15 @@ impl<R> RhsClosure<R>
               &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
               R: 'a
     {
-        let mut derived_by = Vec::with_capacity(2 * grammar.rules().size_hint().0);
+        let mut inverse_derivation = Vec::with_capacity(2 * grammar.rules().size_hint().0);
         for rule in grammar.rules() {
-            derived_by.extend(rule.rhs().iter().map(|&sym| (sym, rule)));
+            inverse_derivation.extend(rule.rhs().iter().map(|&sym| (sym, rule)));
         }
 
-        derived_by.sort_by(|&(ref sym_a, _), &(ref sym_b, _)| sym_a.cmp(&sym_b));
+        inverse_derivation.sort_by(|&(ref sym_a, _), &(ref sym_b, _)| sym_a.cmp(&sym_b));
 
         RhsClosure {
-            derived_by: derived_by,
+            inverse_derivation: inverse_derivation,
             work_stack: vec![],
         }
     }
@@ -41,9 +41,9 @@ impl<R> RhsClosure<R>
             }
         }
 
-        let derived_by = &self.derived_by[..];
+        let inverse_derivation = &self.inverse_derivation[..];
         while let Some(work_sym) = self.work_stack.pop() {
-            for &(_, rule) in find(derived_by, work_sym) {
+            for &(_, rule) in find(inverse_derivation, work_sym) {
                 if !property[rule.lhs().usize()] &&
                    rule.rhs().iter().all(|sym| property[sym.usize()]) {
                     property.set(rule.lhs().usize(), true);
@@ -61,9 +61,9 @@ impl<R> RhsClosure<R>
             }
         }
 
-        let derived_by = &self.derived_by[..];
+        let inverse_derivation = &self.inverse_derivation[..];
         while let Some(work_sym) = self.work_stack.pop() {
-            for &(_, rule) in find(derived_by, work_sym) {
+            for &(_, rule) in find(inverse_derivation, work_sym) {
                 let maybe_work_value = rule.rhs().iter().fold(Some(0), |acc, elem| {
                     let elem_value = value[elem.usize()];
                     if let (Some(a), Some(b)) = (acc, elem_value) {
@@ -86,13 +86,13 @@ impl<R> RhsClosure<R>
     }
 }
 
-fn find<S, R>(derived_by: &[(S, R)], key_sym: S) -> &[(S, R)]
+fn find<S, R>(inverse_derivation: &[(S, R)], key_sym: S) -> &[(S, R)]
     where S: Copy + Ord
 {
-    match derived_by.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(key_sym, Less))) {
+    match inverse_derivation.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(key_sym, Less))) {
         Err(idx) => {
-            let len = derived_by[idx..].iter().take_while(|t| t.0 == key_sym).count();
-            &derived_by[idx..idx + len]
+            let len = inverse_derivation[idx..].iter().take_while(|t| t.0 == key_sym).count();
+            &inverse_derivation[idx..idx + len]
         }
         Ok(_) => unreachable!(),
     }
