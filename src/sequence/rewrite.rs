@@ -150,11 +150,6 @@ impl<H, D> SequencesToProductions<H, D>
                     .rhs([sym1])
                     .rhs([sym2]);
             }
-            (Trailing(sep), _, _) => {
-                let sym = self.recurse(sequence.separator(Proper(sep)));
-                // seq ::= sym sep
-                self.rule(lhs).rhs([sym, sep]);
-            }
             (_, _, _) if start == 0 => {
                 // seq ::= epsilon | sym
                 self.rule(lhs).rhs([]);
@@ -162,6 +157,11 @@ impl<H, D> SequencesToProductions<H, D>
                     let sym = self.recurse(sequence.inclusive(1, end));
                     self.rule(lhs).rhs([sym]);
                 }
+            }
+            (Trailing(sep), _, _) => {
+                let sym = self.recurse(sequence.separator(Proper(sep)));
+                // seq ::= sym sep
+                self.rule(lhs).rhs([sym, sep]);
             }
             (_, _, _) if start == 1 && end == None => {
                 if self.at_top {
@@ -193,12 +193,15 @@ impl<H, D> SequencesToProductions<H, D>
             (_, _, Some(end)) if start == 1 => {
                 // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
-                let (seq1, seq2) = (sequence.clone().inclusive(0, Some(pow2)),
-                                    sequence.clone().inclusive(1, Some(end - pow2)));
-                let rhs1 = self.recurse(seq1.separator(separator.prefix_separator()));
-                let rhs2 = self.recurse(seq2.separator(separator));
+                let (seq1, block, seq2) = (sequence.clone().inclusive(1, Some(pow2)),
+                                           sequence.clone().inclusive(pow2, Some(pow2)),
+                                           sequence.clone().inclusive(1, Some(end - pow2)));
+                let rhs1 = self.recurse(seq1);
+                let block = self.recurse(block.separator(separator.prefix_separator()));
+                let rhs2 = self.recurse(seq2);
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs([rhs1, rhs2]);
+                self.rule(lhs).rhs([rhs1])
+                              .rhs([block, rhs2]);
             }
             // Bug in rustc. Must use comparison.
             (Proper(sep), start, end) if start == 2 && end == Some(2) => {

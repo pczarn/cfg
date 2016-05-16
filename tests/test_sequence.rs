@@ -51,17 +51,16 @@ fn test_sequence_1_4() {
     cfg.rewrite_sequences();
 
     let mut equiv: Cfg = Cfg::new();
-    let (start, elem, sep, g0, g1, g2, g3, g4, g5) = equiv.sym();
+    let (start, elem, sep, g0, g1, g2, g3, g4) = equiv.sym();
 
-    equiv.rule(start).rhs([g0, sep])      // start => (elem sep){1,4}
-         .rule(g0).rhs([g1, g2])          // g0  =>  g1 g2  =>  (elem sep){0,3} elem
-         .rule(g2).rhs([g3])              // g2  =>  g3 | g4  =>  elem | elem sep elem
-                  .rhs([g4])
-         .rule(g4).rhs([elem, sep, elem]) // g4 => elem sep elem
-         .rule(g3).rhs([elem])            // g3 => elem
-         .rule(g1).rhs([g5, sep])         // g1  =>  g5 sep  =>  sep | elem sep | elem sep elem sep
-         .rule(g5).rhs([])                // g5  =>  () | g2  =>  () | elem | elem sep elem
-                  .rhs([g2]);
+    equiv.rule(start).rhs([g0, sep])      // start  =>  (elem sep){1,4}
+         .rule(g0).rhs([g1])              // g0  =>  g1 | g2 g1  =>  (elem sep){2}? (elem | elem sep elem)
+                  .rhs([g2, g1])
+         .rule(g2).rhs([g3, sep])         // g2  =>  g3 sep  =>  elem sep elem sep
+         .rule(g3).rhs([elem, sep, elem]) // g3  =>  elem sep elem
+         .rule(g1).rhs([g4])              // g1  =>  g4 | g3  =>  elem | elem sep elem
+                  .rhs([g3])
+         .rule(g4).rhs([elem]);           // g4  =>  elem
 
     support::assert_eq_rules(equiv.rules(), cfg.rules());
     assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
