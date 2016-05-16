@@ -1,8 +1,6 @@
 [package]
-
 name = "cfg"
-version = "0.2.0"
-
+version = "0.3.0"
 
 authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
@@ -16,5 +14,5 @@ license = "MIT/Apache-2.0"
 name = "cfg"
 
 [dependencies]
-bit-matrix = "0.1"
+bit-matrix = "0.2"
 bit-vec = "0.4"
