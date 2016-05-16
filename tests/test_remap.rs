@@ -5,7 +5,6 @@ mod support;
 use cfg::*;
 use cfg::usefulness::Usefulness;
 use cfg::remap::Remap;
-use cfg::rule::container::RuleContainer;
 
 #[test]
 fn test_remap_unused_symbols() {

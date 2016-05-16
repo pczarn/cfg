@@ -2,7 +2,6 @@ extern crate cfg;
 
 use cfg::*;
 use cfg::history::{Action, RewriteSequence};
-use cfg::rule::container::RuleContainer;
 use cfg::prediction::MinimalDistance;
 
 #[derive(Clone, Debug, Eq, PartialEq)]

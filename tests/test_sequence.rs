@@ -5,7 +5,6 @@ mod support;
 use cfg::*;
 use cfg::sequence::Separator::*;
 use cfg::usefulness::Usefulness;
-use cfg::rule::container::RuleContainer;
 
 #[test]
 fn test_sequence() {
