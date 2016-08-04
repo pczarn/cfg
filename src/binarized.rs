@@ -1,3 +1,6 @@
+//! Binarized rules are rules that have at most two symbols on the right-hand side.
+//! A binarized grammar contains only such rules.
+
 use std::cmp::{self, Ord, Ordering};
 use std::iter;
 use std::mem;
@@ -39,7 +42,9 @@ pub struct BinarizedRule<H> {
 /// Compact representation of a binarized rule's RHS.
 #[derive(Copy, Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub enum BinarizedRuleRhs {
+    /// RHS with one symbol.
     One([Symbol; 1]),
+    /// RHS with two symbols.
     Two([Symbol; 2]),
 }
 
@@ -189,6 +194,7 @@ impl<H> ContextFree for BinarizedCfg<H>
 {
 }
 
+/// Iterator over binarized rules.
 pub type BinarizedRules<'a, H> =
     iter::Chain<
         LhsWithHistoryToRuleRef<
@@ -305,6 +311,7 @@ impl<H> GrammarRule for BinarizedRule<H> {
 }
 
 impl<H> BinarizedRule<H> {
+    /// Creates a new binarized rule.
     pub fn new(lhs: Symbol, rhs: &[Symbol], history: H) -> Self {
         BinarizedRule {
             history: history,
@@ -319,6 +326,7 @@ impl<H> BinarizedRule<H> {
         }
     }
 
+    /// Returns the first symbol.
     pub fn rhs0(&self) -> Symbol {
         match self.rhs {
             One(slice) => slice[0],
@@ -326,6 +334,7 @@ impl<H> BinarizedRule<H> {
         }
     }
 
+    /// Returns the second symbol, if present.
     pub fn rhs1(&self) -> Option<Symbol> {
         match self.rhs {
             One(_) => None,
@@ -354,11 +363,13 @@ impl<H> Ord for BinarizedRule<H> {
 
 impl<H> Eq for BinarizedRule<H> {}
 
+/// A wrapper for iteration over rule refs.
 pub struct BinarizedRuleToRuleRef<I> {
     iter: I,
 }
 
 impl<I> BinarizedRuleToRuleRef<I> {
+    /// Creates a new BinarizedRuleToRuleRef.
     pub fn new(iter: I) -> Self {
         BinarizedRuleToRuleRef { iter: iter }
     }
@@ -386,13 +397,16 @@ impl<'a, I, R, H> Iterator for BinarizedRuleToRuleRef<I>
     }
 }
 
+/// A type for iteration over rule refs.
 pub type LhsWithHistory<'a, H> = (usize, &'a Option<H>);
 
+/// A wrapper for iteration over rule refs.
 pub struct LhsWithHistoryToRuleRef<I> {
     iter: I,
 }
 
 impl<I> LhsWithHistoryToRuleRef<I> {
+    /// Creates a new LhsWithHistoryToRuleRef.
     pub fn new(iter: I) -> Self {
         LhsWithHistoryToRuleRef { iter: iter }
     }

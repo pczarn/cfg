@@ -26,7 +26,7 @@ extern crate collections;
 #[cfg(feature = "nightly")]
 extern crate core;
 
-mod binarized;
+pub mod binarized;
 pub mod cycles;
 mod grammar;
 pub mod history;
