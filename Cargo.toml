@@ -1,6 +1,6 @@
 [package]
 name = "cfg"
-version = "0.3.0"
+version = "0.3.1"
 
 authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
