@@ -68,7 +68,7 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
 {
     /// Sets the default history source.
     pub fn default_history<Hs2>(mut self, state: Hs2) -> PrecedencedRuleBuilder<D, Hs2> {
-        PrecedencedRuleBuilder {
+        let replacement_for_self = PrecedencedRuleBuilder {
             rules: self.rules.take(),
             lhs: self.lhs,
             tighter_lhs: self.tighter_lhs,
@@ -78,7 +78,9 @@ impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
             assoc: self.assoc,
             looseness: self.looseness,
             rules_with_group_assoc: mem::replace(&mut self.rules_with_group_assoc, vec![]),
-        }
+        };
+        mem::forget(self);
+        replacement_for_self
     }
 
     /// Starts building a new precedenced rule. The differences in precedence among rules only
