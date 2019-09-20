@@ -3,7 +3,7 @@ extern crate cfg;
 mod support;
 
 use cfg::*;
-use cfg::usefulness::Usefulness;
+use cfg::classification::useful::Usefulness;
 use cfg::remap::Remap;
 
 #[test]

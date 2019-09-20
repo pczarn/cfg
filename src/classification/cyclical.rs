@@ -5,6 +5,7 @@ use std::collections::BTreeMap;
 use bit_matrix::BitMatrix;
 use bit_vec::BitVec;
 
+use analysis;
 use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
 use rule::GrammarRule;
 use symbol::Symbol;
@@ -23,27 +24,6 @@ pub struct CycleParticipants<'a, G: 'a, R> {
     cycles: &'a Cycles<&'a mut G>,
 }
 
-/// Returns the unit derivation matrix.
-fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix
-    where G: ContextFree,
-          &'a G: ContextFreeRef<'a, Target = G>
-{
-    let num_syms = grammar.num_syms();
-    let mut unit_derivation = BitMatrix::new(num_syms, num_syms);
-
-    for rule in grammar.rules() {
-        // A rule of form `A ::= A` is not a cycle. We can represent unit rules in the form of
-        // a directed graph. The rule `A ::= A` is then presented as a self-loop. Self-loops
-        // aren't cycles.
-        if rule.rhs().len() == 1 && rule.lhs() != rule.rhs()[0] {
-            unit_derivation.set(rule.lhs().into(), rule.rhs()[0].into(), true);
-        }
-    }
-
-    unit_derivation.transitive_closure();
-    unit_derivation
-}
-
 impl<'a, G> Cycles<&'a mut G>
     where G: ContextFree,
           for<'b> &'b G: ContextFreeRef<'b, Target = G>,
@@ -51,7 +31,7 @@ impl<'a, G> Cycles<&'a mut G>
 {
     /// Analyzes the grammar's cycles.
     pub fn new(grammar: &'a mut G) -> Cycles<&'a mut G> {
-        let unit_derivation = unit_derivation_matrix(grammar);
+        let unit_derivation = analysis::unit_derivation_matrix(grammar);
         let cycle_free = (0..grammar.num_syms()).all(|i| !unit_derivation[(i, i)]);
         Cycles {
             unit_derivation: unit_derivation,

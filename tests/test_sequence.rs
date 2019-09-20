@@ -4,7 +4,7 @@ mod support;
 
 use cfg::*;
 use cfg::sequence::Separator::*;
-use cfg::usefulness::Usefulness;
+use cfg::classification::useful::Usefulness;
 
 #[test]
 fn test_sequence() {

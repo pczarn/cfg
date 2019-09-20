@@ -9,7 +9,7 @@ use symbol::{Symbol, SymbolBitSet};
 
 /// FIRST sets.
 pub struct FirstSets {
-    map: PerSymbolSets,
+    pub(super) map: PerSymbolSets,
 }
 
 impl FirstSets {

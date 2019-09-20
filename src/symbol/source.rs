@@ -5,7 +5,7 @@ use symbol::repr::{SymbolRepr, FIRST_ID};
 
 /// A source of numeric symbols.
 #[allow(missing_copy_implementations)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct SymbolSource {
     next_id: SymbolRepr,
 }
@@ -13,7 +13,7 @@ pub struct SymbolSource {
 impl SymbolSource {
     /// Creates a source of numeric symbols with an empty symbol space.
     pub fn new() -> Self {
-        SymbolSource { next_id: 0 }
+        Self::default()
     }
     /// Returns generated symbols.
     pub fn sym<T>(&mut self) -> T

@@ -39,6 +39,11 @@ pub trait RuleContainer {
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: Self::History);
 }
 
+pub trait EmptyRuleContainer {
+    /// Creates a new empty container.
+    fn empty(&self) -> Self;
+}
+
 impl<'a, D> RuleContainer for &'a mut D
     where D: RuleContainer
 {

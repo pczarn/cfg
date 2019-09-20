@@ -110,7 +110,7 @@ impl<H, D> SequencesToProductions<H, D>
         RuleBuilder::new(&mut self.destination).rule(lhs).default_history(default)
     }
 
-    fn recurse(&mut self, seq: Sequence<NullHistory>) -> Symbol {
+    fn recurse(&mut self, seq: &Sequence<NullHistory>) -> Symbol {
         let sym_source = &mut self.destination;
         // As a placeholder
         let partial = PartialSequence {
@@ -143,8 +143,8 @@ impl<H, D> SequencesToProductions<H, D>
         // TODO optimize reductions
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
-                let sym1 = self.recurse(sequence.clone().separator(Proper(sep)));
-                let sym2 = self.recurse(sequence.clone().separator(Trailing(sep)));
+                let sym1 = self.recurse(&sequence.clone().separator(Proper(sep)));
+                let sym2 = self.recurse(&sequence.clone().separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
                 self.rule(lhs)
                     .rhs([sym1])
@@ -154,18 +154,18 @@ impl<H, D> SequencesToProductions<H, D>
                 // seq ::= epsilon | sym
                 self.rule(lhs).rhs([]);
                 if end != Some(0) {
-                    let sym = self.recurse(sequence.inclusive(1, end));
+                    let sym = self.recurse(&sequence.inclusive(1, end));
                     self.rule(lhs).rhs([sym]);
                 }
             }
             (Trailing(sep), _, _) => {
-                let sym = self.recurse(sequence.separator(Proper(sep)));
+                let sym = self.recurse(&sequence.separator(Proper(sep)));
                 // seq ::= sym sep
                 self.rule(lhs).rhs([sym, sep]);
             }
             (_, _, _) if start == 1 && end == None => {
                 if self.at_top {
-                    let rec = self.recurse(sequence);
+                    let rec = self.recurse(&sequence);
                     self.rule(lhs).rhs([rec]);
                 } else {
                     // seq ::= item
@@ -183,8 +183,8 @@ impl<H, D> SequencesToProductions<H, D>
                 self.rule(lhs).rhs([rhs]);
             }
             (_, _, _) if (start, end) == (1, Some(2)) => {
-                let sym1 = self.recurse(sequence.clone().inclusive(1, Some(1)));
-                let sym2 = self.recurse(sequence.clone().inclusive(2, Some(2)));
+                let sym1 = self.recurse(&sequence.clone().inclusive(1, Some(1)));
+                let sym2 = self.recurse(&sequence.clone().inclusive(2, Some(2)));
                 // seq ::= sym1 | sym2
                 self.rule(lhs)
                     .rhs([sym1])
@@ -196,9 +196,9 @@ impl<H, D> SequencesToProductions<H, D>
                 let (seq1, block, seq2) = (sequence.clone().inclusive(1, Some(pow2)),
                                            sequence.clone().inclusive(pow2, Some(pow2)),
                                            sequence.clone().inclusive(1, Some(end - pow2)));
-                let rhs1 = self.recurse(seq1);
-                let block = self.recurse(block.separator(separator.prefix_separator()));
-                let rhs2 = self.recurse(seq2);
+                let rhs1 = self.recurse(&seq1);
+                let block = self.recurse(&block.separator(separator.prefix_separator()));
+                let rhs2 = self.recurse(&seq2);
                 // seq ::= sym1 sym2
                 self.rule(lhs).rhs([rhs1])
                               .rhs([block, rhs2]);
@@ -222,8 +222,8 @@ impl<H, D> SequencesToProductions<H, D>
                     (sequence.clone().inclusive(start - 1, Some(start - 1)),
                      sequence.clone().inclusive(1, end.map(|end| end - start + 1)))
                 };
-                let (rhs1, rhs2) = (self.recurse(seq1.separator(separator.prefix_separator())),
-                                    self.recurse(seq2.separator(separator)));
+                let (rhs1, rhs2) = (self.recurse(&seq1.separator(separator.prefix_separator())),
+                                    self.recurse(&seq2.separator(separator)));
                 // seq ::= sym1 sym2
                 self.rule(lhs).rhs([rhs1, rhs2]);
             }

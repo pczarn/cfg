@@ -3,8 +3,8 @@
 use bit_matrix::BitMatrix;
 use bit_vec::BitVec;
 
+use analysis::{self, RhsClosure};
 use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
-use rhs_closure::RhsClosure;
 use rule::GrammarRule;
 use rule::container::RuleContainer;
 use symbol::{Symbol, SymbolBitSet};
@@ -66,26 +66,6 @@ fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
     productive_syms
 }
 
-/// Returns the reachability matrix.
-fn reachability<'a, G>(grammar: &'a G) -> BitMatrix
-    where G: ContextFree,
-          &'a G: ContextFreeRef<'a, Target = G>
-{
-    let num_syms = grammar.sym_source().num_syms();
-    let mut reachability = BitMatrix::new(num_syms, num_syms);
-
-    for rule in grammar.rules() {
-        reachability.set(rule.lhs().usize(), rule.lhs().usize(), true);
-        for &sym in rule.rhs() {
-            reachability.set(rule.lhs().usize(), sym.usize(), true);
-        }
-    }
-
-    reachability.transitive_closure();
-
-    reachability
-}
-
 impl<'a, G> Usefulness<&'a mut G>
     where G: ContextFree,
           for<'b> &'b G: ContextFreeRef<'b, Target = G>,
@@ -95,7 +75,7 @@ impl<'a, G> Usefulness<&'a mut G>
     /// and productive symbols.
     pub fn new(grammar: &'a mut G) -> Usefulness<&'a mut G> {
         let mut productivity = productive_syms(grammar);
-        let reachability = reachability(grammar);
+        let reachability = analysis::reachability_matrix(grammar);
         let used_syms = used_syms(grammar);
         let mut reachable_syms = BitVec::from_elem(grammar.sym_source().num_syms(), false);
 

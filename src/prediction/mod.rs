@@ -4,6 +4,7 @@
 
 mod distance;
 mod first;
+mod last;
 mod follow;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,6 +13,7 @@ use symbol::Symbol;
 
 pub use self::distance::MinimalDistance;
 pub use self::first::FirstSets;
+pub use self::last::LastSets;
 pub use self::follow::FollowSets;
 
 /// The representation of FIRST and FOLLOW sets.

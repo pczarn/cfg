@@ -7,7 +7,7 @@ use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory};
 use precedence::PrecedencedRuleBuilder;
 use rule::{GrammarRule, Rule};
 use rule::builder::RuleBuilder;
-use rule::container::RuleContainer;
+use rule::container::{RuleContainer, EmptyRuleContainer};
 use sequence::Sequence;
 use sequence::builder::SequenceRuleBuilder;
 use sequence::rewrite::SequencesToProductions;
@@ -34,7 +34,7 @@ pub trait ContextFree: RuleContainer + Sized {
 
 /// This trait is currently needed to make the associated `Rules` iterator generic over a lifetime
 /// parameter.
-pub trait ContextFreeRef<'a>: Deref where Self::Target: ContextFree {
+pub trait ContextFreeRef<'a>: Deref + Sized where Self::Target: ContextFree {
     /// Immutable reference to a rule.
     type RuleRef: GrammarRule<History=<<Self as Deref>::Target as RuleContainer>::History>
                   + Copy + 'a;
@@ -42,6 +42,19 @@ pub trait ContextFreeRef<'a>: Deref where Self::Target: ContextFree {
     type Rules: Iterator<Item=Self::RuleRef>;
     /// Returns an iterator over immutable references to the grammar's rules.
     fn rules(self) -> Self::Rules;
+
+    fn reverse(self) -> Self::Target
+        where <Self::Target as RuleContainer>::History: Clone,
+            Self::Target: EmptyRuleContainer,
+    {
+        let mut new_grammar = (*self).empty();
+        for rule in self.rules() {
+            let mut rhs = rule.rhs().iter().cloned().collect::<Vec<_>>();
+            rhs.reverse();
+            new_grammar.add_rule(rule.lhs(), &rhs[..], (*rule.history()).clone());
+        }
+        new_grammar
+    }
 }
 
 /// Allows access to a ContextFreeRef through mutable references.
@@ -61,10 +74,16 @@ pub struct Cfg<H = NullHistory, Hs = H> {
     sequence_rules: Vec<Sequence<Hs>>,
 }
 
+impl<H, Hs> Default for Cfg<H, Hs> {
+    fn default() -> Self {
+        Self::with_sym_source(SymbolSource::new())
+    }
+}
+
 impl<H, Hs> Cfg<H, Hs> {
     /// Creates an empty context-free grammar.
     pub fn new() -> Self {
-        Self::with_sym_source(SymbolSource::new())
+        Self::default()
     }
 
     /// Creates an empty context-free grammar with the given symbol source.
@@ -170,5 +189,14 @@ impl<H, Hs> RuleContainer for Cfg<H, Hs>
 
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: H) {
         self.rules.push(Rule::new(lhs, rhs.to_vec(), history));
+    }
+}
+
+impl<H, Hs> EmptyRuleContainer for Cfg<H, Hs>
+    where Hs: Clone + RewriteSequence<Rewritten = H>
+{
+
+    fn empty(&self) -> Self {
+        Cfg::default()
     }
 }

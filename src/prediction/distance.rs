@@ -2,8 +2,8 @@
 
 use std::cmp;
 
+use analysis::RhsClosure;
 use grammar::{ContextFree, ContextFreeRef};
-use rhs_closure::RhsClosure;
 use rule::GrammarRule;
 use symbol::{Symbol, SymbolBitSet};
 

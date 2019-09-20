@@ -20,24 +20,29 @@
 
 extern crate bit_matrix;
 extern crate bit_vec;
+extern crate optional;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
 
 #[cfg(feature = "nightly")]
 extern crate collections;
 #[cfg(feature = "nightly")]
 extern crate core;
 
+mod analysis;
 pub mod binarized;
-pub mod cycles;
+pub mod classification;
+pub mod earley;
+mod generate;
 mod grammar;
 pub mod history;
 pub mod precedence;
 pub mod prediction;
 pub mod remap;
-mod rhs_closure;
 pub mod rule;
 pub mod sequence;
 pub mod symbol;
-pub mod usefulness;
 
 pub use binarized::BinarizedCfg;
 pub use grammar::{Cfg, ContextFree, ContextFreeRef, ContextFreeMut};

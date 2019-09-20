@@ -6,6 +6,8 @@ use grammar::{ContextFree, ContextFreeRef};
 use rule::GrammarRule;
 use symbol::Symbol;
 
+/// Rhs closure. In some sense, it is a reverse of breadth
+/// first search (reverse BFS).
 pub struct RhsClosure<R> {
     inverse_derivation: Vec<(Symbol, R)>,
     work_stack: Vec<Symbol>,

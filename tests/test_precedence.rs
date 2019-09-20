@@ -4,7 +4,7 @@ mod support;
 
 use cfg::{Cfg, ContextFree, ContextFreeRef};
 use cfg::precedence::Associativity::*;
-use cfg::usefulness::Usefulness;
+use cfg::classification::useful::Usefulness;
 
 #[test]
 fn test_simple_precedence() {

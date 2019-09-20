@@ -1,6 +1,6 @@
 [package]
 name = "cfg"
-version = "0.3.1"
+version = "0.4.0"
 
 authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
@@ -16,3 +16,6 @@ name = "cfg"
 [dependencies]
 bit-matrix = "0.2"
 bit-vec = "0.4"
+optional = "0.5"
+serde = "1.0"
+serde_derive = "1.0"

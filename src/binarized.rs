@@ -8,12 +8,12 @@ use std::slice;
 
 use bit_vec::BitVec;
 
+use analysis::RhsClosure;
 use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
 use history::{Binarize, EliminateNulling, NullHistory};
 use history::BinarizedRhsSubset::*;
-use rhs_closure::RhsClosure;
 use rule::{GrammarRule, RuleRef};
-use rule::container::RuleContainer;
+use rule::container::{RuleContainer, EmptyRuleContainer};
 use symbol::{Symbol, SymbolSource};
 use symbol::source::SymbolContainer;
 
@@ -48,10 +48,16 @@ pub enum BinarizedRuleRhs {
     Two([Symbol; 2]),
 }
 
+impl<H> Default for BinarizedCfg<H> {
+    fn default() -> Self {
+        Self::with_sym_source(SymbolSource::new())
+    }
+}
+
 impl<H> BinarizedCfg<H> {
     /// Creates a BinarizedCfg.
     pub fn new() -> Self {
-        Self::with_sym_source(SymbolSource::new())
+        Self::default()
     }
 
     /// Creates an empty BinarizedCfg with the given symbol source.
@@ -288,6 +294,12 @@ impl<H> RuleContainer for BinarizedCfg<H>
                                            }
                                        }));
         }
+    }
+}
+
+impl<H> EmptyRuleContainer for BinarizedCfg<H> {
+    fn empty(&self) -> Self {
+        BinarizedCfg::default()
     }
 }
 

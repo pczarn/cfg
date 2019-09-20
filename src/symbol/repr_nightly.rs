@@ -5,7 +5,7 @@ pub type SymbolRepr = u32;
 const FIRST_ID: SymbolRepr = 1;
 
 /// A common grammar symbol type.
-#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Symbol(NonZero<SymbolRepr>);
 
 impl From<SymbolRepr> for Symbol {

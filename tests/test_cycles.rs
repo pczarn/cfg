@@ -3,7 +3,7 @@ extern crate cfg;
 mod support;
 
 use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule};
-use cfg::cycles::Cycles;
+use cfg::classification::cyclical::Cycles;
 
 #[test]
 fn test_remove_cycles() {
