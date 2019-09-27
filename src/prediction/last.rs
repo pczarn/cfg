@@ -4,7 +4,7 @@ use grammar::{ContextFree, ContextFreeRef};
 use prediction::PerSymbolSets;
 use rule::container::EmptyRuleContainer;
 
-use super::FirstSets;
+use super::FirstSetsCollector;
 
 /// FIRST sets.
 pub struct LastSets {
@@ -21,12 +21,12 @@ impl LastSets {
     /// We compute the transitive closure of this relation.
     pub fn new<'a, G>(grammar: &'a G) -> Self
         where G: ContextFree + EmptyRuleContainer,
-              &'a G: ContextFreeRef<'a, Target = G>,
+              for<'b> &'b G: ContextFreeRef<'b, Target = G>,
               G::History: Clone,
     {
         let reversed_grammar = grammar.reverse();
         let map = {
-            let first_sets = FirstSets::new(&reversed_grammar);
+            let first_sets = FirstSetsCollector::new(&reversed_grammar);
             // E0597: `reversed_grammar` does not live long enough
             //   label: borrowed value does not live long enough
             first_sets.map

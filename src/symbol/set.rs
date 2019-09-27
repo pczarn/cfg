@@ -38,6 +38,21 @@ impl SymbolBitSet {
     {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {
+            set.bit_vec.set(rule.lhs().into(), false);
+        }
+        set
+    }
+
+    /// Gathers information about whether symbols are terminal or nonterminal.
+    /// Constructs a set of terminal symbols.
+    ///
+    /// Constructs a data structure in O(n) time.
+    pub fn terminal_or_nulling_set<'a, G>(grammar: &'a G) -> Self
+        where G: ContextFree,
+              &'a G: ContextFreeRef<'a, Target = G>
+    {
+        let mut set = SymbolBitSet::new(grammar, true);
+        for rule in grammar.rules() {
             if !rule.rhs().is_empty() {
                 set.bit_vec.set(rule.lhs().into(), false);
             }

@@ -39,6 +39,7 @@ pub trait RuleContainer {
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: Self::History);
 }
 
+/// A trait for creating an empty container.
 pub trait EmptyRuleContainer {
     /// Creates a new empty container.
     fn empty(&self) -> Self;

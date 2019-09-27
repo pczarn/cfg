@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use symbol::Symbol;
 
 pub use self::distance::MinimalDistance;
-pub use self::first::FirstSets;
+pub use self::first::{FirstSets, FirstSetsCollector};
 pub use self::last::LastSets;
 pub use self::follow::FollowSets;
 

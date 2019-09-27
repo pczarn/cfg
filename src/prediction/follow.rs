@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use grammar::{ContextFree, ContextFreeRef};
-use prediction::{FirstSets, PerSymbolSets};
+use prediction::PerSymbolSets;
 use rule::GrammarRule;
 use symbol::{Symbol, SymbolBitSet};
 
@@ -16,7 +16,7 @@ pub struct FollowSets {
 impl FollowSets {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
-    pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &FirstSets) -> Self
+    pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &PerSymbolSets) -> Self
         where G: ContextFree,
               &'a G: ContextFreeRef<'a, Target = G>
     {
@@ -46,7 +46,7 @@ impl FollowSets {
                         followed.extend(follow_set.iter().cloned());
                         changed |= prev_cardinality != followed.len();
 
-                        let first_set = first_sets.first_sets().get(&sym).unwrap();
+                        let first_set = first_sets.get(&sym).unwrap();
                         if !first_set.contains(&None) {
                             follow_set.clear();
                         }

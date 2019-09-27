@@ -43,11 +43,15 @@ pub trait ContextFreeRef<'a>: Deref + Sized where Self::Target: ContextFree {
     /// Returns an iterator over immutable references to the grammar's rules.
     fn rules(self) -> Self::Rules;
 
+    /// Reverses the grammar.
     fn reverse(self) -> Self::Target
         where <Self::Target as RuleContainer>::History: Clone,
             Self::Target: EmptyRuleContainer,
     {
         let mut new_grammar = (*self).empty();
+        for _ in 0 .. self.sym_source().num_syms() {
+            let _: Symbol = new_grammar.sym();
+        }
         for rule in self.rules() {
             let mut rhs = rule.rhs().iter().cloned().collect::<Vec<_>>();
             rhs.reverse();

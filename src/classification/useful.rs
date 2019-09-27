@@ -61,7 +61,7 @@ fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
     where G: ContextFree,
           &'a G: ContextFreeRef<'a, Target = G>
 {
-    let mut productive_syms = SymbolBitSet::terminal_set(&grammar).into_bit_vec();
+    let mut productive_syms = SymbolBitSet::terminal_or_nulling_set(&grammar).into_bit_vec();
     RhsClosure::new(grammar).rhs_closure(&mut productive_syms);
     productive_syms
 }

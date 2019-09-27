@@ -6,6 +6,7 @@ use std::ops::Range;
 
 use Symbol;
 
+#[cfg(test)]
 use self::RuleKind::*;
 use self::Rhs::*;
 
