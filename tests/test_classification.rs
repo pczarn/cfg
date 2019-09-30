@@ -32,6 +32,27 @@ fn test_ll_classification() {
 }
 
 #[test]
+fn test_ll_transitive_classification() {
+    let mut cfg: Cfg = Cfg::new();
+    let (start, a, b, x, y) = cfg.sym();
+
+    cfg.rule(start).rhs([a])
+       .rule(a).rhs([x, b])
+       .rule(b).rhs([x, y]).rhs([x]);
+
+    let classification = LlParseTable::new(&cfg, start).classify();
+    let classes = classification.classes();
+
+    let mut map = BTreeMap::new();
+
+    map.insert(start, LlNonterminalClass::ContextFree);
+    map.insert(a, LlNonterminalClass::ContextFree);
+    map.insert(b, LlNonterminalClass::ContextFree);
+
+    assert_eq!(classes, &map);
+}
+
+#[test]
 fn test_lr0() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, x, b, c, y) = cfg.sym();

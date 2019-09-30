@@ -4,13 +4,15 @@ use std::collections::BTreeMap;
 
 use ContextFree;
 use ContextFreeRef;
-use symbol::Symbol;
+use analysis::RhsClosure;
+use symbol::{Symbol, SymbolBitSet};
 use rule::GrammarRule;
 use prediction::{FirstSetsCollector, FollowSets};
 
 /// LL parse table.
-pub struct LlParseTable {
+pub struct LlParseTable<'a, G> {
     map: BTreeMap<LlParseTableKey, Vec<usize>>,
+    grammar: &'a G,
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -34,14 +36,15 @@ pub enum LlNonterminalClass {
     ContextFree,
 }
 
-impl LlParseTable {
+impl<'a, G> LlParseTable<'a, G>
+    where G: ContextFree,
+          &'a G: ContextFreeRef<'a, Target = G>,
+{
     /// Creates an LL parse table.
-    pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol) -> Self
-        where G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target = G>,
-    {
+    pub fn new(grammar: &'a G, start_sym: Symbol) -> Self {
         let mut this = LlParseTable {
             map: BTreeMap::new(),
+            grammar,
         };
         let first = FirstSetsCollector::new(grammar);
         let follow = FollowSets::new(grammar, start_sym, first.first_sets());
@@ -86,6 +89,19 @@ impl LlParseTable {
                 if !result.classes.contains_key(&key.nonterminal) {
                     result.classes.insert(key.nonterminal, LlNonterminalClass::Ll1);
                 }
+            }
+        }
+        let mut closure = RhsClosure::new(self.grammar);
+        let mut property = SymbolBitSet::new(self.grammar, false).into_bit_vec();
+        for (&nonterminal, &class) in result.classes.iter() {
+            if let LlNonterminalClass::ContextFree = class {
+                property.set(nonterminal.into(), true);
+            }
+        }
+        closure.rhs_closure_for_any(&mut property);
+        for (&nonterminal, class) in result.classes.iter_mut() {
+            if property[nonterminal.into()] {
+                *class = LlNonterminalClass::ContextFree;
             }
         }
         result

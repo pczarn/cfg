@@ -56,6 +56,26 @@ impl<R> RhsClosure<R>
     }
 
     // Calculates the RHS transitive closure.
+    pub fn rhs_closure_for_any(&mut self, property: &mut BitVec) {
+        for (sym_id, sym_has_property) in property.iter().enumerate() {
+            if sym_has_property {
+                self.work_stack.push(Symbol::from(sym_id));
+            }
+        }
+
+        let inverse_derivation = &self.inverse_derivation[..];
+        while let Some(work_sym) = self.work_stack.pop() {
+            for &(_, rule) in find(inverse_derivation, work_sym) {
+                if !property[rule.lhs().usize()] &&
+                   rule.rhs().iter().any(|sym| property[sym.usize()]) {
+                    property.set(rule.lhs().usize(), true);
+                    self.work_stack.push(rule.lhs());
+                }
+            }
+        }
+    }
+
+    // Calculates the RHS transitive closure.
     pub fn rhs_closure_with_values(&mut self, value: &mut Vec<Option<u32>>) {
         for (sym_id, maybe_sym_value) in value.iter().enumerate() {
             if maybe_sym_value.is_some() {
