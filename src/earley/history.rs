@@ -36,15 +36,15 @@ impl HistorySource<History> for BuildHistory {
 
 #[derive(Clone, Default, Debug)]
 pub struct History {
-    pub(super) dots: Vec<RuleDot>,
-    pub(super) origin: ExternalOrigin,
-    pub(super) nullable: NullingEliminated,
+    pub dots: Vec<RuleDot>,
+    pub origin: ExternalOrigin,
+    pub nullable: NullingEliminated,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct RuleDot {
-    event: Option<(EventId, ExternalDottedRule)>,
-    distance: MinimalDistance,
+    pub event: Option<(EventId, ExternalDottedRule)>,
+    pub distance: MinimalDistance,
 }
 
 impl RuleDot {
