@@ -38,7 +38,7 @@ impl SymbolBitSet {
     {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {
-            set.bit_vec.set(rule.lhs().into(), false);
+            set.set(rule.lhs(), false);
         }
         set
     }
@@ -54,10 +54,15 @@ impl SymbolBitSet {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {
             if !rule.rhs().is_empty() {
-                set.bit_vec.set(rule.lhs().into(), false);
+                set.set(rule.lhs(), false);
             }
         }
         set
+    }
+
+    /// Set the entry for a symbol.
+    pub fn set(&mut self, sym: Symbol, value: bool) {
+        self.bit_vec.set(sym.into(), value);
     }
 
     /// Checks whether a given symbol is in this set.

@@ -174,17 +174,22 @@ impl<'a, G> Lr0FsmBuilder<'a, G>
     }
 
     fn initial_item_set(&mut self, start_sym: Symbol) -> Rc<Lr0Items> {
-        let new_start = self.closure.grammar.sym();
-        let rule_id = self.closure.grammar.rules().count() as RuleId;
-        self.closure.grammar.rule(new_start).rhs_with_history(&[start_sym], Default::default());
+        let (_new_start, new_start_rule_id) = self.augment_grammar(start_sym);
         let initial_item = Lr0Item {
             rhs: vec![start_sym],
             dot: 0,
         };
         let mut initial_item_set = Lr0Items::new();
-        initial_item_set.map.insert(rule_id, initial_item);
+        initial_item_set.map.insert(new_start_rule_id, initial_item);
         self.closure.closure(&mut initial_item_set);
         Rc::new(initial_item_set)
+    }
+
+    fn augment_grammar(&mut self, start_sym: Symbol) -> (Symbol, RuleId) {
+        let new_start = self.closure.grammar.sym();
+        let rule_id = self.closure.grammar.rules().count() as RuleId;
+        self.closure.grammar.rule(new_start).rhs_with_history(&[start_sym], Default::default());
+        (new_start, rule_id)
     }
 
     fn id_of(&mut self, items: Rc<Lr0Items>) -> SetId {
