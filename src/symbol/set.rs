@@ -53,8 +53,11 @@ impl SymbolBitSet {
     {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {
-            if !rule.rhs().is_empty() {
-                set.set(rule.lhs(), false);
+            set.set(rule.lhs(), false);
+        }
+        for rule in grammar.rules() {
+            if rule.rhs().is_empty() {
+                set.set(rule.lhs(), true);
             }
         }
         set
