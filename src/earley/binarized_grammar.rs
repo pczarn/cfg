@@ -4,19 +4,26 @@ use std::cmp::Ordering;
 use bit_matrix::BitMatrix;
 
 use BinarizedCfg;
+use ContextFree;
 use ContextFreeRef;
+use binarized::BinarizedRules;
 use classification::useful::Usefulness;
+use rule::RuleRef;
 use rule::GrammarRule;
 use rule::container::RuleContainer;
 use remap::{Remap, Mapping};
+use symbol::SymbolSource;
 use super::history::History;
 use Symbol;
+
+type Dot = u32;
 
 /// Drop-in replacement for `cfg::BinarizedCfg`.
 #[derive(Clone, Default)]
 pub struct BinarizedGrammar {
     pub(super) inherit: BinarizedCfg<History>,
     pub(super) start: Option<Symbol>,
+    pub(super) has_wrapped_start: bool,
 }
 
 impl BinarizedGrammar {
@@ -31,6 +38,41 @@ impl BinarizedGrammar {
 
     pub fn start(&self) -> Symbol {
         self.start.unwrap()
+    }
+}
+
+impl ContextFree for BinarizedGrammar
+{
+}
+
+impl<'a> ContextFreeRef<'a> for &'a BinarizedGrammar {
+    type RuleRef = RuleRef<'a, History>;
+    type Rules = BinarizedRules<'a, History>;
+
+    fn rules(self) -> Self::Rules {
+        self.inherit.rules()
+    }
+}
+
+impl RuleContainer for BinarizedGrammar {
+    type History = History;
+
+    fn sym_source(&self) -> &SymbolSource {
+        self.inherit.sym_source()
+    }
+
+    fn sym_source_mut(&mut self) -> &mut SymbolSource {
+        self.inherit.sym_source_mut()
+    }
+
+    fn retain<F>(&mut self, f: F)
+        where F: FnMut(Symbol, &[Symbol], &History) -> bool
+    {
+        self.inherit.retain(f)
+    }
+
+    fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: History) {
+        self.inherit.add_rule(lhs, rhs, history);
     }
 }
 
@@ -53,6 +95,34 @@ impl BinarizedGrammar {
         let (new_start, eof) = self.sym();
         self.add_rule(new_start, &[start, eof], History::default());
         self.set_start(new_start);
+        self.has_wrapped_start = true;
+    }
+
+    pub fn original_start(&self) -> Option<Symbol> {
+        if !self.has_wrapped_start {
+            return None;
+        }
+        let is_start_rule = |rule: &RuleRef<History>| rule.lhs() == self.start();
+        let rhs0 = |rule: RuleRef<History>| rule.rhs().get(0).cloned();
+        self.rules().find(is_start_rule).and_then(rhs0)
+    }
+
+    pub fn eof(&self) -> Option<Symbol> {
+        if !self.has_wrapped_start {
+            return None;
+        }
+        let is_start_rule = |rule: &RuleRef<History>| rule.lhs() == self.start();
+        let rhs1 = |rule: RuleRef<History>| rule.rhs().get(1).cloned();
+        self.rules().find(is_start_rule).and_then(rhs1)
+    }
+
+    pub fn dot_before_eof(&self) -> Option<Dot> {
+        if !self.has_wrapped_start {
+            return None;
+        }
+        let is_start_rule = |rule: RuleRef<History>| rule.lhs() == self.start();
+        let as_dot = |pos| pos as Dot;
+        self.rules().position(is_start_rule).map(as_dot)
     }
 
     pub fn make_proper(mut self: BinarizedGrammar) -> BinarizedGrammar {
@@ -60,6 +130,10 @@ impl BinarizedGrammar {
         {
             let mut usefulness = Usefulness::new(&mut *self).reachable([start]);
             if !usefulness.all_useful() {
+                // for useless in usefulness.useless_rules() {
+                //     let rhs: Vec<_> = useless.rule.rhs().iter().map(|t| tok.get(t.usize())).collect();
+                //     println!("lhs:{:?} rhs:{:?} unreachable:{} unproductive:{}", tok.get(useless.rule.lhs().usize()), rhs, useless.unreachable, useless.unproductive);
+                // }
                 println!("warning: grammar has useless rules");
                 usefulness.remove_useless_rules();
             }
@@ -71,6 +145,7 @@ impl BinarizedGrammar {
         let nulling_grammar = BinarizedGrammar {
             inherit: self.eliminate_nulling_rules(),
             start: Some(self.start()),
+            has_wrapped_start: self.has_wrapped_start,
         };
         (self, nulling_grammar)
     }

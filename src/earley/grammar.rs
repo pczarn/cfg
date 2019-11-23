@@ -51,6 +51,7 @@ impl Grammar {
         BinarizedGrammar {
             inherit: self.inherit.binarize(),
             start: self.start,
+            has_wrapped_start: false,
         }
     }
 }
