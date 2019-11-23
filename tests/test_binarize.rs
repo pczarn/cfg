@@ -35,7 +35,7 @@ fn test_binarize() {
 
     {
         let mut equivalent = BinarizedCfg::new();
-        let (start, _, _, c, x, y, g0) = equivalent.sym();
+        let (start, _a, b, c, x, y, g0) = equivalent.sym();
         equivalent.rule(start).rhs([g0, b]).rhs([c])
                   .rule(c).rhs([x]).rhs([y])
                   .rule(start).rhs([g0])
@@ -43,6 +43,7 @@ fn test_binarize() {
                   .rule(b).rhs([c]);
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
     };
+
     {
         let mut equivalent_nulling = BinarizedCfg::new();
         let (_, a, b) = equivalent_nulling.sym();

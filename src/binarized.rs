@@ -152,9 +152,6 @@ impl<H> BinarizedCfg<H>
             let mut productive: BitVec = BitVec::from_elem(self.sym_source().num_syms(), true);
             // All rules of the form `A ::= ε` go to the nulling grammar.
             nulling_grammar.nulling = nulling;
-            for rule in nulling_grammar.rules().chain(self.rules()) {
-                productive.set(rule.lhs().into(), false);
-            }
             RhsClosure::new(self).rhs_closure(&mut nullable);
             // Add new rules.
             let mut rewritten_rules = Vec::new();
@@ -167,19 +164,25 @@ impl<H> BinarizedCfg<H>
                     nulling_grammar.rule(rule.lhs()).rhs_with_history(rule.rhs(), history);
                 }
                 if rule.rhs().len() == 2 {
-                    let which = &[(rule.rhs()[0], Right), (rule.rhs()[1], Left)];
-                    let with_rhs0 = right_nullable as usize;
-                    let with_rhs1 = left_nullable as usize;
-                    for &(sym, direction) in &which[1 - with_rhs0..1 + with_rhs1] {
-                        rewritten_rules.push(BinarizedRule::new(rule.lhs(),
-                                                                &[sym],
-                                                                rule.history()
-                                                                    .eliminate_nulling(rule,
-                                                                                       direction)));
+                    let mut make_rule = |sym, eliminated| {
+                        let history = rule.history().eliminate_nulling(rule, eliminated);
+                        rewritten_rules.push(BinarizedRule::new(rule.lhs(), &[sym], history));
+                    };
+                    if left_nullable {
+                        make_rule(rule.rhs()[1], Left);
+                    }
+                    if right_nullable {
+                        make_rule(rule.rhs()[0], Right);
                     }
                 }
             }
             self.rules.extend(rewritten_rules);
+            for rule in self.rules() {
+                productive.set(rule.lhs().into(), true);
+            }
+            for rule in nulling_grammar.rules() {
+                productive.set(rule.lhs().into(), false);
+            }
             RhsClosure::new(self).rhs_closure(&mut productive);
             self.rules.retain(|rule| {
                 // Retain the rule only if it's productive. We have to, in order to remove rules
@@ -277,22 +280,20 @@ impl<H> RuleContainer for BinarizedCfg<H>
             let right_iter = rhs_iter.rev().map(Some).chain(iter::once(None));
 
             let mut next_lhs = lhs;
-
-            self.rules.extend(left_iter.zip(right_iter)
-                                       .enumerate()
-                                       .map(|(depth, (left, right))| {
-                                           let lhs = next_lhs;
-                                           next_lhs = left;
-                                           BinarizedRule {
-                                               lhs: lhs,
-                                               rhs: if let Some(r) = right {
-                                                   Two([left, r])
-                                               } else {
-                                                   One([left])
-                                               },
-                                               history: history.binarize(&this_rule_ref, depth),
-                                           }
-                                       }));
+            let make_rule = |(depth, (left, right))| {
+                let lhs = next_lhs;
+                next_lhs = left;
+                BinarizedRule {
+                    lhs: lhs,
+                    rhs: if let Some(r) = right {
+                        Two([left, r])
+                    } else {
+                        One([left])
+                    },
+                    history: history.binarize(&this_rule_ref, depth),
+                }
+            };
+            self.rules.extend(left_iter.zip(right_iter).enumerate().map(make_rule));
         }
     }
 }
@@ -336,6 +337,11 @@ impl<H> BinarizedRule<H> {
                 unreachable!()
             },
         }
+    }
+
+    /// Returns the first symbol.
+    pub fn lhs(&self) -> Symbol {
+        self.lhs
     }
 
     /// Returns the first symbol.

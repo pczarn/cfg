@@ -1,6 +1,8 @@
 //! Library for manipulations on context-free grammars. Most transformations are abstracted over
 //! grammar representations.
 
+#![recursion_limit="512"]
+
 #![deny(missing_docs,
         missing_copy_implementations,
         trivial_casts,
