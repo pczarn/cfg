@@ -45,6 +45,7 @@ pub trait SymbolContainer {
 
 macro_rules! impl_generate {
     (Symbol, next_sym, $($T:ident, $next_sym:ident,)*) => (
+        #[allow(unused_parens)]
         impl SymbolContainer for ( Symbol $(, $T)* ) {
             fn generate(source: &mut SymbolSource) -> Self {
                 (source.next_sym()

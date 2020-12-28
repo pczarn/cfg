@@ -52,7 +52,7 @@ impl<'a, G> Remap<'a, G>
     pub fn remove_unused_symbols(&mut self) {
         let mut intern = Intern::new(self.grammar.num_syms());
         self.remap_symbols(|sym| intern.intern(sym));
-        mem::replace(self.grammar.sym_source_mut(), intern.source);
+        let _ = mem::replace(self.grammar.sym_source_mut(), intern.source);
         self.mapping.translate(&intern.mapping);
     }
 
