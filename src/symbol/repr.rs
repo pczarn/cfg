@@ -19,3 +19,8 @@ impl Into<SymbolRepr> for Symbol {
         self.0
     }
 }
+
+#[test]
+fn test_symbol_size() {
+  assert_eq!(::std::mem::size_of::<Symbol>() * 8, 32);
+}
