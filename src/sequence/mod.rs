@@ -4,6 +4,8 @@ pub mod builder;
 pub mod destination;
 pub mod rewrite;
 
+use std::ops::{Bound, RangeBounds};
+
 use symbol::Symbol;
 
 use self::Separator::*;
@@ -53,6 +55,19 @@ impl<H> Sequence<H> {
     pub fn separator(mut self, sep: Separator) -> Self {
         self.separator = sep;
         self
+    }
+
+    /// Adds a range to the sequence.
+    pub fn range(self, range: impl RangeBounds<u32>) -> Self {
+        let to_option = |bound: Bound<u32>, diff| match bound {
+            Bound::Included(included) => Some(included),
+            Bound::Excluded(excluded) => Some((excluded as i64 + diff) as u32),
+            Bound::Unbounded => None,
+        };
+        self.inclusive(
+            to_option(range.start_bound().cloned(), 1).unwrap_or(0),
+            to_option(range.end_bound().cloned(), -1),
+        )
     }
 }
 

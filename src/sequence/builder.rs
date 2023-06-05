@@ -1,7 +1,6 @@
 //! Sequence rules can be built with the builder pattern.
 
-#[cfg(feature = "nightly")]
-use collections::range::RangeArgument;
+use std::ops::{Bound, RangeBounds};
 
 use history::{HistorySource, NullHistorySource, RewriteSequence};
 use sequence::destination::SequenceDestination;
@@ -99,19 +98,30 @@ where
         self.rhs_with_history(rhs, history)
     }
 
-    /// Adds a sequence rule to the grammar.
-    #[cfg(feature = "nightly")]
-    pub fn rhs_with_range<T>(mut self, rhs: S, range: T) -> Self
+    /// Adds a range to the sequence.
+    pub fn range(self, range: impl RangeBounds<u32>) -> Self
     where
-        T: RangeArgument<u32>,
+        Hs: HistorySource<H>,
         H: Default,
     {
-        let history = self.history.take();
+        let to_option = |bound: Bound<u32>, diff| match bound {
+            Bound::Included(included) => Some(included),
+            Bound::Excluded(excluded) => Some((excluded as i64 + diff) as u32),
+            Bound::Unbounded => None,
+        };
         self.inclusive(
-            range.start().cloned().unwrap_or(0),
-            range.end().cloned().map(|end| end - 1),
+            to_option(range.start_bound().cloned(), 1).unwrap_or(0),
+            to_option(range.end_bound().cloned(), -1),
         )
-        .rhs(rhs)
+    }
+
+    /// Adds a sequence rule to the grammar.
+    pub fn rhs_with_range(self, rhs: Symbol, range: impl RangeBounds<u32>) -> Self
+    where
+        Hs: HistorySource<H>,
+        H: Default,
+    {
+        self.range(range).rhs(rhs)
     }
 
     /// Adds a sequence rule to the grammar.
