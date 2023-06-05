@@ -161,20 +161,22 @@ where
                 // seq ::= sym1 | sym2
                 self.rule(lhs).rhs([sym1]).rhs([sym2]);
             }
-            (_, _, _) if start == 0 => {
+            (_, 0, Some(0)) => {
                 // seq ::= epsilon | sym
                 self.rule(lhs).rhs([]);
-                if end != Some(0) {
-                    let sym = self.recurse(&sequence.inclusive(1, end));
-                    self.rule(lhs).rhs([sym]);
-                }
+            }
+            (_, 0, end) => {
+                // seq ::= epsilon | sym
+                self.rule(lhs).rhs([]);
+                let sym = self.recurse(&sequence.inclusive(1, end));
+                self.rule(lhs).rhs([sym]);
             }
             (Trailing(sep), _, _) => {
                 let sym = self.recurse(&sequence.separator(Proper(sep)));
                 // seq ::= sym sep
                 self.rule(lhs).rhs([sym, sep]);
             }
-            (_, _, _) if start == 1 && end == None => {
+            (_, 1, None) => {
                 if self.at_top {
                     let rec = self.recurse(&sequence);
                     self.rule(lhs).rhs([rec]);
@@ -190,22 +192,22 @@ where
                     }
                 }
             }
-            (_, _, _) if (start, end) == (1, Some(1)) => {
+            (_, 1, Some(1)) => {
                 self.rule(lhs).rhs([rhs]);
             }
-            (_, _, _) if (start, end) == (1, Some(2)) => {
-                let sym1 = self.recurse(&sequence.clone().inclusive(1, Some(1)));
-                let sym2 = self.recurse(&sequence.clone().inclusive(2, Some(2)));
+            (_, 1, Some(2)) => {
+                let sym1 = self.recurse(&sequence.clone().range(1..=1));
+                let sym2 = self.recurse(&sequence.clone().range(2..=2));
                 // seq ::= sym1 | sym2
                 self.rule(lhs).rhs([sym1]).rhs([sym2]);
             }
-            (_, _, Some(end)) if start == 1 => {
+            (_, 1, Some(end)) => {
                 // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
                 let (seq1, block, seq2) = (
-                    sequence.clone().inclusive(1, Some(pow2)),
-                    sequence.clone().inclusive(pow2, Some(pow2)),
-                    sequence.clone().inclusive(1, Some(end - pow2)),
+                    sequence.clone().range(1..=pow2),
+                    sequence.clone().range(pow2..=pow2),
+                    sequence.clone().range(1..=end - pow2),
                 );
                 let rhs1 = self.recurse(&seq1);
                 let block = self.recurse(&block.separator(separator.prefix_separator()));
@@ -213,26 +215,25 @@ where
                 // seq ::= sym1 sym2
                 self.rule(lhs).rhs([rhs1]).rhs([block, rhs2]);
             }
-            // Bug in rustc. Must use comparison.
-            (Proper(sep), start, end) if start == 2 && end == Some(2) => {
+            (Proper(sep), 2, Some(2)) => {
                 self.rule(lhs).rhs([rhs, sep, rhs]);
             }
-            (_, _, _) if start == 2 && end == Some(2) => {
+            (_, 2, Some(2)) => {
                 self.rule(lhs).rhs([rhs, rhs]);
             }
-            (_, _, end) if start >= 2 => {
+            (_, 2.., end) => {
                 // to do infinity
                 let (seq1, seq2) = if Some(start) == end {
                     // A "block"
                     let pow2 = start.next_power_of_two() / 2;
                     (
-                        sequence.clone().inclusive(pow2, Some(pow2)),
-                        sequence.clone().inclusive(start - pow2, Some(start - pow2)),
+                        sequence.clone().range(pow2..=pow2),
+                        sequence.clone().range(start - pow2..=start - pow2),
                     )
                 } else {
                     // A "span"
                     (
-                        sequence.clone().inclusive(start - 1, Some(start - 1)),
+                        sequence.clone().range(start - 1..=start - 1),
                         sequence
                             .clone()
                             .inclusive(1, end.map(|end| end - start + 1)),
@@ -245,7 +246,6 @@ where
                 // seq ::= sym1 sym2
                 self.rule(lhs).rhs([rhs1, rhs2]);
             }
-            _ => panic!(),
         }
     }
 }
