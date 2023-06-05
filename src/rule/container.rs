@@ -1,7 +1,7 @@
 //! Abstraction for collections of rules.
 
-use symbol::{Symbol, SymbolSource};
 use symbol::source::SymbolContainer;
+use symbol::{Symbol, SymbolSource};
 
 /// Trait for rule and symbol containers.
 pub trait RuleContainer {
@@ -16,7 +16,8 @@ pub trait RuleContainer {
 
     /// Returns generated symbols.
     fn sym<T>(&mut self) -> T
-        where T: SymbolContainer
+    where
+        T: SymbolContainer,
     {
         self.sym_source_mut().sym()
     }
@@ -34,7 +35,9 @@ pub trait RuleContainer {
     /// Retains only the rules specified by the predicate.
     ///
     /// In other words, removes all rules `rule` for which `f(&rule)` returns false.
-    fn retain<F>(&mut self, f: F) where F: FnMut(Symbol, &[Symbol], &Self::History) -> bool;
+    fn retain<F>(&mut self, f: F)
+    where
+        F: FnMut(Symbol, &[Symbol], &Self::History) -> bool;
     /// Inserts a rule with `lhs` and `rhs` on its LHS and RHS. The rule carries `history`.
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: Self::History);
 }
@@ -46,7 +49,8 @@ pub trait EmptyRuleContainer {
 }
 
 impl<'a, D> RuleContainer for &'a mut D
-    where D: RuleContainer
+where
+    D: RuleContainer,
 {
     type History = D::History;
 
@@ -59,7 +63,8 @@ impl<'a, D> RuleContainer for &'a mut D
     }
 
     fn retain<F>(&mut self, f: F)
-        where F: FnMut(Symbol, &[Symbol], &Self::History) -> bool
+    where
+        F: FnMut(Symbol, &[Symbol], &Self::History) -> bool,
     {
         (**self).retain(f);
     }

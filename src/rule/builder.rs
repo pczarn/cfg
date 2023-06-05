@@ -9,7 +9,8 @@ use symbol::Symbol;
 
 /// The rule builder.
 pub struct RuleBuilder<C, Hs = NullHistorySource>
-    where C: RuleContainer
+where
+    C: RuleContainer,
 {
     lhs: Option<Symbol>,
     history: Option<C::History>,
@@ -18,7 +19,8 @@ pub struct RuleBuilder<C, Hs = NullHistorySource>
 }
 
 impl<C> RuleBuilder<C>
-    where C: RuleContainer
+where
+    C: RuleContainer,
 {
     /// Creates a rule builder.
     pub fn new(rules: C) -> RuleBuilder<C> {
@@ -32,7 +34,8 @@ impl<C> RuleBuilder<C>
 }
 
 impl<C, Hs> RuleBuilder<C, Hs>
-    where C: RuleContainer
+where
+    C: RuleContainer,
 {
     /// Sets the default history source.
     pub fn default_history<Hs2>(self, state: Hs2) -> RuleBuilder<C, Hs2> {
@@ -61,26 +64,31 @@ impl<C, Hs> RuleBuilder<C, Hs>
     /// Adds a rule alternative to the grammar. If history wasn't provided, the rule has the
     /// `Default` history.
     pub fn rhs<Sr>(mut self, syms: Sr) -> Self
-        where Sr: AsRef<[Symbol]>,
-              Hs: HistorySource<C::History>
+    where
+        Sr: AsRef<[Symbol]>,
+        Hs: HistorySource<C::History>,
     {
-        let history = self.history.take().unwrap_or_else(|| {
-            self.history_state.build(self.lhs.unwrap(), syms.as_ref())
-        });
+        let history = self
+            .history
+            .take()
+            .unwrap_or_else(|| self.history_state.build(self.lhs.unwrap(), syms.as_ref()));
         self.rhs_with_history(syms, history)
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
     pub fn rhs_with_history<Sr>(mut self, syms: Sr, history: C::History) -> Self
-        where Sr: AsRef<[Symbol]>
+    where
+        Sr: AsRef<[Symbol]>,
     {
-        self.rules.add_rule(self.lhs.unwrap(), syms.as_ref(), history);
+        self.rules
+            .add_rule(self.lhs.unwrap(), syms.as_ref(), history);
         self
     }
 
     /// Starts building a new precedenced rule.
     pub fn precedenced_rule(self, lhs: Symbol) -> PrecedencedRuleBuilder<C>
-        where C::History: AssignPrecedence + Default
+    where
+        C::History: AssignPrecedence + Default,
     {
         PrecedencedRuleBuilder::new(self.rules, lhs)
     }

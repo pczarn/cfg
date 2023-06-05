@@ -2,19 +2,26 @@ extern crate cfg;
 
 mod support;
 
-use cfg::*;
 use cfg::classification::useful::Usefulness;
 use cfg::rule::container::RuleContainer;
+use cfg::*;
 
 #[test]
 fn test_binarize() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, b, c, x, y) = cfg.sym();
 
-    cfg.rule(start).rhs([a, x, b]).rhs([c])
-       .rule(b).rhs([a, a]).rhs([a, c])
-       .rule(c).rhs([x]).rhs([y])
-       .rule(a).rhs([]);
+    cfg.rule(start)
+        .rhs([a, x, b])
+        .rhs([c])
+        .rule(b)
+        .rhs([a, a])
+        .rhs([a, c])
+        .rule(c)
+        .rhs([x])
+        .rhs([y])
+        .rule(a)
+        .rhs([]);
 
     let mut cfg = cfg.binarize();
 
@@ -22,12 +29,21 @@ fn test_binarize() {
         let mut equivalent = BinarizedCfg::new();
         let (start, a, b, c, x, y, g0) = equivalent.sym();
 
-        equivalent.rule(start).rhs([g0, b])
-                  .rule(g0).rhs([a, x])
-                  .rule(start).rhs([c])
-                  .rule(b).rhs([a, a]).rhs([a, c])
-                  .rule(c).rhs([x]).rhs([y])
-                  .rule(a).rhs([]);
+        equivalent
+            .rule(start)
+            .rhs([g0, b])
+            .rule(g0)
+            .rhs([a, x])
+            .rule(start)
+            .rhs([c])
+            .rule(b)
+            .rhs([a, a])
+            .rhs([a, c])
+            .rule(c)
+            .rhs([x])
+            .rhs([y])
+            .rule(a)
+            .rhs([]);
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
     };
 
@@ -36,19 +52,26 @@ fn test_binarize() {
     {
         let mut equivalent = BinarizedCfg::new();
         let (start, _a, b, c, x, y, g0) = equivalent.sym();
-        equivalent.rule(start).rhs([g0, b]).rhs([c])
-                  .rule(c).rhs([x]).rhs([y])
-                  .rule(start).rhs([g0])
-                  .rule(g0).rhs([x])
-                  .rule(b).rhs([c]);
+        equivalent
+            .rule(start)
+            .rhs([g0, b])
+            .rhs([c])
+            .rule(c)
+            .rhs([x])
+            .rhs([y])
+            .rule(start)
+            .rhs([g0])
+            .rule(g0)
+            .rhs([x])
+            .rule(b)
+            .rhs([c]);
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
     };
 
     {
         let mut equivalent_nulling = BinarizedCfg::new();
         let (_, a, b) = equivalent_nulling.sym();
-        equivalent_nulling.rule(a).rhs([])
-                          .rule(b).rhs([a, a]);
+        equivalent_nulling.rule(a).rhs([]).rule(b).rhs([a, a]);
         support::assert_eq_rules(equivalent_nulling.rules(), nulling.rules());
     };
 
@@ -62,7 +85,11 @@ fn test_binarize_very_long_rule() {
     let mut cfg: Cfg = Cfg::new();
     let start = cfg.sym();
 
-    let mut long_rhs = cfg.sym_source_mut().generate().take(100).collect::<Vec<_>>();
+    let mut long_rhs = cfg
+        .sym_source_mut()
+        .generate()
+        .take(100)
+        .collect::<Vec<_>>();
     long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
     cfg.rule(start).rhs(long_rhs);
 
@@ -73,7 +100,11 @@ fn test_binarize_very_long_rule() {
     let mut equivalent = BinarizedCfg::new();
     let start = equivalent.sym();
 
-    let mut long_rhs = equivalent.sym_source_mut().generate().take(100).collect::<Vec<_>>();
+    let mut long_rhs = equivalent
+        .sym_source_mut()
+        .generate()
+        .take(100)
+        .collect::<Vec<_>>();
     long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
     equivalent.rule(start).rhs(long_rhs);
     support::assert_eq_rules(equivalent.rules(), cfg.rules());

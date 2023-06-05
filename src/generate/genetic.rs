@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
+use std::cmp::{Ord, Ordering, PartialOrd};
 use std::collections::BTreeSet;
-use std::cmp::{Ord, PartialOrd, Ordering};
 use std::ops::Range;
 
 use Symbol;
 
+use self::Rhs::*;
 #[cfg(test)]
 use self::RuleKind::*;
-use self::Rhs::*;
 
 struct GeneticAlgorithm {
     target: Target,
@@ -32,8 +32,7 @@ struct RuleDescription {
 
 impl PartialOrd for RuleDescription {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let ordering = (&self.rule_kind, &self.rhs)
-            .cmp(&(&other.rule_kind, &other.rhs));
+        let ordering = (&self.rule_kind, &self.rhs).cmp(&(&other.rule_kind, &other.rhs));
         let ordering = ordering
             .then(self.amount.start.cmp(&other.amount.start))
             .then(self.amount.end.cmp(&other.amount.end));
@@ -52,18 +51,10 @@ enum RuleKind {
     Cyclical,
     LeftRecursive,
     RightRecursive,
-    MiddleRecursive {
-        position: u32,
-    },
-    Ll {
-        lookahead: u32,
-    },
-    Lr {
-        lookahead: u32,
-    },
-    Lalr {
-        lookahead: u32,
-    },
+    MiddleRecursive { position: u32 },
+    Ll { lookahead: u32 },
+    Lr { lookahead: u32 },
+    Lalr { lookahead: u32 },
     Regular,
     ContextFree,
     AnyKind,
@@ -104,9 +95,9 @@ impl Population {
     fn mutate(&self, mutation: Mutation) -> Self {
         let mut new_population = Population::new();
         for rule_description in &self.rule_descriptions {
-            new_population.rule_descriptions.insert(
-                rule_description.mutate(mutation)
-            );
+            new_population
+                .rule_descriptions
+                .insert(rule_description.mutate(mutation));
         }
         new_population
     }
@@ -125,37 +116,34 @@ impl RuleDescription {
 impl Rhs {
     fn mutate(&self, _mutation: Mutation) -> Self {
         match self {
-            &Unary { rhs0, rhs0_is_transparent } => {
-                Unary { rhs0, rhs0_is_transparent }
-            }
+            &Unary {
+                rhs0,
+                rhs0_is_transparent,
+            } => Unary {
+                rhs0,
+                rhs0_is_transparent,
+            },
             &Binary {
                 rhs0,
                 rhs0_is_transparent,
                 rhs1,
                 rhs1_is_transparent,
-            } => {
-                Binary {
-                    rhs0,
-                    rhs0_is_transparent,
-                    rhs1,
-                    rhs1_is_transparent,
-                }
-            }
+            } => Binary {
+                rhs0,
+                rhs0_is_transparent,
+                rhs1,
+                rhs1_is_transparent,
+            },
             &AnyRhs => AnyRhs,
         }
     }
 }
 
 impl Target {
-    fn new(
-        number_of_symbols: u32,
-        rule_descriptions: BTreeSet<RuleDescription>,
-    ) -> Target {
+    fn new(number_of_symbols: u32, rule_descriptions: BTreeSet<RuleDescription>) -> Target {
         Target {
             number_of_symbols,
-            population: Population {
-                rule_descriptions,
-            }
+            population: Population { rule_descriptions },
         }
     }
 }
@@ -163,13 +151,11 @@ impl Target {
 #[test]
 fn test_zero_mutation() {
     let mut rule_descriptions = BTreeSet::new();
-    rule_descriptions.insert(
-        RuleDescription {
-            amount: 10..20,
-            rule_kind: ContextFree,
-            rhs: AnyRhs,
-        }
-    );
+    rule_descriptions.insert(RuleDescription {
+        amount: 10..20,
+        rule_kind: ContextFree,
+        rhs: AnyRhs,
+    });
     let target = Target::new(10, rule_descriptions.clone());
     let mutation = Mutation {
         randomness: 0,

@@ -1,5 +1,5 @@
-use std::iter;
 use optional::Optioned;
+use std::iter;
 
 use history::*;
 use rule::GrammarRule;
@@ -20,7 +20,7 @@ pub struct BuildHistory {
 
 impl BuildHistory {
     /// Creates default history.
-    pub(in crate) fn new(num_rules: usize) -> Self {
+    pub(crate) fn new(num_rules: usize) -> Self {
         BuildHistory { num_rules }
     }
 }
@@ -75,7 +75,7 @@ impl RuleDot {
     }
 
     pub fn distance(&self) -> MinimalDistance {
-      self.distance
+        self.distance
     }
 }
 
@@ -83,7 +83,7 @@ impl History {
     pub fn new(id: u32, len: usize) -> Self {
         History {
             origin: Some(id),
-            dots: (0 ..= len).map(|i| RuleDot::new(id, i)).collect(),
+            dots: (0..=len).map(|i| RuleDot::new(id, i)).collect(),
             ..History::default()
         }
     }
@@ -93,11 +93,11 @@ impl History {
     }
 
     pub fn nullable(&self) -> NullingEliminated {
-      self.nullable
+        self.nullable
     }
 
     pub fn dot(&self, n: usize) -> RuleDot {
-      self.dots[n]
+        self.dots[n]
     }
 }
 
@@ -127,11 +127,7 @@ impl Binarize for History {
             }
         };
 
-        let origin = if depth == 0 {
-            self.origin
-        } else {
-            None
-        };
+        let origin = if depth == 0 { self.origin } else { None };
 
         History {
             origin,
@@ -142,15 +138,21 @@ impl Binarize for History {
 }
 
 impl EliminateNulling for History {
-    fn eliminate_nulling<R>(&self, rule: &R, subset: BinarizedRhsSubset) -> Self where
-                R: GrammarRule {
+    fn eliminate_nulling<R>(&self, rule: &R, subset: BinarizedRhsSubset) -> Self
+    where
+        R: GrammarRule,
+    {
         if let BinarizedRhsSubset::All = subset {
             History {
                 origin: self.origin,
                 ..History::default()
             }
         } else {
-            let right = if let BinarizedRhsSubset::Right = subset { true } else { false };
+            let right = if let BinarizedRhsSubset::Right = subset {
+                true
+            } else {
+                false
+            };
             let sym = rule.rhs()[right as usize];
             History {
                 nullable: Some((sym, right)),
@@ -183,27 +185,32 @@ impl RewriteSequence for History {
         // (0) Rhs (1)
         // (0) Rhs (1) Sep (2) Rhs (1)
         // (0) Rhs (1) Rhs (1)
-        let syms = new_rhs.iter().map(|&sym| {
-            if sym == rhs {
-                SymKind::Element
-            } else if Some(sym) == sep {
-                SymKind::Separator
-            } else {
-                SymKind::Other
-            }
-        }).chain(iter::once(SymKind::Other));
+        let syms = new_rhs
+            .iter()
+            .map(|&sym| {
+                if sym == rhs {
+                    SymKind::Element
+                } else if Some(sym) == sep {
+                    SymKind::Separator
+                } else {
+                    SymKind::Other
+                }
+            })
+            .chain(iter::once(SymKind::Other));
         let mut to_left = SymKind::Other;
-        let dots = syms.map(|to_right| {
-            let dot = match (to_left, to_right) {
-                (_, SymKind::Separator) => self.dots[1],
-                (SymKind::Separator, _) => self.dots[2],
-                (SymKind::Element, _)   => self.dots[1],
-                (_, SymKind::Element)   => self.dots[0],
-                _ => RuleDot::none()
-            };
-            to_left = to_right;
-            dot
-        }).collect();
+        let dots = syms
+            .map(|to_right| {
+                let dot = match (to_left, to_right) {
+                    (_, SymKind::Separator) => self.dots[1],
+                    (SymKind::Separator, _) => self.dots[2],
+                    (SymKind::Element, _) => self.dots[1],
+                    (_, SymKind::Element) => self.dots[0],
+                    _ => RuleDot::none(),
+                };
+                to_left = to_right;
+                dot
+            })
+            .collect();
         History {
             dots,
             ..History::default()

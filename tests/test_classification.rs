@@ -2,9 +2,9 @@ extern crate cfg;
 
 use std::rc::Rc;
 
+use cfg::classification::ll::{LlNonterminalClass, LlParseTable};
+use cfg::classification::lr::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
 use cfg::{Cfg, ContextFree};
-use cfg::classification::ll::{LlParseTable, LlNonterminalClass};
-use cfg::classification::lr::{Lr0FsmBuilder, Lr0Node, Lr0Items, Lr0Item};
 
 use std::collections::BTreeMap;
 
@@ -13,10 +13,17 @@ fn test_ll_classification() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, x, b, c, y) = cfg.sym();
 
-    cfg.rule(start).rhs([a, x, b]).rhs([c])
-       .rule(b).rhs([a, a]).rhs([a, c])
-       .rule(c).rhs([x]).rhs([y])
-       .rule(a).rhs([]);
+    cfg.rule(start)
+        .rhs([a, x, b])
+        .rhs([c])
+        .rule(b)
+        .rhs([a, a])
+        .rhs([a, c])
+        .rule(c)
+        .rhs([x])
+        .rhs([y])
+        .rule(a)
+        .rhs([]);
 
     let classification = LlParseTable::new(&cfg, start).classify();
     let classes = classification.classes();
@@ -36,9 +43,13 @@ fn test_ll_transitive_classification() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, b, x, y) = cfg.sym();
 
-    cfg.rule(start).rhs([a])
-       .rule(a).rhs([x, b])
-       .rule(b).rhs([x, y]).rhs([x]);
+    cfg.rule(start)
+        .rhs([a])
+        .rule(a)
+        .rhs([x, b])
+        .rule(b)
+        .rhs([x, y])
+        .rhs([x]);
 
     let classification = LlParseTable::new(&cfg, start).classify();
     let classes = classification.classes();
@@ -57,10 +68,17 @@ fn test_lr0() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, x, b, c, y) = cfg.sym();
 
-    cfg.rule(start).rhs([a, x, b]).rhs([c])
-       .rule(b).rhs([a, a]).rhs([a, c])
-       .rule(c).rhs([x]).rhs([y])
-       .rule(a).rhs([]);
+    cfg.rule(start)
+        .rhs([a, x, b])
+        .rhs([c])
+        .rule(b)
+        .rhs([a, a])
+        .rhs([a, c])
+        .rule(c)
+        .rhs([x])
+        .rhs([y])
+        .rule(a)
+        .rhs([]);
 
     let lr0_fsm = Lr0FsmBuilder::new(&mut cfg).make_lr0_fsm(start);
 
@@ -68,12 +86,48 @@ fn test_lr0() {
         map: BTreeMap::new(),
     };
 
-    items.map.insert(0, Lr0Item { rhs: vec![a, x, b], dot: 0 });
-    items.map.insert(1, Lr0Item { rhs: vec![c], dot: 0 });
-    items.map.insert(4, Lr0Item { rhs: vec![x], dot: 0 });
-    items.map.insert(5, Lr0Item { rhs: vec![y], dot: 0 });
-    items.map.insert(6, Lr0Item { rhs: vec![], dot: 0 });
-    items.map.insert(7, Lr0Item { rhs: vec![start], dot: 0 });
+    items.map.insert(
+        0,
+        Lr0Item {
+            rhs: vec![a, x, b],
+            dot: 0,
+        },
+    );
+    items.map.insert(
+        1,
+        Lr0Item {
+            rhs: vec![c],
+            dot: 0,
+        },
+    );
+    items.map.insert(
+        4,
+        Lr0Item {
+            rhs: vec![x],
+            dot: 0,
+        },
+    );
+    items.map.insert(
+        5,
+        Lr0Item {
+            rhs: vec![y],
+            dot: 0,
+        },
+    );
+    items.map.insert(
+        6,
+        Lr0Item {
+            rhs: vec![],
+            dot: 0,
+        },
+    );
+    items.map.insert(
+        7,
+        Lr0Item {
+            rhs: vec![start],
+            dot: 0,
+        },
+    );
 
     let mut node_0 = Lr0Node {
         items: Rc::new(items),
@@ -87,7 +141,13 @@ fn test_lr0() {
         map: BTreeMap::new(),
     };
 
-    items.map.insert(4, Lr0Item { rhs: vec![x], dot: 1 });
+    items.map.insert(
+        4,
+        Lr0Item {
+            rhs: vec![x],
+            dot: 1,
+        },
+    );
 
     let node_1 = Lr0Node {
         items: Rc::new(items),
@@ -98,7 +158,13 @@ fn test_lr0() {
         map: BTreeMap::new(),
     };
 
-    items.map.insert(5, Lr0Item { rhs: vec![y], dot: 1 });
+    items.map.insert(
+        5,
+        Lr0Item {
+            rhs: vec![y],
+            dot: 1,
+        },
+    );
 
     let node_2 = Lr0Node {
         items: Rc::new(items),

@@ -29,8 +29,14 @@ impl<W: Weight> WeightedRhsByLhs<W> {
     }
 
     pub fn add_weight(&mut self, weight: W, lhs: Symbol, rhs: &[Symbol]) {
-        let weighted_rhs_list = self.weights.entry(lhs).or_insert(WeightedRhsList::default());
-        weighted_rhs_list.rhs_list.push(WeightedRhs { weight: weighted_rhs_list.total_weight, rhs: rhs.to_vec() });
+        let weighted_rhs_list = self
+            .weights
+            .entry(lhs)
+            .or_insert(WeightedRhsList::default());
+        weighted_rhs_list.rhs_list.push(WeightedRhs {
+            weight: weighted_rhs_list.total_weight,
+            rhs: rhs.to_vec(),
+        });
         weighted_rhs_list.total_weight += weight;
     }
 }
@@ -57,13 +63,20 @@ impl<W: Weight> WeightedBinarizedGrammar<W> {
 
 impl<W: Weight> WeightedRhsByLhs<W> {
     #[cfg(feature = "rand")]
-    pub fn pick_rhs<R>(&self, lhs: Symbol, rng: &mut R) -> &[Symbol] where R: rand::Rng {
+    pub fn pick_rhs<R>(&self, lhs: Symbol, rng: &mut R) -> &[Symbol]
+    where
+        R: rand::Rng,
+    {
         if let Some(weighted_rhs_list) = self.weights.get(&lhs) {
-            let value = rng.gen_range(0.0 .. weighted_rhs_list.total_weight.into());
-            match weighted_rhs_list.rhs_list.binary_search_by(|weighted_rhs| weighted_rhs.weight.into().partial_cmp(&value).expect("invalid float")) {
-                Ok(idx) | Err(idx) => {
-                    &weighted_rhs_list.rhs_list[idx - 1].rhs[..]
-                }
+            let value = rng.gen_range(0.0..weighted_rhs_list.total_weight.into());
+            match weighted_rhs_list.rhs_list.binary_search_by(|weighted_rhs| {
+                weighted_rhs
+                    .weight
+                    .into()
+                    .partial_cmp(&value)
+                    .expect("invalid float")
+            }) {
+                Ok(idx) | Err(idx) => &weighted_rhs_list.rhs_list[idx - 1].rhs[..],
             }
         } else {
             &[]

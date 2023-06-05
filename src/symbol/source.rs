@@ -1,7 +1,7 @@
 //! Source
 
-use symbol::Symbol;
 use symbol::repr::{SymbolRepr, FIRST_ID};
+use symbol::Symbol;
 
 /// A source of numeric symbols.
 #[allow(missing_copy_implementations)]
@@ -17,7 +17,8 @@ impl SymbolSource {
     }
     /// Returns generated symbols.
     pub fn sym<T>(&mut self) -> T
-        where T: SymbolContainer
+    where
+        T: SymbolContainer,
     {
         T::generate(self)
     }
@@ -59,51 +60,42 @@ macro_rules! impl_generate {
 }
 
 impl_generate!(
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
-    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
+    Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
     Symbol, next_sym, Symbol, next_sym, Symbol, next_sym, Symbol, next_sym,
 );
 

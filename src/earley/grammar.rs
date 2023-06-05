@@ -1,15 +1,15 @@
 use std::ops::{Deref, DerefMut};
 
-use Cfg;
-use Symbol;
-use ContextFree;
-use ContextFreeRef;
 use rule::builder::RuleBuilder;
 use sequence::builder::SequenceRuleBuilder;
 use sequence::Sequence;
+use Cfg;
+use ContextFree;
+use ContextFreeRef;
+use Symbol;
 
+use super::history::{BuildHistory, History};
 use super::BinarizedGrammar;
-use super::history::{History, BuildHistory};
 
 /// Drop-in replacement for `cfg::Cfg` that traces relations between user-provided
 /// and internal grammars.
@@ -37,14 +37,19 @@ impl Grammar {
 
     pub fn rule(&mut self, lhs: Symbol) -> RuleBuilder<&mut Cfg<History, History>, BuildHistory> {
         let rule_count = self.inherit.rules().count() + self.sequence_rules().len();
-        self.inherit.rule(lhs).default_history(BuildHistory::new(rule_count))
+        self.inherit
+            .rule(lhs)
+            .default_history(BuildHistory::new(rule_count))
     }
 
-    pub fn sequence(&mut self, lhs: Symbol)
-        -> SequenceRuleBuilder<History, &mut Vec<Sequence<History>>, BuildHistory>
-    {
+    pub fn sequence(
+        &mut self,
+        lhs: Symbol,
+    ) -> SequenceRuleBuilder<History, &mut Vec<Sequence<History>>, BuildHistory> {
         let rule_count = self.inherit.rules().count() + self.sequence_rules().len();
-        self.inherit.sequence(lhs).default_history(BuildHistory::new(rule_count))
+        self.inherit
+            .sequence(lhs)
+            .default_history(BuildHistory::new(rule_count))
     }
 
     pub fn binarize(&self) -> BinarizedGrammar {

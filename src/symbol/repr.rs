@@ -3,7 +3,9 @@ pub type SymbolRepr = u32;
 pub const FIRST_ID: SymbolRepr = 0;
 
 /// A common grammar symbol type.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Serialize, Deserialize, Clone, Copy, Debug, Default, Hash, Eq, Ord, PartialEq, PartialOrd,
+)]
 pub struct Symbol(SymbolRepr);
 
 impl From<SymbolRepr> for Symbol {
@@ -22,5 +24,5 @@ impl Into<SymbolRepr> for Symbol {
 
 #[test]
 fn test_symbol_size() {
-  assert_eq!(::std::mem::size_of::<Symbol>() * 8, 32);
+    assert_eq!(::std::mem::size_of::<Symbol>() * 8, 32);
 }

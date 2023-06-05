@@ -3,9 +3,9 @@
 #[cfg(feature = "nightly")]
 use collections::range::RangeArgument;
 
-use history::{RewriteSequence, NullHistorySource, HistorySource};
-use sequence::{Separator, Sequence};
+use history::{HistorySource, NullHistorySource, RewriteSequence};
 use sequence::destination::SequenceDestination;
+use sequence::{Separator, Sequence};
 use symbol::Symbol;
 
 /// Sequence rule builder.
@@ -19,8 +19,9 @@ pub struct SequenceRuleBuilder<H, D, Hs = NullHistorySource> {
 }
 
 impl<H, D> SequenceRuleBuilder<H, D>
-    where D: SequenceDestination<H>,
-          H: RewriteSequence
+where
+    D: SequenceDestination<H>,
+    H: RewriteSequence,
 {
     /// Creates a sequence rule builder.
     pub fn new(destination: D) -> Self {
@@ -36,8 +37,9 @@ impl<H, D> SequenceRuleBuilder<H, D>
 }
 
 impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
-    where D: SequenceDestination<H>,
-          H: RewriteSequence
+where
+    D: SequenceDestination<H>,
+    H: RewriteSequence,
 {
     /// Sets the default history source.
     pub fn default_history<Hs2>(self, state: Hs2) -> SequenceRuleBuilder<H, D, Hs2> {
@@ -84,7 +86,8 @@ impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
 
     /// Adds a sequence rule to the grammar.
     pub fn rhs(mut self, rhs: Symbol) -> Self
-        where Hs: HistorySource<H>
+    where
+        Hs: HistorySource<H>,
     {
         let history = self.history.take().unwrap_or_else(|| {
             if let Some(sep) = self.separator.into() {
@@ -99,13 +102,16 @@ impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
     /// Adds a sequence rule to the grammar.
     #[cfg(feature = "nightly")]
     pub fn rhs_with_range<T>(mut self, rhs: S, range: T) -> Self
-        where T: RangeArgument<u32>,
-              H: Default
+    where
+        T: RangeArgument<u32>,
+        H: Default,
     {
         let history = self.history.take();
-        self.inclusive(range.start().cloned().unwrap_or(0),
-                       range.end().cloned().map(|end| end - 1))
-            .rhs(rhs)
+        self.inclusive(
+            range.start().cloned().unwrap_or(0),
+            range.end().cloned().map(|end| end - 1),
+        )
+        .rhs(rhs)
     }
 
     /// Adds a sequence rule to the grammar.

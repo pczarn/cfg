@@ -1,14 +1,15 @@
 //! Generate random strings from a grammar.
 
-use rand::{thread_rng, Rng};
-use crate::{Symbol, symbol::SymbolBitSet};
 use super::*;
+use crate::{symbol::SymbolBitSet, Symbol};
+use rand::{thread_rng, Rng};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct LimitExceeded;
 
 pub trait Random {
-    fn random<R: Rng>(&self, limit: Option<u64>, rng: &mut R) -> Result<Vec<Symbol>, LimitExceeded>;
+    fn random<R: Rng>(&self, limit: Option<u64>, rng: &mut R)
+        -> Result<Vec<Symbol>, LimitExceeded>;
 
     fn with_thread_rng(&self, limit: Option<u64>) -> Result<Vec<Symbol>, LimitExceeded> {
         let mut thread_rng = thread_rng();
@@ -17,7 +18,11 @@ pub trait Random {
 }
 
 impl<W: Weight> Random for WeightedBinarizedGrammar<W> {
-    fn random<R: Rng>(&self, limit: Option<u64>, rng: &mut R) -> Result<Vec<Symbol>, LimitExceeded> {
+    fn random<R: Rng>(
+        &self,
+        limit: Option<u64>,
+        rng: &mut R,
+    ) -> Result<Vec<Symbol>, LimitExceeded> {
         let weighted = self.weighted();
         let mut work = vec![self.start()];
         let mut result = vec![];
@@ -41,8 +46,8 @@ impl<W: Weight> Random for WeightedBinarizedGrammar<W> {
 
 #[test]
 fn test_simplest_random_generation() {
-    use crate::ContextFreeRef;
     use super::WeightedGrammar;
+    use crate::ContextFreeRef;
 
     let mut grammar = WeightedGrammar::<u32>::new();
     let (lhs, rhs) = grammar.sym();

@@ -17,10 +17,13 @@ impl FollowSets {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
     pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &PerSymbolSets) -> Self
-        where G: ContextFree,
-              &'a G: ContextFreeRef<'a, Target = G>
+    where
+        G: ContextFree,
+        &'a G: ContextFreeRef<'a, Target = G>,
     {
-        let mut this = FollowSets { map: BTreeMap::new() };
+        let mut this = FollowSets {
+            map: BTreeMap::new(),
+        };
 
         for rule in grammar.rules() {
             let follow_set = this.map.entry(rule.lhs()).or_insert_with(BTreeSet::new);
