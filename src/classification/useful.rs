@@ -4,9 +4,9 @@ use bit_matrix::BitMatrix;
 use bit_vec::BitVec;
 
 use analysis::{self, RhsClosure};
-use grammar::{ContextFree, ContextFreeRef, ContextFreeMut};
-use rule::GrammarRule;
+use grammar::{ContextFree, ContextFreeMut, ContextFreeRef};
 use rule::container::RuleContainer;
+use rule::GrammarRule;
 use symbol::{Symbol, SymbolBitSet};
 
 /// Contains the information about usefulness of the grammar's rules.
@@ -22,7 +22,8 @@ pub struct Usefulness<G> {
 
 /// An iterator over the grammar's useless rules.
 pub struct UselessRules<'a, G, R>
-    where G: 'a
+where
+    G: 'a,
 {
     rules: R,
     usefulness: &'a Usefulness<&'a mut G>,
@@ -41,8 +42,9 @@ pub struct UselessRule<R> {
 
 /// Returns the set of used symbols.
 fn used_syms<'a, G>(grammar: &'a G) -> BitVec
-    where G: ContextFree,
-          &'a G: ContextFreeRef<'a, Target = G>
+where
+    G: ContextFree,
+    &'a G: ContextFreeRef<'a, Target = G>,
 {
     let num_syms = grammar.sym_source().num_syms();
     let mut used_syms = BitVec::from_elem(num_syms, false);
@@ -58,8 +60,9 @@ fn used_syms<'a, G>(grammar: &'a G) -> BitVec
 
 /// Returns the set of productive symbols.
 fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
-    where G: ContextFree,
-          &'a G: ContextFreeRef<'a, Target = G>
+where
+    G: ContextFree,
+    &'a G: ContextFreeRef<'a, Target = G>,
 {
     let mut productive_syms = SymbolBitSet::terminal_or_nulling_set(&grammar).into_bit_vec();
     RhsClosure::new(grammar).rhs_closure(&mut productive_syms);
@@ -67,9 +70,10 @@ fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
 }
 
 impl<'a, G> Usefulness<&'a mut G>
-    where G: ContextFree,
-          for<'b> &'b G: ContextFreeRef<'b, Target = G>,
-          for<'b> &'b mut G: ContextFreeMut<'b, Target = G>
+where
+    G: ContextFree,
+    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+    for<'b> &'b mut G: ContextFreeMut<'b, Target = G>,
 {
     /// Analyzes usefulness of the grammar's rules. In particular, it checks for reachable
     /// and productive symbols.
@@ -80,17 +84,21 @@ impl<'a, G> Usefulness<&'a mut G>
         let mut reachable_syms = BitVec::from_elem(grammar.sym_source().num_syms(), false);
 
         unsafe {
-            for ((productive, reachable), &used) in productivity.storage_mut()
-                                                                .iter_mut()
-                                                                .zip(reachable_syms.storage_mut()
-                                                                                   .iter_mut())
-                                                                .zip(used_syms.storage().iter()) {
+            for ((productive, reachable), &used) in productivity
+                .storage_mut()
+                .iter_mut()
+                .zip(reachable_syms.storage_mut().iter_mut())
+                .zip(used_syms.storage().iter())
+            {
                 *productive |= !used;
                 *reachable |= !used;
             }
         }
 
-        let all_productive = productivity.storage().iter().all(|&productive| productive == !0);
+        let all_productive = productivity
+            .storage()
+            .iter()
+            .all(|&productive| productive == !0);
 
         Usefulness {
             grammar: grammar,
@@ -110,18 +118,28 @@ impl<'a, G> Usefulness<&'a mut G>
 
     /// Sets symbol reachability. Takes an array of reachable symbols.
     pub fn reachable<Sr>(mut self, syms: Sr) -> Self
-        where Sr: AsRef<[Symbol]>
+    where
+        Sr: AsRef<[Symbol]>,
     {
         for &sym in syms.as_ref().iter() {
             let reachability = self.reachability[sym.usize()].iter();
             unsafe {
-                for (dst, &src) in self.reachable_syms.storage_mut().iter_mut().zip(reachability) {
+                for (dst, &src) in self
+                    .reachable_syms
+                    .storage_mut()
+                    .iter_mut()
+                    .zip(reachability)
+                {
                     *dst |= src;
                 }
             }
         }
-        self.all_useful = self.all_productive &
-                          self.reachable_syms.storage().iter().all(|&reachable| reachable == !0);
+        self.all_useful = self.all_productive
+            & self
+                .reachable_syms
+                .storage()
+                .iter()
+                .all(|&reachable| reachable == !0);
         self
     }
 
@@ -138,9 +156,10 @@ impl<'a, G> Usefulness<&'a mut G>
 
 // Watch out: Normal type bounds conflict with HRTB.
 impl<'a, G> Usefulness<&'a mut G>
-    where G: ContextFree,
-          &'a G: ContextFreeRef<'a, Target = G>,
-          &'a mut G: ContextFreeMut<'a, Target = G>
+where
+    G: ContextFree,
+    &'a G: ContextFreeRef<'a, Target = G>,
+    &'a mut G: ContextFreeMut<'a, Target = G>,
 {
     /// Returns an iterator over the grammar's useless rules.
     pub fn useless_rules(&'a self) -> UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
@@ -164,9 +183,11 @@ impl<'a, G> Usefulness<&'a mut G>
     }
 }
 
-impl<'a, G> Iterator for UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> where
-            G: ContextFree + 'a,
-            &'a G: ContextFreeRef<'a, Target=G> {
+impl<'a, G> Iterator for UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules>
+where
+    G: ContextFree + 'a,
+    &'a G: ContextFreeRef<'a, Target = G>,
+{
     type Item = UselessRule<<<&'a G as ContextFreeRef<'a>>::Rules as Iterator>::Item>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -177,7 +198,10 @@ impl<'a, G> Iterator for UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rule
         for rule in &mut self.rules {
             let lhs = rule.lhs().usize();
             let usefulness = &self.usefulness;
-            let productive = rule.rhs().iter().all(|sym| usefulness.productivity[sym.usize()]);
+            let productive = rule
+                .rhs()
+                .iter()
+                .all(|sym| usefulness.productivity[sym.usize()]);
             let reachable = usefulness.reachable_syms[lhs];
 
             if !reachable || !productive {

@@ -20,9 +20,10 @@ impl LastSets {
     ///
     /// We compute the transitive closure of this relation.
     pub fn new<'a, G>(grammar: &'a G) -> Self
-        where G: ContextFree + EmptyRuleContainer,
-              for<'b> &'b G: ContextFreeRef<'b, Target = G>,
-              G::History: Clone,
+    where
+        G: ContextFree + EmptyRuleContainer,
+        for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+        G::History: Clone,
     {
         let reversed_grammar = grammar.reverse();
         let map = {

@@ -2,22 +2,23 @@
 
 // #[cfg(feature = "nightly")]
 // use collections::range::RangeArgument;
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 
-use history::{RewriteSequence, HistorySource, NullHistory};
+use history::{HistorySource, NullHistory, RewriteSequence};
 use rule::builder::RuleBuilder;
 use rule::container::RuleContainer;
-use sequence::{Separator, Sequence};
-use sequence::Separator::{Trailing, Proper, Liberal};
 use sequence::builder::SequenceRuleBuilder;
 use sequence::destination::SequenceDestination;
+use sequence::Separator::{Liberal, Proper, Trailing};
+use sequence::{Separator, Sequence};
 use symbol::Symbol;
 
 /// Rewrites sequence rules into production rules.
 pub struct SequencesToProductions<H, D>
-    where H: RewriteSequence,
-          D: RuleContainer
+where
+    H: RewriteSequence,
+    D: RuleContainer,
 {
     destination: D,
     stack: Vec<Sequence<NullHistory>>,
@@ -38,9 +39,10 @@ struct PartialSequence {
 }
 
 impl<H, D> SequenceDestination<H> for SequencesToProductions<H, D>
-    where D: RuleContainer<History = H::Rewritten>,
-          H: Clone + RewriteSequence,
-          H::Rewritten: Clone
+where
+    D: RuleContainer<History = H::Rewritten>,
+    H: Clone + RewriteSequence,
+    H::Rewritten: Clone,
 {
     fn add_sequence(&mut self, seq: Sequence<H>) {
         self.rewrite(seq);
@@ -48,9 +50,10 @@ impl<H, D> SequenceDestination<H> for SequencesToProductions<H, D>
 }
 
 impl<H, D> SequencesToProductions<H, D>
-    where D: RuleContainer<History = H::Rewritten>,
-          H: Clone + RewriteSequence,
-          H::Rewritten: Clone
+where
+    D: RuleContainer<History = H::Rewritten>,
+    H: Clone + RewriteSequence,
+    H::Rewritten: Clone,
 {
     /// Initializes a rewrite.
     pub fn new(destination: D) -> Self {
@@ -69,10 +72,11 @@ impl<H, D> SequencesToProductions<H, D>
     pub fn rewrite_sequences(sequence_rules: &[Sequence<H>], rules: D) {
         let mut rewrite = SequenceRuleBuilder::new(SequencesToProductions::new(rules));
         for rule in sequence_rules {
-            rewrite = rewrite.sequence(rule.lhs)
-                             .separator(rule.separator)
-                             .inclusive(rule.start, rule.end)
-                             .rhs_with_history(rule.rhs, &rule.history);
+            rewrite = rewrite
+                .sequence(rule.lhs)
+                .separator(rule.separator)
+                .inclusive(rule.start, rule.end)
+                .rhs_with_history(rule.rhs, &rule.history);
         }
     }
 
@@ -107,7 +111,9 @@ impl<H, D> SequencesToProductions<H, D>
             elem: self.rhs.unwrap(),
             separator: self.separator,
         };
-        RuleBuilder::new(&mut self.destination).rule(lhs).default_history(default)
+        RuleBuilder::new(&mut self.destination)
+            .rule(lhs)
+            .default_history(default)
     }
 
     fn recurse(&mut self, seq: &Sequence<NullHistory>) -> Symbol {
@@ -139,16 +145,21 @@ impl<H, D> SequencesToProductions<H, D>
     }
 
     fn reduce(&mut self, sequence: Sequence<NullHistory>) {
-        let Sequence { lhs, rhs, start, end, separator, .. } = sequence;
+        let Sequence {
+            lhs,
+            rhs,
+            start,
+            end,
+            separator,
+            ..
+        } = sequence;
         // TODO optimize reductions
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
                 let sym1 = self.recurse(&sequence.clone().separator(Proper(sep)));
                 let sym2 = self.recurse(&sequence.clone().separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs)
-                    .rhs([sym1])
-                    .rhs([sym2]);
+                self.rule(lhs).rhs([sym1]).rhs([sym2]);
             }
             (_, _, _) if start == 0 => {
                 // seq ::= epsilon | sym
@@ -186,22 +197,21 @@ impl<H, D> SequencesToProductions<H, D>
                 let sym1 = self.recurse(&sequence.clone().inclusive(1, Some(1)));
                 let sym2 = self.recurse(&sequence.clone().inclusive(2, Some(2)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs)
-                    .rhs([sym1])
-                    .rhs([sym2]);
+                self.rule(lhs).rhs([sym1]).rhs([sym2]);
             }
             (_, _, Some(end)) if start == 1 => {
                 // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
-                let (seq1, block, seq2) = (sequence.clone().inclusive(1, Some(pow2)),
-                                           sequence.clone().inclusive(pow2, Some(pow2)),
-                                           sequence.clone().inclusive(1, Some(end - pow2)));
+                let (seq1, block, seq2) = (
+                    sequence.clone().inclusive(1, Some(pow2)),
+                    sequence.clone().inclusive(pow2, Some(pow2)),
+                    sequence.clone().inclusive(1, Some(end - pow2)),
+                );
                 let rhs1 = self.recurse(&seq1);
                 let block = self.recurse(&block.separator(separator.prefix_separator()));
                 let rhs2 = self.recurse(&seq2);
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs([rhs1])
-                              .rhs([block, rhs2]);
+                self.rule(lhs).rhs([rhs1]).rhs([block, rhs2]);
             }
             // Bug in rustc. Must use comparison.
             (Proper(sep), start, end) if start == 2 && end == Some(2) => {
@@ -215,15 +225,23 @@ impl<H, D> SequencesToProductions<H, D>
                 let (seq1, seq2) = if Some(start) == end {
                     // A "block"
                     let pow2 = start.next_power_of_two() / 2;
-                    (sequence.clone().inclusive(pow2, Some(pow2)),
-                     sequence.clone().inclusive(start - pow2, Some(start - pow2)))
+                    (
+                        sequence.clone().inclusive(pow2, Some(pow2)),
+                        sequence.clone().inclusive(start - pow2, Some(start - pow2)),
+                    )
                 } else {
                     // A "span"
-                    (sequence.clone().inclusive(start - 1, Some(start - 1)),
-                     sequence.clone().inclusive(1, end.map(|end| end - start + 1)))
+                    (
+                        sequence.clone().inclusive(start - 1, Some(start - 1)),
+                        sequence
+                            .clone()
+                            .inclusive(1, end.map(|end| end - start + 1)),
+                    )
                 };
-                let (rhs1, rhs2) = (self.recurse(&seq1.separator(separator.prefix_separator())),
-                                    self.recurse(&seq2.separator(separator)));
+                let (rhs1, rhs2) = (
+                    self.recurse(&seq1.separator(separator.prefix_separator())),
+                    self.recurse(&seq2.separator(separator)),
+                );
                 // seq ::= sym1 sym2
                 self.rule(lhs).rhs([rhs1, rhs2]);
             }
@@ -233,7 +251,8 @@ impl<H, D> SequencesToProductions<H, D>
 }
 
 struct DefaultSeqHistory<'a, H: 'a>
-    where H: RewriteSequence
+where
+    H: RewriteSequence,
 {
     top_history: &'a H,
     at_top: bool,
@@ -242,8 +261,9 @@ struct DefaultSeqHistory<'a, H: 'a>
 }
 
 impl<'a, H> HistorySource<H::Rewritten> for DefaultSeqHistory<'a, H>
-    where H: RewriteSequence,
-          H::Rewritten: Clone
+where
+    H: RewriteSequence,
+    H::Rewritten: Clone,
 {
     fn build(&mut self, _lhs: Symbol, rhs: &[Symbol]) -> H::Rewritten {
         if self.at_top {

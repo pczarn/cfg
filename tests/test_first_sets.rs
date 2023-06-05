@@ -1,7 +1,7 @@
 extern crate cfg;
 
-use cfg::{Cfg, ContextFree};
 use cfg::prediction::FirstSetsCollector;
+use cfg::{Cfg, ContextFree};
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -10,10 +10,17 @@ fn test_simple_first_sets() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, x, b, c, y) = cfg.sym();
 
-    cfg.rule(start).rhs([a, x, b]).rhs([c])
-       .rule(b).rhs([a, a]).rhs([a, c])
-       .rule(c).rhs([x]).rhs([y])
-       .rule(a).rhs([]);
+    cfg.rule(start)
+        .rhs([a, x, b])
+        .rhs([c])
+        .rule(b)
+        .rhs([a, a])
+        .rhs([a, c])
+        .rule(c)
+        .rhs([x])
+        .rhs([y])
+        .rule(a)
+        .rhs([]);
     let collector = FirstSetsCollector::new(&cfg);
     let sets = collector.first_sets();
 
@@ -44,10 +51,16 @@ fn test_simple_first_sets_altered() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, x, b, c, y) = cfg.sym();
 
-    cfg.rule(start).rhs([a, x, b])
-       .rule(b).rhs([a, a]).rhs([a, c])
-       .rule(c).rhs([x]).rhs([y])
-       .rule(a).rhs([]);
+    cfg.rule(start)
+        .rhs([a, x, b])
+        .rule(b)
+        .rhs([a, a])
+        .rhs([a, c])
+        .rule(c)
+        .rhs([x])
+        .rhs([y])
+        .rule(a)
+        .rhs([]);
     let collector = FirstSetsCollector::new(&cfg);
     let sets = collector.first_sets();
 

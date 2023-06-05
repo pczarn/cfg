@@ -1,8 +1,8 @@
 extern crate cfg;
 
-use cfg::*;
 use cfg::history::{Action, RewriteSequence};
 use cfg::prediction::MinimalDistance;
+use cfg::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct History {
@@ -38,21 +38,21 @@ fn test_minimum_distance() {
     //   0      1  2  3  4  5
     let (start, a, b, c, x, y) = cfg.sym();
     const POS_3: &'static [u32] = &[3];
-    cfg .rule(a)
-            .rhs_with_history([], History::new(&[]))
+    cfg.rule(a)
+        .rhs_with_history([], History::new(&[]))
         .rule(start)
-            .rhs_with_history([a, x, b, c, y], History::new(POS_3))
-            .rhs_with_history([c], History::new(&[]))
+        .rhs_with_history([a, x, b, c, y], History::new(POS_3))
+        .rhs_with_history([c], History::new(&[]))
         .rule(b)
-            .rhs_with_history([a, a], History::new(&[]))
-            .rhs_with_history([a, c], History::new(&[]))
+        .rhs_with_history([a, a], History::new(&[]))
+        .rhs_with_history([a, c], History::new(&[]))
         .rule(c)
-            .rhs_with_history([x], History::new(&[]))
-            .rhs_with_history([y], History::new(&[]));
+        .rhs_with_history([x], History::new(&[]))
+        .rhs_with_history([y], History::new(&[]));
 
-    let iter = cfg.rules().map(|rule| {
-        (rule, rule.history.events.iter().map(|&pos| pos as usize))
-    });
+    let iter = cfg
+        .rules()
+        .map(|rule| (rule, rule.history.events.iter().map(|&pos| pos as usize)));
     let mut minimal_distance = MinimalDistance::new(&cfg);
     let distances = minimal_distance.minimal_distances(iter);
     // min(x) = min(y) = 1

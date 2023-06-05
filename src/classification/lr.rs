@@ -58,8 +58,9 @@ impl Lr0Items {
 }
 
 impl<'a, G> Lr0ClosureBuilder<'a, G>
-    where G: ContextFree,
-          for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+where
+    G: ContextFree,
+    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
 {
     /// Creates a builder for an LR(0) item closure.
     pub fn new(grammar: &'a mut G) -> Self {
@@ -83,7 +84,11 @@ impl<'a, G> Lr0ClosureBuilder<'a, G>
                             rhs: rule.rhs().to_vec(),
                             dot: 0,
                         };
-                        if items.map.insert(rule_idx as RuleId, new_item.clone()).is_none() {
+                        if items
+                            .map
+                            .insert(rule_idx as RuleId, new_item.clone())
+                            .is_none()
+                        {
                             self.queue.push_back(new_item);
                         }
                     }
@@ -103,7 +108,7 @@ impl<'a, G> Lr0ClosureBuilder<'a, G>
                         Lr0Item {
                             rhs: item.rhs.clone(),
                             dot: item.dot + 1,
-                        }
+                        },
                     );
                 }
             }
@@ -115,11 +120,11 @@ impl<'a, G> Lr0ClosureBuilder<'a, G>
             Some(new_items)
         }
     }
-    
+
     fn postdot(&self, item: &Lr0Item) -> Option<Symbol> {
         item.rhs.get(item.dot as usize).cloned()
     }
-    
+
     fn nonterminal_postdot(&self, item: &Lr0Item) -> Option<Symbol> {
         match item.rhs.get(item.dot as usize) {
             Some(&postdot) => {
@@ -129,15 +134,16 @@ impl<'a, G> Lr0ClosureBuilder<'a, G>
                     None
                 }
             }
-            _ => None
+            _ => None,
         }
     }
 }
 
 impl<'a, G> Lr0FsmBuilder<'a, G>
-    where G: ContextFree,
-          for<'b> &'b G: ContextFreeRef<'b, Target = G>,
-          G::History: Default,
+where
+    G: ContextFree,
+    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+    G::History: Default,
 {
     /// Creates a new LR(0) Finite State Machine builder.
     pub fn new(grammar: &'a mut G) -> Self {
@@ -165,10 +171,7 @@ impl<'a, G> Lr0FsmBuilder<'a, G>
                     link.insert(terminal, id);
                 }
             }
-            result.push(Lr0Node {
-                items,
-                link,
-            })
+            result.push(Lr0Node { items, link })
         }
         result
     }
@@ -188,7 +191,10 @@ impl<'a, G> Lr0FsmBuilder<'a, G>
     fn augment_grammar(&mut self, start_sym: Symbol) -> (Symbol, RuleId) {
         let new_start = self.closure.grammar.sym();
         let rule_id = self.closure.grammar.rules().count() as RuleId;
-        self.closure.grammar.rule(new_start).rhs_with_history(&[start_sym], Default::default());
+        self.closure
+            .grammar
+            .rule(new_start)
+            .rhs_with_history(&[start_sym], Default::default());
         (new_start, rule_id)
     }
 

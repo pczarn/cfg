@@ -1,12 +1,14 @@
 use std::ops::{Deref, DerefMut};
 
+use super::history::{
+    BuildWeightedHistory, BuildWeightedSequenceHistory, WeightedHistory, WeightedSequenceHistory,
+};
 use super::*;
-use super::history::{WeightedHistory, WeightedSequenceHistory, BuildWeightedHistory, BuildWeightedSequenceHistory};
-use crate::{Cfg, ContextFreeRef, ContextFree};
 use crate::rule::builder::RuleBuilder;
-use crate::sequence::Sequence;
 use crate::sequence::builder::SequenceRuleBuilder;
+use crate::sequence::Sequence;
 use crate::Symbol;
+use crate::{Cfg, ContextFree, ContextFreeRef};
 
 /// Drop-in replacement for `cfg::Cfg` that traces relations between user-provided
 /// and internal grammars.
@@ -32,16 +34,29 @@ impl<W: Weight> WeightedGrammar<W> {
         self.start.unwrap()
     }
 
-    pub fn rule(&mut self, lhs: Symbol) -> RuleBuilder<&mut Cfg<WeightedHistory<W>, WeightedSequenceHistory<W>>, BuildWeightedHistory> {
-        let rule_count = self.inherit.rules().count() + self.sequence_rules().len();
-        self.inherit.rule(lhs).default_history(BuildWeightedHistory::new(rule_count))
-    }
-
-    pub fn sequence(&mut self, lhs: Symbol)
-        -> SequenceRuleBuilder<WeightedSequenceHistory<W>, &mut Vec<Sequence<WeightedSequenceHistory<W>>>, BuildWeightedSequenceHistory>
+    pub fn rule(
+        &mut self,
+        lhs: Symbol,
+    ) -> RuleBuilder<&mut Cfg<WeightedHistory<W>, WeightedSequenceHistory<W>>, BuildWeightedHistory>
     {
         let rule_count = self.inherit.rules().count() + self.sequence_rules().len();
-        self.inherit.sequence(lhs).default_history(BuildWeightedSequenceHistory::new(rule_count))
+        self.inherit
+            .rule(lhs)
+            .default_history(BuildWeightedHistory::new(rule_count))
+    }
+
+    pub fn sequence(
+        &mut self,
+        lhs: Symbol,
+    ) -> SequenceRuleBuilder<
+        WeightedSequenceHistory<W>,
+        &mut Vec<Sequence<WeightedSequenceHistory<W>>>,
+        BuildWeightedSequenceHistory,
+    > {
+        let rule_count = self.inherit.rules().count() + self.sequence_rules().len();
+        self.inherit
+            .sequence(lhs)
+            .default_history(BuildWeightedSequenceHistory::new(rule_count))
     }
 
     pub fn binarize(&self) -> WeightedBinarizedGrammar<W> {

@@ -1,12 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
+use binarized::BinarizedRules;
+use rule::container::RuleContainer;
+use rule::RuleRef;
+use symbol::SymbolSource;
+use BinarizedCfg;
 use ContextFree;
 use ContextFreeRef;
-use BinarizedCfg;
-use binarized::BinarizedRules;
-use rule::RuleRef;
-use rule::container::RuleContainer;
-use symbol::SymbolSource;
 use Symbol;
 
 use super::*;
@@ -35,13 +35,14 @@ impl<W: Weight> WeightedBinarizedGrammar<W> {
 
 impl<W> Default for WeightedBinarizedGrammar<W> {
     fn default() -> Self {
-        WeightedBinarizedGrammar { inherit: BinarizedCfg::new(), start: None }
+        WeightedBinarizedGrammar {
+            inherit: BinarizedCfg::new(),
+            start: None,
+        }
     }
 }
 
-impl<W: Weight> ContextFree for WeightedBinarizedGrammar<W>
-{
-}
+impl<W: Weight> ContextFree for WeightedBinarizedGrammar<W> {}
 
 impl<'a, W: Weight> ContextFreeRef<'a> for &'a WeightedBinarizedGrammar<W> {
     type RuleRef = RuleRef<'a, WeightedHistory<W>>;
@@ -64,7 +65,8 @@ impl<W: Weight> RuleContainer for WeightedBinarizedGrammar<W> {
     }
 
     fn retain<F>(&mut self, f: F)
-        where F: FnMut(Symbol, &[Symbol], &WeightedHistory<W>) -> bool
+    where
+        F: FnMut(Symbol, &[Symbol], &WeightedHistory<W>) -> bool,
     {
         self.inherit.retain(f)
     }

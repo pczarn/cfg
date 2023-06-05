@@ -8,10 +8,10 @@ pub mod source;
 
 use std::convert::{From, Into};
 
-pub use self::set::SymbolBitSet;
-pub use self::source::SymbolSource;
 pub use self::repr::Symbol;
 use self::repr::SymbolRepr;
+pub use self::set::SymbolBitSet;
+pub use self::source::SymbolSource;
 
 impl Symbol {
     /// Cast the symbol's ID to `usize`.

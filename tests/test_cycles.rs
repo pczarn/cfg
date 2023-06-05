@@ -2,19 +2,24 @@ extern crate cfg;
 
 mod support;
 
-use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule};
 use cfg::classification::cyclical::Cycles;
+use cfg::{Cfg, ContextFree, ContextFreeRef, GrammarRule};
 
 #[test]
 fn test_remove_cycles() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, b, c, d) = cfg.sym();
 
-    cfg.rule(start).rhs([a])
-       .rule(a).rhs([b])
-       .rule(b).rhs([c])
-       .rule(c).rhs([d])
-       .rule(d).rhs([a]);
+    cfg.rule(start)
+        .rhs([a])
+        .rule(a)
+        .rhs([b])
+        .rule(b)
+        .rhs([c])
+        .rule(c)
+        .rhs([d])
+        .rule(d)
+        .rhs([a]);
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, a) = equivalent.sym();
@@ -36,9 +41,12 @@ fn test_rewrite_cycles() {
     let mut cfg: Cfg = Cfg::new();
     let (start, first, second) = cfg.sym();
 
-    cfg.rule(start).rhs([second])
-       .rule(first).rhs([second])
-       .rule(second).rhs([first]);
+    cfg.rule(start)
+        .rhs([second])
+        .rule(first)
+        .rhs([second])
+        .rule(second)
+        .rhs([first]);
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, first) = equivalent.sym();
@@ -56,18 +64,22 @@ fn test_cycle_branch() {
     let mut cfg: Cfg = Cfg::new();
     let (start, a, b, c, d) = cfg.sym();
 
-    cfg.rule(start).rhs([a])
-       .rule(a).rhs([b])
-       .rule(b).rhs([c])
-       .rule(c).rhs([a])
-       .rule(c).rhs([d]);
+    cfg.rule(start)
+        .rhs([a])
+        .rule(a)
+        .rhs([b])
+        .rule(b)
+        .rhs([c])
+        .rule(c)
+        .rhs([a])
+        .rule(c)
+        .rhs([d]);
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, a, _, _, d) = equivalent.sym();
 
     // Order is significant.
-    equivalent.rule(start).rhs([a])
-              .rule(a).rhs([d]);
+    equivalent.rule(start).rhs([a]).rule(a).rhs([d]);
     {
         let mut cycles = Cycles::new(&mut cfg);
         let lhss: Vec<_> = cycles.cycle_participants().map(|rule| rule.lhs()).collect();

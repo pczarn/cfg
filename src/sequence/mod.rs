@@ -41,7 +41,6 @@ pub enum Separator {
     Null,
 }
 
-
 impl<H> Sequence<H> {
     /// Assigns the inclusive range of the number of repetitions.
     pub fn inclusive(mut self, start: u32, end: Option<u32>) -> Self {

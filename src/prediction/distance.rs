@@ -18,12 +18,16 @@ pub struct MinimalDistance<'a, G: 'a> {
 }
 
 impl<'a, G> MinimalDistance<'a, G>
-    where G: ContextFree + 'a,
-          &'a G: ContextFreeRef<'a, Target = G>
+where
+    G: ContextFree + 'a,
+    &'a G: ContextFreeRef<'a, Target = G>,
 {
     /// Returns a new `MinimalDistance` for a grammar.
     pub fn new(grammar: &'a G) -> Self {
-        let distances = grammar.rules().map(|rule| vec![None; rule.rhs().len() + 1]).collect();
+        let distances = grammar
+            .rules()
+            .map(|rule| vec![None; rule.rhs().len() + 1])
+            .collect();
         MinimalDistance {
             grammar: grammar,
             distances: distances,
@@ -41,8 +45,9 @@ impl<'a, G> MinimalDistance<'a, G>
     /// Calculates minimal distance from one parts of the grammar to others.
     /// Returns distances in order respective to the order of rule iteration.
     pub fn minimal_distances<I, J>(&mut self, iter: I) -> &[Vec<Option<u32>>]
-        where I: Iterator<Item=(<&'a G as ContextFreeRef<'a>>::RuleRef, J)>,
-              J: Iterator<Item=usize>
+    where
+        I: Iterator<Item = (<&'a G as ContextFreeRef<'a>>::RuleRef, J)>,
+        J: Iterator<Item = usize>,
     {
         self.minimal_sentence_lengths();
         self.immediate_minimal_distances(iter);
@@ -67,8 +72,9 @@ impl<'a, G> MinimalDistance<'a, G>
     }
 
     fn immediate_minimal_distances<I, J>(&mut self, iter: I)
-        where I: Iterator<Item=(<&'a G as ContextFreeRef<'a>>::RuleRef, J)>,
-              J: Iterator<Item=usize>
+    where
+        I: Iterator<Item = (<&'a G as ContextFreeRef<'a>>::RuleRef, J)>,
+        J: Iterator<Item = usize>,
     {
         // Calculates distances within rules.
         for (idx, (rule, positions)) in iter.enumerate() {

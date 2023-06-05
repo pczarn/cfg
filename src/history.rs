@@ -30,7 +30,9 @@ pub trait Action {
 /// Trait for history types that allow the rule to be binarized.
 pub trait Binarize {
     /// Returns a history. May record the binarization.
-    fn binarize<R>(&self, rule: &R, depth: usize) -> Self where R: GrammarRule;
+    fn binarize<R>(&self, rule: &R, depth: usize) -> Self
+    where
+        R: GrammarRule;
 }
 
 /// Trait for history types that allow the rule to have nulling symbols
@@ -38,13 +40,16 @@ pub trait Binarize {
 pub trait EliminateNulling {
     /// Returns a history. May record the elimination.
     fn eliminate_nulling<R>(&self, rule: &R, which: BinarizedRhsSubset) -> Self
-        where R: GrammarRule;
+    where
+        R: GrammarRule;
 }
 
 /// Trait for history types that allow the rule to have its precedence assigned.
 pub trait AssignPrecedence {
     /// Returns a history. May record the precedence.
-    fn assign_precedence<R>(&self, rule: &R, looseness: u32) -> Self where R: GrammarRule;
+    fn assign_precedence<R>(&self, rule: &R, looseness: u32) -> Self
+    where
+        R: GrammarRule;
 }
 
 /// Trait for history types that allow the sequence rule to be rewritten into grammar rules.
@@ -96,7 +101,8 @@ impl RewriteSequence for NullHistory {
 }
 
 impl<'a, T> RewriteSequence for &'a T
-    where T: RewriteSequence
+where
+    T: RewriteSequence,
 {
     type Rewritten = T::Rewritten;
 
@@ -132,7 +138,8 @@ impl<'a, H> CloneHistory<'a, H> {
 }
 
 impl<'a, H> HistorySource<H> for CloneHistory<'a, H>
-    where H: Clone
+where
+    H: Clone,
 {
     fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
         self.history.clone()
@@ -150,7 +157,8 @@ impl<H> DefaultHistory<H> {
 }
 
 impl<H> HistorySource<H> for DefaultHistory<H>
-    where H: Default
+where
+    H: Default,
 {
     fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
         H::default()

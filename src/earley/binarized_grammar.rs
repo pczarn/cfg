@@ -1,19 +1,19 @@
-use std::ops::{Deref, DerefMut};
 use std::cmp::Ordering;
+use std::ops::{Deref, DerefMut};
 
 use bit_matrix::BitMatrix;
 
+use super::history::History;
+use binarized::BinarizedRules;
+use classification::useful::Usefulness;
+use remap::{Mapping, Remap};
+use rule::container::RuleContainer;
+use rule::GrammarRule;
+use rule::RuleRef;
+use symbol::SymbolSource;
 use BinarizedCfg;
 use ContextFree;
 use ContextFreeRef;
-use binarized::BinarizedRules;
-use classification::useful::Usefulness;
-use rule::RuleRef;
-use rule::GrammarRule;
-use rule::container::RuleContainer;
-use remap::{Remap, Mapping};
-use symbol::SymbolSource;
-use super::history::History;
 use Symbol;
 
 type Dot = u32;
@@ -41,9 +41,7 @@ impl BinarizedGrammar {
     }
 }
 
-impl ContextFree for BinarizedGrammar
-{
-}
+impl ContextFree for BinarizedGrammar {}
 
 impl<'a> ContextFreeRef<'a> for &'a BinarizedGrammar {
     type RuleRef = RuleRef<'a, History>;
@@ -66,7 +64,8 @@ impl RuleContainer for BinarizedGrammar {
     }
 
     fn retain<F>(&mut self, f: F)
-        where F: FnMut(Symbol, &[Symbol], &History) -> bool
+    where
+        F: FnMut(Symbol, &[Symbol], &History) -> bool,
     {
         self.inherit.retain(f)
     }
@@ -201,6 +200,6 @@ impl BinarizedGrammar {
     }
 
     pub fn is_empty(&self) -> bool {
-      self.rules().all(|rule| Some(rule.lhs()) != self.start)
+        self.rules().all(|rule| Some(rule.lhs()) != self.start)
     }
 }

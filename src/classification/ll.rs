@@ -2,12 +2,12 @@
 
 use std::collections::BTreeMap;
 
+use analysis::RhsClosure;
+use prediction::{FirstSetsCollector, FollowSets};
+use rule::GrammarRule;
+use symbol::{Symbol, SymbolBitSet};
 use ContextFree;
 use ContextFreeRef;
-use analysis::RhsClosure;
-use symbol::{Symbol, SymbolBitSet};
-use rule::GrammarRule;
-use prediction::{FirstSetsCollector, FollowSets};
 
 /// LL parse table.
 pub struct LlParseTable<'a, G> {
@@ -37,8 +37,9 @@ pub enum LlNonterminalClass {
 }
 
 impl<'a, G> LlParseTable<'a, G>
-    where G: ContextFree,
-          &'a G: ContextFreeRef<'a, Target = G>,
+where
+    G: ContextFree,
+    &'a G: ContextFreeRef<'a, Target = G>,
 {
     /// Creates an LL parse table.
     pub fn new(grammar: &'a G, start_sym: Symbol) -> Self {
@@ -84,10 +85,14 @@ impl<'a, G> LlParseTable<'a, G>
         };
         for (key, ref rules) in &self.map {
             if rules.len() > 1 {
-                result.classes.insert(key.nonterminal, LlNonterminalClass::ContextFree);
+                result
+                    .classes
+                    .insert(key.nonterminal, LlNonterminalClass::ContextFree);
             } else {
                 if !result.classes.contains_key(&key.nonterminal) {
-                    result.classes.insert(key.nonterminal, LlNonterminalClass::Ll1);
+                    result
+                        .classes
+                        .insert(key.nonterminal, LlNonterminalClass::Ll1);
                 }
             }
         }
@@ -112,5 +117,5 @@ impl LlClassification {
     /// Access classes.
     pub fn classes(&self) -> &BTreeMap<Symbol, LlNonterminalClass> {
         &self.classes
-    } 
+    }
 }

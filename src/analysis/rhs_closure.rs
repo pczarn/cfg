@@ -1,4 +1,4 @@
-use std::cmp::Ordering::{Less, Greater};
+use std::cmp::Ordering::{Greater, Less};
 
 use bit_vec::BitVec;
 
@@ -14,13 +14,15 @@ pub struct RhsClosure<R> {
 }
 
 impl<R> RhsClosure<R>
-    where R: Copy + GrammarRule
+where
+    R: Copy + GrammarRule,
 {
     /// Records information which is needed to calculate the RHS transitive closure.
     pub fn new<'a, G>(grammar: &'a G) -> Self
-        where G: ContextFree<History = R::History>,
-              &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
-              R: 'a
+    where
+        G: ContextFree<History = R::History>,
+        &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
+        R: 'a,
     {
         let mut inverse_derivation = Vec::with_capacity(2 * grammar.rules().size_hint().0);
         for rule in grammar.rules() {
@@ -46,8 +48,9 @@ impl<R> RhsClosure<R>
         let inverse_derivation = &self.inverse_derivation[..];
         while let Some(work_sym) = self.work_stack.pop() {
             for &(_, rule) in find(inverse_derivation, work_sym) {
-                if !property[rule.lhs().usize()] &&
-                   rule.rhs().iter().all(|sym| property[sym.usize()]) {
+                if !property[rule.lhs().usize()]
+                    && rule.rhs().iter().all(|sym| property[sym.usize()])
+                {
                     property.set(rule.lhs().usize(), true);
                     self.work_stack.push(rule.lhs());
                 }
@@ -66,8 +69,9 @@ impl<R> RhsClosure<R>
         let inverse_derivation = &self.inverse_derivation[..];
         while let Some(work_sym) = self.work_stack.pop() {
             for &(_, rule) in find(inverse_derivation, work_sym) {
-                if !property[rule.lhs().usize()] &&
-                   rule.rhs().iter().any(|sym| property[sym.usize()]) {
+                if !property[rule.lhs().usize()]
+                    && rule.rhs().iter().any(|sym| property[sym.usize()])
+                {
                     property.set(rule.lhs().usize(), true);
                     self.work_stack.push(rule.lhs());
                 }
@@ -109,11 +113,15 @@ impl<R> RhsClosure<R>
 }
 
 fn find<S, R>(inverse_derivation: &[(S, R)], key_sym: S) -> &[(S, R)]
-    where S: Copy + Ord
+where
+    S: Copy + Ord,
 {
     match inverse_derivation.binary_search_by(|&(sym, _)| (sym, Greater).cmp(&(key_sym, Less))) {
         Err(idx) => {
-            let len = inverse_derivation[idx..].iter().take_while(|t| t.0 == key_sym).count();
+            let len = inverse_derivation[idx..]
+                .iter()
+                .take_while(|t| t.0 == key_sym)
+                .count();
             &inverse_derivation[idx..idx + len]
         }
         Ok(_) => unreachable!(),

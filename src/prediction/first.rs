@@ -29,8 +29,9 @@ impl FirstSets {
 }
 
 impl<'a, G> FirstSetsCollector<'a, G>
-    where G: ContextFree,
-            &'a G: ContextFreeRef<'a, Target = G>,
+where
+    G: ContextFree,
+    &'a G: ContextFreeRef<'a, Target = G>,
 {
     /// Compute all FIRST sets of the grammar.
     ///

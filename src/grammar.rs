@@ -3,16 +3,16 @@ use std::ops::Deref;
 use std::slice;
 
 use binarized::BinarizedCfg;
-use history::{Binarize, AssignPrecedence, RewriteSequence, NullHistory};
+use history::{AssignPrecedence, Binarize, NullHistory, RewriteSequence};
 use precedence::PrecedencedRuleBuilder;
-use rule::{GrammarRule, Rule};
 use rule::builder::RuleBuilder;
-use rule::container::{RuleContainer, EmptyRuleContainer};
-use sequence::Sequence;
+use rule::container::{EmptyRuleContainer, RuleContainer};
+use rule::{GrammarRule, Rule};
 use sequence::builder::SequenceRuleBuilder;
 use sequence::rewrite::SequencesToProductions;
-use symbol::{Symbol, SymbolSource};
+use sequence::Sequence;
 use symbol::source::SymbolContainer;
+use symbol::{Symbol, SymbolSource};
 
 /// Trait for context-free grammars.
 pub trait ContextFree: RuleContainer + Sized {
@@ -23,7 +23,8 @@ pub trait ContextFree: RuleContainer + Sized {
 
     /// Starts building a new precedenced rule.
     fn precedenced_rule(&mut self, lhs: Symbol) -> PrecedencedRuleBuilder<&mut Self>
-        where Self::History: AssignPrecedence + Default
+    where
+        Self::History: AssignPrecedence + Default,
     {
         PrecedencedRuleBuilder::new(self, lhs)
     }
@@ -34,22 +35,27 @@ pub trait ContextFree: RuleContainer + Sized {
 
 /// This trait is currently needed to make the associated `Rules` iterator generic over a lifetime
 /// parameter.
-pub trait ContextFreeRef<'a>: Deref + Sized where Self::Target: ContextFree {
+pub trait ContextFreeRef<'a>: Deref + Sized
+where
+    Self::Target: ContextFree,
+{
     /// Immutable reference to a rule.
-    type RuleRef: GrammarRule<History=<<Self as Deref>::Target as RuleContainer>::History>
-                  + Copy + 'a;
+    type RuleRef: GrammarRule<History = <<Self as Deref>::Target as RuleContainer>::History>
+        + Copy
+        + 'a;
     /// Iterator over immutable references to the grammar's rules.
-    type Rules: Iterator<Item=Self::RuleRef>;
+    type Rules: Iterator<Item = Self::RuleRef>;
     /// Returns an iterator over immutable references to the grammar's rules.
     fn rules(self) -> Self::Rules;
 
     /// Reverses the grammar.
     fn reverse(self) -> Self::Target
-        where <Self::Target as RuleContainer>::History: Clone,
-            Self::Target: EmptyRuleContainer,
+    where
+        <Self::Target as RuleContainer>::History: Clone,
+        Self::Target: EmptyRuleContainer,
     {
         let mut new_grammar = (*self).empty();
-        for _ in 0 .. self.sym_source().num_syms() {
+        for _ in 0..self.sym_source().num_syms() {
             let _: Symbol = new_grammar.sym();
         }
         for rule in self.rules() {
@@ -62,9 +68,11 @@ pub trait ContextFreeRef<'a>: Deref + Sized where Self::Target: ContextFree {
 }
 
 /// Allows access to a ContextFreeRef through mutable references.
-pub trait ContextFreeMut<'a>: Deref where
-            Self::Target: ContextFree + 'a,
-            &'a Self::Target: ContextFreeRef<'a, Target=Self::Target> {
+pub trait ContextFreeMut<'a>: Deref
+where
+    Self::Target: ContextFree + 'a,
+    &'a Self::Target: ContextFreeRef<'a, Target = Self::Target>,
+{
 }
 
 /// Basic representation of context-free grammars.
@@ -101,13 +109,15 @@ impl<H, Hs> Cfg<H, Hs> {
 }
 
 impl<H, Hs> Cfg<H, Hs>
-    where Hs: RewriteSequence<Rewritten = H>,
-          H: Clone,
-          Hs: Clone
+where
+    Hs: RewriteSequence<Rewritten = H>,
+    H: Clone,
+    Hs: Clone,
 {
     /// Returns generated symbols.
     pub fn sym<T>(&mut self) -> T
-        where T: SymbolContainer
+    where
+        T: SymbolContainer,
     {
         self.sym_source_mut().sym()
     }
@@ -140,8 +150,9 @@ impl<H, Hs> Cfg<H, Hs>
 
     /// Returns a binarized grammar which is weakly equivalent to this grammar.
     pub fn binarize<'a>(&'a self) -> BinarizedCfg<H>
-        where &'a Self: ContextFreeRef<'a, Target = Self>,
-              H: Binarize + Clone + 'static
+    where
+        &'a Self: ContextFreeRef<'a, Target = Self>,
+        H: Binarize + Clone + 'static,
     {
         let mut grammar = BinarizedCfg::from_context_free(self);
         SequencesToProductions::rewrite_sequences(&self.sequence_rules[..], &mut grammar);
@@ -149,14 +160,12 @@ impl<H, Hs> Cfg<H, Hs>
     }
 }
 
-impl<H, Hs> ContextFree for Cfg<H, Hs>
-    where Hs: Clone + RewriteSequence<Rewritten = H>
-{
-}
+impl<H, Hs> ContextFree for Cfg<H, Hs> where Hs: Clone + RewriteSequence<Rewritten = H> {}
 
 impl<'a, H, Hs> ContextFreeRef<'a> for &'a Cfg<H, Hs>
-    where H: 'a,
-          Hs: Clone + RewriteSequence<Rewritten = H>
+where
+    H: 'a,
+    Hs: Clone + RewriteSequence<Rewritten = H>,
 {
     type RuleRef = <Self::Rules as Iterator>::Item;
     type Rules = slice::Iter<'a, Rule<H>>;
@@ -167,13 +176,15 @@ impl<'a, H, Hs> ContextFreeRef<'a> for &'a Cfg<H, Hs>
 }
 
 impl<'a, H, Hs> ContextFreeMut<'a> for &'a mut Cfg<H, Hs>
-    where H: 'a,
-          Hs: Clone + RewriteSequence<Rewritten = H> + 'a
+where
+    H: 'a,
+    Hs: Clone + RewriteSequence<Rewritten = H> + 'a,
 {
 }
 
 impl<H, Hs> RuleContainer for Cfg<H, Hs>
-    where Hs: Clone + RewriteSequence<Rewritten = H>
+where
+    Hs: Clone + RewriteSequence<Rewritten = H>,
 {
     type History = H;
 
@@ -186,9 +197,11 @@ impl<H, Hs> RuleContainer for Cfg<H, Hs>
     }
 
     fn retain<F>(&mut self, mut f: F)
-        where F: FnMut(Symbol, &[Symbol], &H) -> bool
+    where
+        F: FnMut(Symbol, &[Symbol], &H) -> bool,
     {
-        self.rules.retain(|rule| f(rule.lhs(), rule.rhs(), rule.history()));
+        self.rules
+            .retain(|rule| f(rule.lhs(), rule.rhs(), rule.history()));
     }
 
     fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: H) {
@@ -197,9 +210,9 @@ impl<H, Hs> RuleContainer for Cfg<H, Hs>
 }
 
 impl<H, Hs> EmptyRuleContainer for Cfg<H, Hs>
-    where Hs: Clone + RewriteSequence<Rewritten = H>
+where
+    Hs: Clone + RewriteSequence<Rewritten = H>,
 {
-
     fn empty(&self) -> Self {
         Cfg::default()
     }

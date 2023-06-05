@@ -22,7 +22,8 @@ pub trait GrammarRule {
 }
 
 impl<'a, R> GrammarRule for &'a R
-    where R: GrammarRule
+where
+    R: GrammarRule,
 {
     type History = R::History;
 

@@ -2,9 +2,9 @@ extern crate cfg;
 
 mod support;
 
-use cfg::{Cfg, ContextFree, ContextFreeRef};
-use cfg::precedence::Associativity::*;
 use cfg::classification::useful::Usefulness;
+use cfg::precedence::Associativity::*;
+use cfg::{Cfg, ContextFree, ContextFreeRef};
 
 #[test]
 fn test_simple_precedence() {
@@ -24,24 +24,25 @@ fn test_simple_precedence() {
     //   |  top '-' top
     //   |> var '=' top
 
-    cfg.rule(start).rhs([top])
-       .precedenced_rule(top)
-                .rhs([num])
-                .rhs([var])
-                .associativity(Group)
-                    .rhs([l_paren, top, r_paren])
-            .lower_precedence()
-                .rhs([minus, top])
-                .associativity(Right)
-                    .rhs([top, exp, top])
-            .lower_precedence()
-                .rhs([top, mul, top])
-                .rhs([top, div, top])
-            .lower_precedence()
-                .rhs([top, plus, top])
-                .rhs([top, minus, top])
-            .lower_precedence()
-                .rhs([var, eq, top]);
+    cfg.rule(start)
+        .rhs([top])
+        .precedenced_rule(top)
+        .rhs([num])
+        .rhs([var])
+        .associativity(Group)
+        .rhs([l_paren, top, r_paren])
+        .lower_precedence()
+        .rhs([minus, top])
+        .associativity(Right)
+        .rhs([top, exp, top])
+        .lower_precedence()
+        .rhs([top, mul, top])
+        .rhs([top, div, top])
+        .lower_precedence()
+        .rhs([top, plus, top])
+        .rhs([top, minus, top])
+        .lower_precedence()
+        .rhs([var, eq, top]);
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, top, num, var) = equivalent.sym();
@@ -49,22 +50,31 @@ fn test_simple_precedence() {
     let (g4, g3, g2, g1, g0) = equivalent.sym();
 
     // Order is significant.
-    equivalent.rule(start).rhs([top])
-              .rule(g4).rhs([num])
-                       .rhs([var])
-              .rule(g3).rhs([g4])
-                       .rhs([minus, g3])
-                       .rhs([g4, exp, g3])
-              .rule(g2).rhs([g3])
-                       .rhs([g2, mul, g3])
-                       .rhs([g2, div, g3])
-              .rule(g1).rhs([g2])
-                       .rhs([g1, plus, g2])
-                       .rhs([g1, minus, g2])
-              .rule(g0).rhs([g1])
-                       .rhs([var, eq, g0])
-              .rule(g4).rhs([l_paren, g0, r_paren])
-              .rule(top).rhs([g0]);
+    equivalent
+        .rule(start)
+        .rhs([top])
+        .rule(g4)
+        .rhs([num])
+        .rhs([var])
+        .rule(g3)
+        .rhs([g4])
+        .rhs([minus, g3])
+        .rhs([g4, exp, g3])
+        .rule(g2)
+        .rhs([g3])
+        .rhs([g2, mul, g3])
+        .rhs([g2, div, g3])
+        .rule(g1)
+        .rhs([g2])
+        .rhs([g1, plus, g2])
+        .rhs([g1, minus, g2])
+        .rule(g0)
+        .rhs([g1])
+        .rhs([var, eq, g0])
+        .rule(g4)
+        .rhs([l_paren, g0, r_paren])
+        .rule(top)
+        .rhs([g0]);
 
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
     assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
@@ -76,14 +86,15 @@ fn test_ternary_quaternary() {
     let (start, top, num) = cfg.sym();
     let (ternary_op, quaternary_op, sep) = cfg.sym();
 
-    cfg.rule(start).rhs([top])
-       .precedenced_rule(top)
-                .rhs([num])
-            .lower_precedence()
-                .associativity(Right)
-                    .rhs([top, ternary_op, top, sep, top])
-                .associativity(Right)
-                    .rhs([top, quaternary_op, top, sep, top, sep, top]);
+    cfg.rule(start)
+        .rhs([top])
+        .precedenced_rule(top)
+        .rhs([num])
+        .lower_precedence()
+        .associativity(Right)
+        .rhs([top, ternary_op, top, sep, top])
+        .associativity(Right)
+        .rhs([top, quaternary_op, top, sep, top, sep, top]);
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, top, num) = equivalent.sym();
@@ -91,12 +102,17 @@ fn test_ternary_quaternary() {
     let (g1, g0) = equivalent.sym();
 
     // Order is significant.
-    equivalent.rule(start).rhs([top])
-              .rule(g1).rhs([num])
-              .rule(g0).rhs([g1])
-                       .rhs([g1, ternary_op, g1, sep, g0])
-                       .rhs([g1, quaternary_op, g1, sep, g1, sep, g0])
-              .rule(top).rhs([g0]);
+    equivalent
+        .rule(start)
+        .rhs([top])
+        .rule(g1)
+        .rhs([num])
+        .rule(g0)
+        .rhs([g1])
+        .rhs([g1, ternary_op, g1, sep, g0])
+        .rhs([g1, quaternary_op, g1, sep, g1, sep, g0])
+        .rule(top)
+        .rhs([g0]);
 
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
     assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());

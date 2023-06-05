@@ -28,7 +28,38 @@ fn test_precedenced_arith() {
 
     let mut rng = SmallRng::seed_from_u64(42);
     let string = binarized.random(Some(1_000_000), &mut rng);
-    let expected = Ok(vec![11u32.into(), 15u32.into(), 17u32.into(), 7u32.into(), 9u32.into(), 18u32.into(), 6u32.into(), 10u32.into(), 5u32.into(), 18u32.into(), 14u32.into(), 19u32.into(), 7u32.into(), 13u32.into(), 4u32.into(), 10u32.into(), 19u32.into(), 19u32.into(), 15u32.into(), 6u32.into(), 18u32.into(), 8u32.into(), 4u32.into(), 9u32.into(), 17u32.into(), 5u32.into(), 13u32.into(), 6u32.into(), 13u32.into(), 8u32.into()]);
+    let expected = Ok(vec![
+        11u32.into(),
+        15u32.into(),
+        17u32.into(),
+        7u32.into(),
+        9u32.into(),
+        18u32.into(),
+        6u32.into(),
+        10u32.into(),
+        5u32.into(),
+        18u32.into(),
+        14u32.into(),
+        19u32.into(),
+        7u32.into(),
+        13u32.into(),
+        4u32.into(),
+        10u32.into(),
+        19u32.into(),
+        19u32.into(),
+        15u32.into(),
+        6u32.into(),
+        18u32.into(),
+        8u32.into(),
+        4u32.into(),
+        9u32.into(),
+        17u32.into(),
+        5u32.into(),
+        13u32.into(),
+        6u32.into(),
+        13u32.into(),
+        8u32.into(),
+    ]);
     assert_eq!(string, expected);
 }
 
