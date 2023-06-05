@@ -3,7 +3,7 @@
 
 #![recursion_limit="512"]
 
-#![deny(missing_docs,
+#![deny(
         missing_copy_implementations,
         trivial_casts,
         trivial_numeric_casts,
@@ -11,6 +11,8 @@
         unused_qualifications)]
 
 #![cfg_attr(test, deny(warnings))]
+
+#![cfg_attr(test, allow(missing_docs))]
 
 #![cfg_attr(feature = "nightly",
             feature(
@@ -26,6 +28,10 @@ extern crate optional;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+#[cfg(feature = "rand")]
+extern crate rand;
+#[cfg(feature = "num")]
+extern crate num;
 
 #[cfg(feature = "nightly")]
 extern crate collections;
@@ -36,7 +42,7 @@ mod analysis;
 pub mod binarized;
 pub mod classification;
 pub mod earley;
-mod generate;
+pub mod generate;
 mod grammar;
 pub mod history;
 pub mod precedence;

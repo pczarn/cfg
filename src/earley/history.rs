@@ -20,7 +20,7 @@ pub struct BuildHistory {
 
 impl BuildHistory {
     /// Creates default history.
-    pub(in super) fn new(num_rules: usize) -> Self {
+    pub(in crate) fn new(num_rules: usize) -> Self {
         BuildHistory { num_rules }
     }
 }
@@ -83,7 +83,7 @@ impl History {
     pub fn new(id: u32, len: usize) -> Self {
         History {
             origin: Some(id),
-            dots: (0 .. len + 1).map(|i| RuleDot::new(id, i)).collect(),
+            dots: (0 ..= len).map(|i| RuleDot::new(id, i)).collect(),
             ..History::default()
         }
     }
