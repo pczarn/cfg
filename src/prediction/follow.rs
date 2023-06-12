@@ -2,10 +2,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use grammar::{ContextFree, ContextFreeRef};
-use prediction::PerSymbolSets;
-use rule::GrammarRule;
-use symbol::{Symbol, SymbolBitSet};
+use crate::prelude::*;
+use crate::symbol::SymbolBitSet;
+
+use super::PerSymbolSets;
 
 /// FOLLOW sets.
 pub struct FollowSets {
@@ -18,8 +18,8 @@ impl FollowSets {
     /// Returns FollowSets.
     pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &PerSymbolSets) -> Self
     where
-        G: ContextFree,
-        &'a G: ContextFreeRef<'a, Target = G>,
+        G: RuleContainer + Default,
+        &'a G: RuleContainerRef<'a, Target = G>,
     {
         let mut this = FollowSets {
             map: BTreeMap::new(),

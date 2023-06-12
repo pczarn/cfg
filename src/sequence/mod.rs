@@ -6,13 +6,13 @@ pub mod rewrite;
 
 use std::ops::{Bound, RangeBounds};
 
-use symbol::Symbol;
+use crate::prelude::*;
 
 use self::Separator::*;
 
 /// Sequence rule representation.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct Sequence<H> {
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Sequence {
     /// The rule's left-hand side.
     pub lhs: Symbol,
     /// The rule's right-hand side.
@@ -25,7 +25,7 @@ pub struct Sequence<H> {
     /// The way elements are separated in a sequence, or `Null`.
     pub separator: Separator,
     /// The history carried with the sequence rule.
-    pub history: H,
+    pub history_id: Option<HistoryId>,
 }
 
 /// The separator symbol and mode of separation in a sequence, or `Null` for no separation.
@@ -43,7 +43,7 @@ pub enum Separator {
     Null,
 }
 
-impl<H> Sequence<H> {
+impl Sequence {
     /// Assigns the inclusive range of the number of repetitions.
     pub fn inclusive(mut self, start: u32, end: Option<u32>) -> Self {
         self.start = start;

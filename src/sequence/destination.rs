@@ -1,15 +1,15 @@
 //! Sequence destination.
 
-use sequence::Sequence;
+use super::Sequence;
 
 /// Trait for storing sequence rules in containers, with potential rewrites.
-pub trait SequenceDestination<H> {
+pub trait SequenceDestination {
     /// Inserts a sequence rule.
-    fn add_sequence(&mut self, seq: Sequence<H>);
+    fn add_sequence(&mut self, seq: Sequence);
 }
 
-impl<'a, H> SequenceDestination<H> for &'a mut Vec<Sequence<H>> {
-    fn add_sequence(&mut self, seq: Sequence<H>) {
+impl<'a> SequenceDestination for &'a mut Vec<Sequence> {
+    fn add_sequence(&mut self, seq: Sequence) {
         self.push(seq);
     }
 }

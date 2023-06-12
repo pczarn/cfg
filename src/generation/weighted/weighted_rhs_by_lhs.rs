@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use super::random::GenRange;
+use super::random::GenRange;
 use crate::Symbol;
 use grammar::ContextFreeRef;
 use rule::GrammarRule;

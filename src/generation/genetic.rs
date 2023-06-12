@@ -4,7 +4,7 @@ use std::cmp::{Ord, Ordering, PartialOrd};
 use std::collections::BTreeSet;
 use std::ops::Range;
 
-use Symbol;
+use crate::prelude::*;
 
 use self::Rhs::*;
 #[cfg(test)]

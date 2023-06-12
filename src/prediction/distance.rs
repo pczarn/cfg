@@ -2,10 +2,10 @@
 
 use std::cmp;
 
-use analysis::RhsClosure;
-use grammar::{ContextFree, ContextFreeRef};
-use rule::GrammarRule;
-use symbol::{Symbol, SymbolBitSet};
+use crate::analysis::RhsClosure;
+use crate::prelude::*;
+use crate::rule::GrammarRule;
+use crate::symbol::{Symbol, SymbolBitSet};
 
 /// Calculation of minimum distance from one part of the grammar to another.
 /// Similar to multi-source shortest path search in a graph.
@@ -19,8 +19,8 @@ pub struct MinimalDistance<'a, G: 'a> {
 
 impl<'a, G> MinimalDistance<'a, G>
 where
-    G: ContextFree + 'a,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default + 'a,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     /// Returns a new `MinimalDistance` for a grammar.
     pub fn new(grammar: &'a G) -> Self {
@@ -46,7 +46,7 @@ where
     /// Returns distances in order respective to the order of rule iteration.
     pub fn minimal_distances<I, J>(&mut self, iter: I) -> &[Vec<Option<u32>>]
     where
-        I: Iterator<Item = (<&'a G as ContextFreeRef<'a>>::RuleRef, J)>,
+        I: Iterator<Item = (<&'a G as RuleContainerRef<'a>>::RuleRef, J)>,
         J: Iterator<Item = usize>,
     {
         self.minimal_sentence_lengths();
@@ -73,7 +73,7 @@ where
 
     fn immediate_minimal_distances<I, J>(&mut self, iter: I)
     where
-        I: Iterator<Item = (<&'a G as ContextFreeRef<'a>>::RuleRef, J)>,
+        I: Iterator<Item = (<&'a G as RuleContainerRef<'a>>::RuleRef, J)>,
         J: Iterator<Item = usize>,
     {
         // Calculates distances within rules.

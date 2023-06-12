@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use cfg::classification::ll::{LlNonterminalClass, LlParseTable};
 use cfg::classification::lr::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
-use cfg::{Cfg, ContextFree};
+use cfg::prelude::*;
 
 use std::collections::BTreeMap;
 

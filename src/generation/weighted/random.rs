@@ -8,8 +8,11 @@ use rand::{thread_rng, Rng};
 pub struct LimitExceeded;
 
 pub trait Random {
-    fn random<R: GenRange>(&self, limit: Option<u64>, rng: &mut R)
-        -> Result<Vec<Symbol>, LimitExceeded>;
+    fn random<R: GenRange>(
+        &self,
+        limit: Option<u64>,
+        rng: &mut R,
+    ) -> Result<Vec<Symbol>, LimitExceeded>;
 
     fn with_thread_rng(&self, limit: Option<u64>) -> Result<Vec<Symbol>, LimitExceeded> {
         let mut thread_rng = thread_rng();
@@ -26,6 +29,12 @@ pub trait GenRange {
 impl<I: Iterator<Item = u8>> ByteSource<I> {
     pub fn new(iter: I) -> Self {
         ByteSource(iter)
+    }
+}
+
+impl<R: Rng> GenRange for R {
+    fn gen(&mut self, limit: f64) -> f64 {
+        self.gen_range(0.0..limit)
     }
 }
 

@@ -1,14 +1,12 @@
 use bit_matrix::BitMatrix;
 
-use rule::GrammarRule;
-use ContextFree;
-use ContextFreeRef;
+use crate::prelude::*;
 
 /// Returns the direct derivation matrix.
 pub fn direct_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     let num_syms = grammar.sym_source().num_syms();
     let mut derivation = BitMatrix::new(num_syms, num_syms);
@@ -25,8 +23,8 @@ where
 /// Returns the derivation matrix.
 pub fn reachability_matrix<'a, G>(grammar: &'a G) -> BitMatrix
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     let mut result = direct_derivation_matrix(grammar);
     result.transitive_closure();
@@ -37,8 +35,8 @@ where
 /// Returns the unit derivation matrix.
 pub fn unit_derivation_matrix<'a, G>(grammar: &'a G) -> BitMatrix
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     let num_syms = grammar.num_syms();
     let mut unit_derivation = BitMatrix::new(num_syms, num_syms);

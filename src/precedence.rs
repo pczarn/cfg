@@ -1,13 +1,11 @@
 //! Precedenced rules are built with the builder pattern.
 
 use std::convert::AsRef;
-use std::mem;
 
-use history::{AssignPrecedence, HistorySource, NullHistorySource};
-use rule::builder::RuleBuilder;
-use rule::container::RuleContainer;
-use rule::{GrammarRule, Rule, RuleRef};
-use symbol::Symbol;
+use crate::history::{HistoryNodeAssignPrecedence, HistoryNodeRhs, RootHistoryNode};
+use crate::prelude::*;
+use crate::rule::builder::RuleBuilder;
+use crate::rule::{GrammarRule, Rule};
 
 use self::Associativity::*;
 
@@ -23,40 +21,36 @@ pub enum Associativity {
 }
 
 /// The default associativity.
-const DEFAULT_ASSOC: Associativity = Left;
+pub const DEFAULT_ASSOC: Associativity = Left;
 
 /// Precedenced rules are built in series of rule alternatives with equal precedence.
-pub struct PrecedencedRuleBuilder<D, Hs = NullHistorySource>
+pub struct PrecedencedRuleBuilder<D>
 where
     D: RuleContainer,
-    D::History: AssignPrecedence + Default,
 {
-    rules: Option<D>,
+    rules: D,
     lhs: Symbol,
     tighter_lhs: Symbol,
     current_lhs: Symbol,
-    history: Option<D::History>,
-    history_state: Option<Hs>,
+    history: Option<HistoryId>,
     assoc: Associativity,
     looseness: u32,
-    rules_with_group_assoc: Vec<Rule<D::History>>,
+    rules_with_group_assoc: Vec<Rule>,
 }
 
 impl<D> PrecedencedRuleBuilder<D>
 where
     D: RuleContainer,
-    D::History: AssignPrecedence + Default,
 {
     /// Returns a precedenced rule builder.
     pub fn new(mut rules: D, lhs: Symbol) -> Self {
         let tightest_lhs = rules.next_sym();
         PrecedencedRuleBuilder {
-            rules: Some(rules),
+            rules,
             lhs: lhs,
             tighter_lhs: tightest_lhs,
             current_lhs: tightest_lhs,
             history: None,
-            history_state: Some(NullHistorySource),
             assoc: Left,
             looseness: 0,
             rules_with_group_assoc: vec![],
@@ -64,82 +58,71 @@ where
     }
 }
 
-impl<D, Hs> PrecedencedRuleBuilder<D, Hs>
+impl<D> PrecedencedRuleBuilder<D>
 where
     D: RuleContainer,
-    D::History: AssignPrecedence + Default,
 {
-    /// Sets the default history source.
-    pub fn default_history<Hs2>(mut self, state: Hs2) -> PrecedencedRuleBuilder<D, Hs2> {
-        let replacement_for_self = PrecedencedRuleBuilder {
-            rules: self.rules.take(),
-            lhs: self.lhs,
-            tighter_lhs: self.tighter_lhs,
-            current_lhs: self.current_lhs,
-            history: self.history.take(),
-            history_state: Some(state),
-            assoc: self.assoc,
-            looseness: self.looseness,
-            rules_with_group_assoc: mem::replace(&mut self.rules_with_group_assoc, vec![]),
-        };
-        mem::forget(self);
-        replacement_for_self
-    }
-
     /// Starts building a new precedenced rule. The differences in precedence among rules only
     /// matter within a particular precedenced rule.
-    pub fn precedenced_rule(mut self, lhs: Symbol) -> PrecedencedRuleBuilder<D, Hs> {
-        self.finalize()
-            .precedenced_rule(lhs)
-            .default_history(self.history_state.take().unwrap())
+    pub fn precedenced_rule(self, lhs: Symbol) -> PrecedencedRuleBuilder<D> {
+        self.finalize().precedenced_rule(lhs)
     }
 
     /// Starts building a new grammar rule.
-    pub fn rule(mut self, lhs: Symbol) -> RuleBuilder<D, Hs> {
-        self.finalize()
-            .rule(lhs)
-            .default_history(self.history_state.take().unwrap())
+    pub fn rule(self, lhs: Symbol) -> RuleBuilder<D> {
+        self.finalize().rule(lhs)
     }
 
     /// Assigns the rule history, which is used on the next call to `rhs`, unless overwritten by
     /// a call to `rhs_with_history`.
-    pub fn history(mut self, history: D::History) -> Self {
+    #[must_use]
+    pub fn history(mut self, history: HistoryId) -> Self {
         self.history = Some(history);
         self
     }
 
     /// Creates a rule alternative. If history wasn't provided, the rule has the `Default` history.
+    #[must_use]
     pub fn rhs<S>(mut self, syms: S) -> Self
     where
         S: AsRef<[Symbol]>,
-        Hs: HistorySource<D::History>,
     {
-        let history = self.history.take().unwrap_or_else(|| {
-            self.history_state
-                .as_mut()
-                .unwrap()
-                .build(self.lhs, syms.as_ref())
+        let history_id = self.history.take().unwrap_or_else(|| {
+            self.rules
+                .add_history_node(RootHistoryNode::Rule { lhs: self.lhs }.into())
         });
-        self.rhs_with_history(syms.as_ref(), history)
+        let history_id = self.rules.add_history_node(
+            HistoryNodeRhs {
+                prev: history_id,
+                rhs: syms.as_ref().to_vec(),
+            }
+            .into(),
+        );
+        self.rhs_with_history(syms.as_ref(), history_id)
     }
 
     /// Creates a rule alternative with the given RHS and history.
-    pub fn rhs_with_history<S>(mut self, syms: S, history: D::History) -> Self
+    #[must_use]
+    pub fn rhs_with_history<S>(mut self, syms: S, history_id: HistoryId) -> Self
     where
         S: AsRef<[Symbol]>,
     {
         let syms = syms.as_ref();
-        let this_rule_ref = RuleRef {
-            lhs: self.current_lhs,
-            rhs: syms,
-            history: &(),
-        };
-        history.assign_precedence(&this_rule_ref, self.looseness);
+        let history_assign_precedence = self.rules.add_history_node(
+            HistoryNodeAssignPrecedence {
+                prev: history_id,
+                looseness: self.looseness,
+            }
+            .into(),
+        );
         let lhs = self.lhs;
         let mut syms = syms.to_vec();
         if self.assoc == Group {
-            self.rules_with_group_assoc
-                .push(Rule::new(self.current_lhs, syms, history));
+            self.rules_with_group_assoc.push(Rule::new(
+                self.current_lhs,
+                syms,
+                history_assign_precedence,
+            ));
         } else {
             {
                 // Symbols equal to the LHS symbol.
@@ -159,9 +142,7 @@ where
                 }
             };
             self.rules
-                .as_mut()
-                .unwrap()
-                .add_rule(self.current_lhs, &syms[..], history);
+                .add_rule(self.current_lhs, &syms[..], history_assign_precedence);
         }
         // Reset to default associativity and no history.
         self.assoc = DEFAULT_ASSOC;
@@ -170,30 +151,29 @@ where
     }
 
     /// Assigns the associativity, which influences the next call to `rhs` or `rhs_with_history`.
-    pub fn associativity(mut self, assoc: Associativity) -> Self
-    where
-        D::History: AssignPrecedence,
-    {
+    #[must_use]
+    pub fn associativity(mut self, assoc: Associativity) -> Self {
         self.assoc = assoc;
         self
     }
 
     /// Assigns lower precedence to rule alternatives that are built after this call.
+    #[must_use]
     pub fn lower_precedence(mut self) -> Self {
         self.looseness += 1;
 
         self.tighter_lhs = self.current_lhs;
-        self.current_lhs = self.rules.as_mut().unwrap().next_sym();
+        self.current_lhs = self.rules.next_sym();
 
-        RuleBuilder::new(self.rules.as_mut().unwrap())
+        let history_id = self.rules.add_history_node(RootHistoryNode::NoOp.into());
+        RuleBuilder::new(&mut self.rules)
             .rule(self.current_lhs)
-            .rhs_with_history(&[self.tighter_lhs], Default::default());
+            .rhs_with_history(&[self.tighter_lhs], history_id);
         self
     }
 
     /// This internal method must be called to finalize the precedenced rule construction.
-    fn finalize(&mut self) -> RuleBuilder<D> {
-        let mut destination = self.rules.take().unwrap();
+    pub fn finalize(mut self) -> RuleBuilder<D> {
         let loosest_lhs = self.current_lhs;
         for mut rule in self.rules_with_group_assoc.drain(..) {
             for sym in &mut rule.rhs {
@@ -201,21 +181,13 @@ where
                     *sym = loosest_lhs;
                 }
             }
-            destination.add_rule(rule.lhs(), &rule.rhs[..], rule.history);
+            self.rules
+                .add_rule(rule.lhs(), &rule.rhs[..], rule.history_id());
         }
+        let history_id = self.rules.add_history_node(RootHistoryNode::NoOp.into());
         // The associativity is not reset in the call to `rhs`.
-        RuleBuilder::new(destination)
+        RuleBuilder::new(self.rules)
             .rule(self.lhs)
-            .rhs_with_history(&[loosest_lhs], Default::default())
-    }
-}
-
-impl<D, Hs> Drop for PrecedencedRuleBuilder<D, Hs>
-where
-    D: RuleContainer,
-    D::History: AssignPrecedence + Default,
-{
-    fn drop(&mut self) {
-        self.finalize();
+            .rhs_with_history(&[loosest_lhs], history_id)
     }
 }

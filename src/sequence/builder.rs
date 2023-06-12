@@ -2,25 +2,24 @@
 
 use std::ops::{Bound, RangeBounds};
 
-use history::{HistorySource, NullHistorySource, RewriteSequence};
-use sequence::destination::SequenceDestination;
-use sequence::{Separator, Sequence};
-use symbol::Symbol;
+use crate::history::HistoryId;
+use crate::sequence::destination::SequenceDestination;
+use crate::sequence::{Separator, Sequence};
+use crate::symbol::Symbol;
 
 /// Sequence rule builder.
-pub struct SequenceRuleBuilder<H, D, Hs = NullHistorySource> {
+pub struct SequenceRuleBuilder<D> {
     lhs: Option<Symbol>,
     range: Option<(u32, Option<u32>)>,
     separator: Separator,
-    history: Option<H>,
-    history_state: Hs,
+    history: Option<HistoryId>,
+    default_history: Option<HistoryId>,
     destination: D,
 }
 
-impl<H, D> SequenceRuleBuilder<H, D>
+impl<D> SequenceRuleBuilder<D>
 where
-    D: SequenceDestination<H>,
-    H: RewriteSequence,
+    D: SequenceDestination,
 {
     /// Creates a sequence rule builder.
     pub fn new(destination: D) -> Self {
@@ -28,25 +27,19 @@ where
             lhs: None,
             range: None,
             history: None,
-            history_state: NullHistorySource,
+            default_history: None,
             separator: Separator::Null,
             destination: destination,
         }
     }
-}
 
-impl<H, D, Hs> SequenceRuleBuilder<H, D, Hs>
-where
-    D: SequenceDestination<H>,
-    H: RewriteSequence,
-{
     /// Sets the default history source.
-    pub fn default_history<Hs2>(self, state: Hs2) -> SequenceRuleBuilder<H, D, Hs2> {
+    pub fn default_history(self, default_history: HistoryId) -> SequenceRuleBuilder<D> {
         SequenceRuleBuilder {
             lhs: self.lhs,
             range: self.range,
             history: self.history,
-            history_state: state,
+            default_history: Some(default_history),
             separator: self.separator,
             destination: self.destination,
         }
@@ -72,7 +65,7 @@ where
 
     /// Assigns the rule history, which is used on the next call to `rhs`, or overwritten by a call
     /// to `rhs_with_history`.
-    pub fn history(mut self, history: H) -> Self {
+    pub fn history(mut self, history: HistoryId) -> Self {
         self.history = Some(history);
         self
     }
@@ -84,26 +77,13 @@ where
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs(mut self, rhs: Symbol) -> Self
-    where
-        Hs: HistorySource<H>,
-    {
-        let history = self.history.take().unwrap_or_else(|| {
-            if let Some(sep) = self.separator.into() {
-                self.history_state.build(self.lhs.unwrap(), &[rhs, sep])
-            } else {
-                self.history_state.build(self.lhs.unwrap(), &[rhs])
-            }
-        });
+    pub fn rhs(mut self, rhs: Symbol) -> Self {
+        let history = self.history.take().or(self.default_history);
         self.rhs_with_history(rhs, history)
     }
 
     /// Adds a range to the sequence.
-    pub fn range(self, range: impl RangeBounds<u32>) -> Self
-    where
-        Hs: HistorySource<H>,
-        H: Default,
-    {
+    pub fn range(self, range: impl RangeBounds<u32>) -> Self {
         let to_option = |bound: Bound<u32>, diff| match bound {
             Bound::Included(included) => Some(included),
             Bound::Excluded(excluded) => Some((excluded as i64 + diff) as u32),
@@ -116,24 +96,20 @@ where
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs_with_range(self, rhs: Symbol, range: impl RangeBounds<u32>) -> Self
-    where
-        Hs: HistorySource<H>,
-        H: Default,
-    {
+    pub fn rhs_with_range(self, rhs: Symbol, range: impl RangeBounds<u32>) -> Self {
         self.range(range).rhs(rhs)
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs_with_history(mut self, rhs: Symbol, history: H) -> Self {
+    pub fn rhs_with_history(mut self, rhs: Symbol, history_id: Option<HistoryId>) -> Self {
         let (start, end) = self.range.take().expect("expected inclusive(n, m)");
         self.destination.add_sequence(Sequence {
             lhs: self.lhs.unwrap(),
-            rhs: rhs,
-            start: start,
-            end: end,
+            rhs,
+            start,
+            end,
             separator: self.separator,
-            history: history,
+            history_id,
         });
         self
     }

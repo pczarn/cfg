@@ -4,53 +4,53 @@
 //! value called "history."
 
 pub mod builder;
-pub mod container;
 
-use symbol::Symbol;
+use crate::prelude::*;
 
 /// Trait for rules of a context-free grammar.
 pub trait GrammarRule {
-    /// The type of history carried with the rule.
-    type History;
-
     /// Returns the rule's left-hand side.
     fn lhs(&self) -> Symbol;
     /// Returns the rule's right-hand side.
     fn rhs(&self) -> &[Symbol];
     /// Returns a reference to the history carried with the rule.
-    fn history(&self) -> &Self::History;
+    fn history_id(&self) -> HistoryId;
+
+    fn as_ref(&self) -> RuleRef {
+        RuleRef {
+            lhs: self.lhs(),
+            rhs: self.rhs(),
+            history_id: self.history_id(),
+        }
+    }
 }
 
 impl<'a, R> GrammarRule for &'a R
 where
     R: GrammarRule,
 {
-    type History = R::History;
-
     fn lhs(&self) -> Symbol {
         (**self).lhs()
     }
     fn rhs(&self) -> &[Symbol] {
         (**self).rhs()
     }
-    fn history(&self) -> &Self::History {
-        (**self).history()
+    fn history_id(&self) -> HistoryId {
+        (**self).history_id()
     }
 }
 
 /// Typical grammar rule representation.
 #[derive(Clone, Debug)]
-pub struct Rule<H> {
+pub struct Rule {
     lhs: Symbol,
     /// The rule's right-hand side.
     pub rhs: Vec<Symbol>,
     /// The rule's history.
-    pub history: H,
+    pub history_id: HistoryId,
 }
 
-impl<H> GrammarRule for Rule<H> {
-    type History = H;
-
+impl GrammarRule for Rule {
     fn lhs(&self) -> Symbol {
         self.lhs
     }
@@ -59,45 +59,34 @@ impl<H> GrammarRule for Rule<H> {
         &self.rhs
     }
 
-    fn history(&self) -> &H {
-        &self.history
+    fn history_id(&self) -> HistoryId {
+        self.history_id
     }
 }
 
-impl<H> Rule<H> {
+impl Rule {
     /// Creates a new rule.
-    pub fn new(lhs: Symbol, rhs: Vec<Symbol>, history: H) -> Self {
+    pub fn new(lhs: Symbol, rhs: Vec<Symbol>, history_id: HistoryId) -> Self {
         Rule {
             lhs: lhs,
             rhs: rhs,
-            history: history,
+            history_id: history_id,
         }
     }
 }
 
 /// References rule's components.
-pub struct RuleRef<'a, H: 'a> {
+#[derive(Copy, Clone)]
+pub struct RuleRef<'a> {
     /// Left-hand side.
     pub lhs: Symbol,
     /// Right-hand side.
     pub rhs: &'a [Symbol],
     /// The rule's history.
-    pub history: &'a H,
+    pub history_id: HistoryId,
 }
 
-// Can't derive because of the type parameter.
-impl<'a, H> Copy for RuleRef<'a, H> {}
-
-// Can't derive because of the where clause.
-impl<'a, H> Clone for RuleRef<'a, H> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<'a, H> GrammarRule for RuleRef<'a, H> {
-    type History = H;
-
+impl<'a> GrammarRule for RuleRef<'a> {
     fn lhs(&self) -> Symbol {
         self.lhs
     }
@@ -106,7 +95,7 @@ impl<'a, H> GrammarRule for RuleRef<'a, H> {
         self.rhs
     }
 
-    fn history(&self) -> &H {
-        &self.history
+    fn history_id(&self) -> HistoryId {
+        self.history_id
     }
 }

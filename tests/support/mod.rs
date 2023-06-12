@@ -1,4 +1,4 @@
-use cfg::*;
+use cfg::prelude::*;
 
 pub fn assert_eq_rules<R, I, J>(i: I, j: J)
 where

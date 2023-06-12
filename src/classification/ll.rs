@@ -2,12 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use analysis::RhsClosure;
-use prediction::{FirstSetsCollector, FollowSets};
-use rule::GrammarRule;
-use symbol::{Symbol, SymbolBitSet};
-use ContextFree;
-use ContextFreeRef;
+use crate::analysis::RhsClosure;
+use crate::prediction::{FirstSetsCollector, FollowSets};
+use crate::prelude::*;
+use crate::symbol::SymbolBitSet;
 
 /// LL parse table.
 pub struct LlParseTable<'a, G> {
@@ -38,8 +36,8 @@ pub enum LlNonterminalClass {
 
 impl<'a, G> LlParseTable<'a, G>
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     /// Creates an LL parse table.
     pub fn new(grammar: &'a G, start_sym: Symbol) -> Self {

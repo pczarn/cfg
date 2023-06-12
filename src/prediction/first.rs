@@ -2,10 +2,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use grammar::{ContextFree, ContextFreeRef};
-use prediction::PerSymbolSets;
-use rule::GrammarRule;
-use symbol::{Symbol, SymbolBitSet};
+use crate::prelude::*;
+use crate::symbol::SymbolBitSet;
+
+use super::PerSymbolSets;
 
 /// FIRST sets.
 pub struct FirstSets {
@@ -30,8 +30,8 @@ impl FirstSets {
 
 impl<'a, G> FirstSetsCollector<'a, G>
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     /// Compute all FIRST sets of the grammar.
     ///

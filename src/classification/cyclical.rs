@@ -5,10 +5,8 @@ use std::collections::BTreeMap;
 use bit_matrix::BitMatrix;
 use bit_vec::BitVec;
 
-use analysis;
-use grammar::{ContextFree, ContextFreeMut, ContextFreeRef};
-use rule::GrammarRule;
-use symbol::Symbol;
+use crate::analysis;
+use crate::prelude::*;
 
 /// Provides information about cycles among unit derivations in the grammar. There are two ways of
 /// pruning cycles.
@@ -26,9 +24,9 @@ pub struct CycleParticipants<'a, G: 'a, R> {
 
 impl<'a, G> Cycles<&'a mut G>
 where
-    G: ContextFree,
-    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
-    for<'b> &'b mut G: ContextFreeMut<'b, Target = G>,
+    G: RuleContainer + Default,
+    for<'b> &'b G: RuleContainerRef<'b, Target = G>,
+    for<'b> &'b mut G: RuleContainerMut<'b, Target = G>,
 {
     /// Analyzes the grammar's cycles.
     pub fn new(grammar: &'a mut G) -> Cycles<&'a mut G> {
@@ -49,14 +47,14 @@ where
 
 impl<'a, G> Cycles<&'a mut G>
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
-    &'a mut G: ContextFreeMut<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
+    &'a mut G: RuleContainerMut<'a, Target = G>,
 {
     /// Iterates over rules that participate in a cycle.
     pub fn cycle_participants(
         &'a self,
-    ) -> CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
+    ) -> CycleParticipants<'a, G, <&'a G as RuleContainerRef<'a>>::Rules> {
         CycleParticipants {
             rules: self.grammar.rules(),
             cycles: self,
@@ -67,8 +65,8 @@ where
     /// by the grammar.
     pub fn remove_cycles(&mut self)
     where
-        &'a G: ContextFreeRef<'a, Target = G>,
-        &'a mut G: ContextFreeMut<'a, Target = G>,
+        &'a G: RuleContainerRef<'a, Target = G>,
+        &'a mut G: RuleContainerMut<'a, Target = G>,
     {
         if !self.cycle_free {
             let unit_derivation = &self.unit_derivation;
@@ -82,9 +80,8 @@ where
     /// by the grammar.
     pub fn rewrite_cycles(&mut self)
     where
-        G::History: Clone,
-        &'a G: ContextFreeRef<'a, Target = G>,
-        &'a mut G: ContextFreeMut<'a, Target = G>,
+        &'a G: RuleContainerRef<'a, Target = G>,
+        &'a mut G: RuleContainerMut<'a, Target = G>,
     {
         let mut translation = BTreeMap::new();
         let mut row = BitVec::from_elem(self.grammar.num_syms(), false);
@@ -130,7 +127,7 @@ where
                     }
                 }
                 if changed {
-                    rewritten_rules.push((lhs, rhs, history.clone()));
+                    rewritten_rules.push((lhs, rhs, history));
                 }
                 !changed
             });
@@ -141,12 +138,12 @@ where
     }
 }
 
-impl<'a, G> Iterator for CycleParticipants<'a, G, <&'a G as ContextFreeRef<'a>>::Rules>
+impl<'a, G> Iterator for CycleParticipants<'a, G, <&'a G as RuleContainerRef<'a>>::Rules>
 where
-    G: ContextFree + 'a,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default + 'a,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
-    type Item = <<&'a G as ContextFreeRef<'a>>::Rules as Iterator>::Item;
+    type Item = <<&'a G as RuleContainerRef<'a>>::Rules as Iterator>::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.cycles.cycle_free {

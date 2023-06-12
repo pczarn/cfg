@@ -3,40 +3,41 @@
 
 use std::cmp::{self, Ord, Ordering};
 use std::iter;
+use std::marker::PhantomData;
 use std::mem;
 use std::slice;
 
 use bit_vec::BitVec;
 
-use analysis::RhsClosure;
-use grammar::{ContextFree, ContextFreeMut, ContextFreeRef};
-use history::BinarizedRhsSubset::*;
-use history::{Binarize, EliminateNulling, NullHistory};
-use rule::container::{EmptyRuleContainer, RuleContainer};
-use rule::{GrammarRule, RuleRef};
-use symbol::source::SymbolContainer;
-use symbol::{Symbol, SymbolSource};
+use crate::analysis::RhsClosure;
+use crate::history::{BinarizedRhsSubset::*, HistoryNodeBinarize, HistoryNodeEliminateNulling};
+use crate::history::{HistoryGraph, HistoryId, HistoryNode};
+use crate::prelude::*;
+use crate::rule::{GrammarRule, RuleRef};
+use crate::symbol::source::SymbolContainer;
 
 use self::BinarizedRuleRhs::*;
 
 /// Representation for grammars where right-hand sides of all rules have at most two symbols.
 #[derive(Clone)]
-pub struct BinarizedCfg<H = NullHistory> {
+pub struct BinarizedCfg {
     /// The symbol source.
     sym_source: SymbolSource,
     /// The array of rules.
-    rules: Vec<BinarizedRule<H>>,
+    rules: Vec<BinarizedRule>,
     /// The set of history values carried with the grammar's nulling rules, or empty if the grammar
     /// has no nulling rules.
-    nulling: Vec<Option<H>>,
+    nulling: Vec<Option<HistoryId>>,
+    /// History graph.
+    history_graph: HistoryGraph,
 }
 
 /// Compact representation of a binarized rule.
 #[derive(Copy, Clone)]
-pub struct BinarizedRule<H> {
+pub struct BinarizedRule {
     lhs: Symbol,
     rhs: BinarizedRuleRhs,
-    history: H,
+    history_id: HistoryId,
 }
 
 /// Compact representation of a binarized rule's RHS.
@@ -48,13 +49,13 @@ pub enum BinarizedRuleRhs {
     Two([Symbol; 2]),
 }
 
-impl<H> Default for BinarizedCfg<H> {
+impl Default for BinarizedCfg {
     fn default() -> Self {
         Self::with_sym_source(SymbolSource::new())
     }
 }
 
-impl<H> BinarizedCfg<H> {
+impl BinarizedCfg {
     /// Creates a BinarizedCfg.
     pub fn new() -> Self {
         Self::default()
@@ -66,31 +67,32 @@ impl<H> BinarizedCfg<H> {
             sym_source: sym_source,
             rules: vec![],
             nulling: vec![],
+            history_graph: HistoryGraph::new(),
         }
     }
 
     /// Creates a BinarizedCfg by binarizing a context-free grammar.
-    pub fn from_context_free<'a, G>(this: &'a G) -> BinarizedCfg<H>
+    pub fn from_context_free<'a, G>(this: &'a G) -> BinarizedCfg
     where
-        G: ContextFree<History = H>,
-        &'a G: ContextFreeRef<'a, Target = G>,
-        H: Binarize + Clone + 'static,
+        G: RuleContainer + Default,
+        &'a G: RuleContainerRef<'a, Target = G>,
     {
         let mut new_rule_count = 0;
         // Calculate rule vec capacity.
         for rule in this.rules() {
             if !rule.rhs().is_empty() {
-                new_rule_count += cmp::max(1, rule.rhs().len() - 1);
+                new_rule_count += 1.max(rule.rhs().len() - 1);
             }
         }
         // Create a new grammar.
         let mut grammar = BinarizedCfg::with_sym_source(this.sym_source().clone());
+        grammar.history_graph = this.history_graph().clone();
         grammar.rules = Vec::with_capacity(new_rule_count);
         // Insert all rules from one grammar into the other.
         for rule in this.rules() {
             grammar
                 .rule(rule.lhs())
-                .rhs_with_history(rule.rhs(), rule.history().clone());
+                .rhs_with_history(rule.rhs(), rule.history_id());
         }
 
         grammar
@@ -104,7 +106,7 @@ impl<H> BinarizedCfg<H> {
     /// Sorts the rule array in place, using the argument to compare elements.
     pub fn sort_by<F>(&mut self, compare: F)
     where
-        F: FnMut(&BinarizedRule<H>, &BinarizedRule<H>) -> Ordering,
+        F: FnMut(&BinarizedRule, &BinarizedRule) -> Ordering,
     {
         self.rules.sort_by(compare);
     }
@@ -113,12 +115,7 @@ impl<H> BinarizedCfg<H> {
     pub fn dedup(&mut self) {
         self.rules.dedup();
     }
-}
 
-impl<H> BinarizedCfg<H>
-where
-    H: Binarize,
-{
     /// Returns generated symbols.
     pub fn sym<T>(&mut self) -> T
     where
@@ -136,42 +133,14 @@ where
     pub fn num_syms(&self) -> usize {
         self.sym_source().num_syms()
     }
-}
 
-impl<H> BinarizedCfg<H> {
-    /// Map all histories.
-    pub fn rewrite_histories<H2, F: Fn(H) -> H2>(self, f: F) -> BinarizedCfg<H2> {
-        BinarizedCfg {
-            sym_source: self.sym_source,
-            rules: self
-                .rules
-                .into_iter()
-                .map(|BinarizedRule { lhs, rhs, history }| BinarizedRule {
-                    lhs,
-                    rhs,
-                    history: f(history),
-                })
-                .collect(),
-            nulling: self
-                .nulling
-                .into_iter()
-                .map(|maybe_history| maybe_history.map(|h| f(h)))
-                .collect(),
-        }
-    }
-}
-
-impl<H> BinarizedCfg<H>
-where
-    H: Binarize + Clone + EliminateNulling,
-{
     /// Eliminates all rules of the form `A ::= epsilon`.
     ///
     /// In other words, this splits off the set of nulling rules.
     ///
     /// The language represented by the grammar is preserved, except for the possible lack of
     /// the empty string. Unproductive rules aren't preserved.
-    pub fn eliminate_nulling_rules(&mut self) -> BinarizedCfg<H> {
+    pub fn eliminate_nulling_rules(&mut self) -> BinarizedCfg {
         let mut nulling_grammar = BinarizedCfg::with_sym_source(self.sym_source.clone());
 
         if self.nulling.iter().any(|h| h.is_some()) {
@@ -190,15 +159,34 @@ where
                 let right_nullable = rule.rhs1().map_or(true, |s| nullable[s.into()]);
                 if left_nullable && right_nullable {
                     // The rule is copied to the nulling grammar.
-                    let history = rule.history().eliminate_nulling(rule, All);
+                    let prev = rule.history_id();
+                    let history = nulling_grammar.add_history_node(
+                        HistoryNodeEliminateNulling {
+                            prev,
+                            rhs0: rule.rhs0(),
+                            rhs1: rule.rhs1(),
+                            which: All,
+                        }
+                        .into(),
+                    );
                     nulling_grammar
                         .rule(rule.lhs())
                         .rhs_with_history(rule.rhs(), history);
                 }
                 if rule.rhs().len() == 2 {
-                    let mut make_rule = |sym, eliminated| {
-                        let history = rule.history().eliminate_nulling(rule, eliminated);
-                        rewritten_rules.push(BinarizedRule::new(rule.lhs(), &[sym], history));
+                    let history_graph = &mut self.history_graph;
+                    let mut make_rule = |sym, which| {
+                        let prev = rule.history_id();
+                        let history_id = history_graph.add_history_node(
+                            HistoryNodeEliminateNulling {
+                                prev,
+                                rhs0: rule.rhs0(),
+                                rhs1: rule.rhs1(),
+                                which,
+                            }
+                            .into(),
+                        );
+                        rewritten_rules.push(BinarizedRule::new(rule.lhs(), &[sym], history_id));
                     };
                     if left_nullable {
                         make_rule(rule.rhs()[1], Left);
@@ -219,7 +207,7 @@ where
             self.rules.retain(|rule| {
                 // Retain the rule only if it's productive. We have to, in order to remove rules
                 // that were made unproductive as a result of `A ::= epsilon` rule elimination.
-                // Otherwise, some of our nonterminal symbols might  terminal.
+                // Otherwise, some of our nonterminal symbols might be terminal.
                 let left_productive = productive[rule.rhs0().into()];
                 let right_productive = rule.rhs1().map_or(true, |s| productive[s.into()]);
                 left_productive && right_productive
@@ -230,34 +218,16 @@ where
     }
 }
 
-impl<H> ContextFree for BinarizedCfg<H> where H: Binarize {}
-
-/// Iterator over binarized rules.
-pub type BinarizedRules<'a, H> = iter::Chain<
-    LhsWithHistoryToRuleRef<iter::Enumerate<slice::Iter<'a, Option<H>>>>,
-    BinarizedRuleToRuleRef<slice::Iter<'a, BinarizedRule<H>>>,
->;
-
-impl<'a, H> ContextFreeRef<'a> for &'a BinarizedCfg<H>
-where
-    H: Binarize + 'a,
-{
-    type RuleRef = RuleRef<'a, H>;
-    type Rules = BinarizedRules<'a, H>;
-
-    fn rules(self) -> Self::Rules {
-        LhsWithHistoryToRuleRef::new(self.nulling.iter().enumerate())
-            .chain(BinarizedRuleToRuleRef::new(self.rules.iter()))
+impl RuleContainer for BinarizedCfg {
+    fn history_graph(&self) -> &HistoryGraph {
+        &self.history_graph
     }
-}
 
-impl<'a, H> ContextFreeMut<'a> for &'a mut BinarizedCfg<H> where H: Binarize + 'a {}
-
-impl<H> RuleContainer for BinarizedCfg<H>
-where
-    H: Binarize,
-{
-    type History = H;
+    fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
+        let result = self.history_graph.next_id();
+        self.history_graph.push(node);
+        result
+    }
 
     fn sym_source(&self) -> &SymbolSource {
         &self.sym_source
@@ -269,18 +239,13 @@ where
 
     fn retain<F>(&mut self, mut f: F)
     where
-        F: FnMut(Symbol, &[Symbol], &Self::History) -> bool,
+        F: FnMut(Symbol, &[Symbol], HistoryId) -> bool,
     {
         self.rules
-            .retain(|rule| f(rule.lhs(), rule.rhs(), rule.history()));
+            .retain(|rule| f(rule.lhs(), rule.rhs(), rule.history_id()));
     }
 
-    fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: Self::History) {
-        let this_rule_ref = RuleRef {
-            lhs: lhs,
-            rhs: rhs,
-            history: &(),
-        };
+    fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history_id: HistoryId) {
         if rhs.is_empty() {
             while self.nulling.len() <= lhs.into() {
                 // We don't know whether `H` is `Clone`.
@@ -291,7 +256,15 @@ where
                 self.nulling[lhs.usize()].is_none(),
                 "Duplicate nulling rule"
             );
-            self.nulling[lhs.usize()] = Some(history.binarize(&this_rule_ref, 0));
+            self.nulling[lhs.usize()] = Some(
+                self.add_history_node(
+                    HistoryNodeBinarize {
+                        prev: history_id,
+                        depth: 0,
+                    }
+                    .into(),
+                ),
+            );
         } else {
             // Rewrite to a set of binarized rules.
             // From `LHS ⸬= A B C … X Y Z` to:
@@ -312,17 +285,24 @@ where
             let right_iter = rhs_iter.rev().map(Some).chain(iter::once(None));
 
             let mut next_lhs = lhs;
-            let make_rule = |(depth, (left, right))| {
+            let history_graph = &mut self.history_graph;
+            let make_rule = |(depth, (left, right)): (usize, _)| {
                 let lhs = next_lhs;
                 next_lhs = left;
                 BinarizedRule {
                     lhs: lhs,
-                    rhs: if let Some(r) = right {
-                        Two([left, r])
+                    rhs: if let Some(right) = right {
+                        Two([left, right])
                     } else {
                         One([left])
                     },
-                    history: history.binarize(&this_rule_ref, depth),
+                    history_id: history_graph.add_history_node(
+                        HistoryNodeBinarize {
+                            prev: history_id,
+                            depth: depth as u32,
+                        }
+                        .into(),
+                    ),
                 }
             };
             self.rules
@@ -331,15 +311,25 @@ where
     }
 }
 
-impl<H> EmptyRuleContainer for BinarizedCfg<H> {
-    fn empty(&self) -> Self {
-        BinarizedCfg::default()
+/// Iterator over binarized rules.
+pub type BinarizedRules<'a> = iter::Chain<
+    LhsWithHistoryToRuleRef<'a, iter::Enumerate<iter::Cloned<slice::Iter<'a, Option<HistoryId>>>>>,
+    BinarizedRuleToRuleRef<slice::Iter<'a, BinarizedRule>>,
+>;
+
+impl<'a> RuleContainerRef<'a> for &'a BinarizedCfg {
+    type RuleRef = RuleRef<'a>;
+    type Rules = BinarizedRules<'a>;
+
+    fn rules(self) -> Self::Rules {
+        LhsWithHistoryToRuleRef::new(self.nulling.iter().cloned().enumerate())
+            .chain(BinarizedRuleToRuleRef::new(self.rules.iter()))
     }
 }
 
-impl<H> GrammarRule for BinarizedRule<H> {
-    type History = H;
+impl<'a> RuleContainerMut<'a> for &'a mut BinarizedCfg {}
 
+impl GrammarRule for BinarizedRule {
     fn lhs(&self) -> Symbol {
         self.lhs
     }
@@ -351,16 +341,16 @@ impl<H> GrammarRule for BinarizedRule<H> {
         }
     }
 
-    fn history(&self) -> &H {
-        &self.history
+    fn history_id(&self) -> HistoryId {
+        self.history_id
     }
 }
 
-impl<H> BinarizedRule<H> {
+impl BinarizedRule {
     /// Creates a new binarized rule.
-    pub fn new(lhs: Symbol, rhs: &[Symbol], history: H) -> Self {
+    pub fn new(lhs: Symbol, rhs: &[Symbol], history_id: HistoryId) -> Self {
         BinarizedRule {
-            history: history,
+            history_id,
             lhs: lhs,
             rhs: if rhs.len() == 1 {
                 One([rhs[0]])
@@ -394,25 +384,25 @@ impl<H> BinarizedRule<H> {
     }
 }
 
-impl<H> PartialEq for BinarizedRule<H> {
+impl PartialEq for BinarizedRule {
     fn eq(&self, other: &Self) -> bool {
         (self.lhs, &self.rhs) == (other.lhs, &other.rhs)
     }
 }
 
-impl<H> PartialOrd for BinarizedRule<H> {
+impl PartialOrd for BinarizedRule {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         (self.lhs, &self.rhs).partial_cmp(&(other.lhs, &other.rhs))
     }
 }
 
-impl<H> Ord for BinarizedRule<H> {
+impl Ord for BinarizedRule {
     fn cmp(&self, other: &Self) -> Ordering {
         (self.lhs, &self.rhs).cmp(&(other.lhs, &other.rhs))
     }
 }
 
-impl<H> Eq for BinarizedRule<H> {}
+impl Eq for BinarizedRule {}
 
 /// A wrapper for iteration over rule refs.
 pub struct BinarizedRuleToRuleRef<I> {
@@ -426,20 +416,15 @@ impl<I> BinarizedRuleToRuleRef<I> {
     }
 }
 
-impl<'a, I, R, H> Iterator for BinarizedRuleToRuleRef<I>
+impl<'a, I, R> Iterator for BinarizedRuleToRuleRef<I>
 where
     I: Iterator<Item = &'a R>,
-    R: GrammarRule<History = H> + 'a,
-    H: 'a,
+    R: GrammarRule + 'a,
 {
-    type Item = RuleRef<'a, H>;
+    type Item = RuleRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next().map(|rule| RuleRef {
-            lhs: rule.lhs(),
-            rhs: rule.rhs(),
-            history: rule.history(),
-        })
+        self.iter.next().map(|rule| rule.as_ref())
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -448,34 +433,43 @@ where
 }
 
 /// A type for iteration over rule refs.
-pub type LhsWithHistory<'a, H> = (usize, &'a Option<H>);
+pub type LhsWithHistory<'a> = (usize, Option<HistoryId>);
 
 /// A wrapper for iteration over rule refs.
-pub struct LhsWithHistoryToRuleRef<I> {
+pub struct LhsWithHistoryToRuleRef<'a, I>
+where
+    I: Iterator<Item = LhsWithHistory<'a>>,
+{
     iter: I,
+    marker: PhantomData<&'a ()>,
 }
 
-impl<I> LhsWithHistoryToRuleRef<I> {
+impl<'a, I> LhsWithHistoryToRuleRef<'a, I>
+where
+    I: Iterator<Item = LhsWithHistory<'a>>,
+{
     /// Creates a new LhsWithHistoryToRuleRef.
     pub fn new(iter: I) -> Self {
-        LhsWithHistoryToRuleRef { iter: iter }
+        LhsWithHistoryToRuleRef {
+            iter,
+            marker: PhantomData,
+        }
     }
 }
 
-impl<'a, I, H> Iterator for LhsWithHistoryToRuleRef<I>
+impl<'a, I> Iterator for LhsWithHistoryToRuleRef<'a, I>
 where
-    I: Iterator<Item = LhsWithHistory<'a, H>>,
-    H: 'a,
+    I: Iterator<Item = LhsWithHistory<'a>>,
 {
-    type Item = RuleRef<'a, H>;
+    type Item = RuleRef<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         for (lhs, history_opt) in &mut self.iter {
-            if let Some(history) = history_opt.as_ref() {
+            if let Some(history_id) = history_opt {
                 return Some(RuleRef {
                     lhs: Symbol::from(lhs),
                     rhs: &[],
-                    history: history,
+                    history_id,
                 });
             }
         }
