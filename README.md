@@ -19,12 +19,12 @@
 
 [crates.io shield]: https://img.shields.io/crates/v/cfg?label=latest
 [crates.io link]: https://crates.io/crates/cfg
-[docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.5.0
-[docs.rs link]: https://docs.rs/cfg/0.5.0/cfg/
+[docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.6.0
+[docs.rs link]: https://docs.rs/cfg/0.6.0/cfg/
 [github ci badge]: https://github.com/pczarn/cfg/workflows/CI/badge.svg?branch=master
 [rustc 1.56+]: https://img.shields.io/badge/rustc-1.56%2B-blue.svg
-[deps.rs status]: https://deps.rs/crate/cfg/0.5.0/status.svg
-[deps.rs link]: https://deps.rs/crate/cfg/0.5.0
+[deps.rs status]: https://deps.rs/crate/cfg/0.6.0/status.svg
+[deps.rs link]: https://deps.rs/crate/cfg/0.6.0
 [shields.io download count]: https://img.shields.io/crates/d/cfg.svg
 
 Rust library for manipulating context-free grammars.
@@ -40,7 +40,8 @@ The following features are implemented thus far:
 * nulling rule elimination for binarized grammars,
 * FIRST and FOLLOW set computation,
 * minimal distance computation,
-* unused symbol removal.
+* unused symbol removal,
+* generation for PCFGs.
 
 ## Building grammars
 
