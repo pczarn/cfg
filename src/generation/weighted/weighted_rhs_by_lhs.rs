@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::Symbol;
+use super::random::GenRange;
 use grammar::ContextFreeRef;
 use rule::GrammarRule;
 
@@ -65,10 +66,10 @@ impl<W: Weight> WeightedRhsByLhs<W> {
     #[cfg(feature = "rand")]
     pub fn pick_rhs<R>(&self, lhs: Symbol, rng: &mut R) -> &[Symbol]
     where
-        R: rand::Rng,
+        R: GenRange,
     {
         if let Some(weighted_rhs_list) = self.weights.get(&lhs) {
-            let value = rng.gen_range(0.0..weighted_rhs_list.total_weight.into());
+            let value = rng.gen(weighted_rhs_list.total_weight.into());
             match weighted_rhs_list.rhs_list.binary_search_by(|weighted_rhs| {
                 weighted_rhs
                     .weight
