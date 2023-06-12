@@ -38,7 +38,7 @@ mod analysis;
 pub mod binarized;
 pub mod classification;
 pub mod earley;
-pub mod generate;
+pub mod generation;
 mod grammar;
 pub mod history;
 pub mod precedence;

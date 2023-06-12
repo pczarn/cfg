@@ -6,7 +6,7 @@ extern crate rand;
 mod grammars;
 
 #[cfg(feature = "rand")]
-use cfg::generate::weighted::Random;
+use cfg::generation::weighted::Random;
 #[cfg(feature = "generation")]
 use grammars::*;
 
