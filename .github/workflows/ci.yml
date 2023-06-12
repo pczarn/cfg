@@ -68,6 +68,22 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.69.0
       - run: cargo build --features generation
 
+  build:
+    name: Rust ${{matrix.rust}}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [1.68.0, 1.65.0, 1.60.0, 1.55.0, 1.50.0, 1.45.0, 1.40.0, 1.35.0]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+      - run: cargo build --features generation
+      - run: cargo test
+
   # clippy:
   #   name: Clippy
   #   runs-on: ubuntu-latest
