@@ -8,8 +8,8 @@
 [![crates.io][crates.io shield]][crates.io link]
 [![Documentation][docs.rs badge]][docs.rs link]
 ![Rust CI][github ci badge]
-[![rustc 1.0+]][Rust 1.0]
-[![serde_derive: rustc 1.31+]][Rust 1.31]
+![MSRV][rustc 1.55+]
+<br />
 <br />
 [![Dependency Status][deps.rs status]][deps.rs link]
 [![Download Status][shields.io download count]][crates.io link]
@@ -20,12 +20,9 @@
 [crates.io shield]: https://img.shields.io/crates/v/cfg?label=latest
 [crates.io link]: https://crates.io/crates/cfg
 [docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.5.0
-[docs.rs link]: https://docs.rs/cfg/0.5.0/bit_vec/
-[github ci badge]: https://github.com/contain-rs/linked-hash-map/workflows/Rust/badge.svg?branch=master
-[rustc 1.0+]: https://img.shields.io/badge/rustc-1.0%2B-blue.svg
-[serde_derive: rustc 1.31+]: https://img.shields.io/badge/serde_derive-rustc_1.31+-lightgray.svg
-[Rust 1.0]: https://blog.rust-lang.org/2015/05/15/Rust-1.0.html
-[Rust 1.31]: https://blog.rust-lang.org/2018/12/06/Rust-1.31-and-rust-2018.html
+[docs.rs link]: https://docs.rs/cfg/0.5.0/cfg/
+[github ci badge]: https://github.com/pczarn/cfg/workflows/CI/badge.svg?branch=master
+[rustc 1.55+]: https://img.shields.io/badge/rustc-1.55%2B-blue.svg
 [deps.rs status]: https://deps.rs/crate/cfg/0.5.0/status.svg
 [deps.rs link]: https://deps.rs/crate/cfg/0.5.0
 [shields.io download count]: https://img.shields.io/crates/d/cfg.svg

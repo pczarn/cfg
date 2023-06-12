@@ -44,6 +44,8 @@ jobs:
         with:
           toolchain: ${{matrix.rust}}
       - run: cargo build --features generation
+      - run: cargo build --features serialize
+      - run: cargo build --features generation,serialize
       - run: cargo test
 
   nightly:
@@ -58,23 +60,16 @@ jobs:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo build --features generation
+      - run: cargo build --features serialize
+      - run: cargo build --features generation,serialize
 
-  generation:
-    name: Rust 1.69.0
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.69.0
-      - run: cargo build --features generation
-
-  build:
+  msrv:
     name: Rust ${{matrix.rust}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        rust: [1.68.0, 1.65.0, 1.60.0, 1.55.0, 1.50.0, 1.45.0, 1.40.0, 1.35.0]
+        rust: [1.55.0, 1.56.0, 1.57.0]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v3
@@ -82,6 +77,8 @@ jobs:
         with:
           toolchain: ${{matrix.rust}}
       - run: cargo build --features generation
+      - run: cargo build --features serialize
+      - run: cargo build --features generation,serialize
       - run: cargo test
 
   # clippy:
