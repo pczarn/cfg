@@ -4,8 +4,9 @@ pub const FIRST_ID: SymbolRepr = 0;
 
 /// A common grammar symbol type.
 #[derive(
-    Serialize, Deserialize, Clone, Copy, Debug, Default, Hash, Eq, Ord, PartialEq, PartialOrd,
+    Clone, Copy, Debug, Default, Hash, Eq, Ord, PartialEq, PartialOrd,
 )]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Symbol(SymbolRepr);
 
 impl From<SymbolRepr> for Symbol {
