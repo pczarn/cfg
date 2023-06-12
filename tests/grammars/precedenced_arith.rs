@@ -1,8 +1,8 @@
 use cfg::earley::Grammar;
 #[cfg(feature = "generation")]
-use cfg::generate::weighted::history::WeightedHistory;
+use cfg::generation::weighted::history::WeightedHistory;
 #[cfg(feature = "generation")]
-use cfg::generate::weighted::WeightedGrammar;
+use cfg::generation::weighted::WeightedGrammar;
 
 pub fn grammar() -> Grammar {
     let mut bnf = Grammar::new();
