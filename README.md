@@ -1,7 +1,37 @@
-## cfg • [![Build status](https://api.travis-ci.org/pczarn/cfg.png?branch=master)](https://travis-ci.org/pczarn/cfg) [![Latest version](https://img.shields.io/crates/v/cfg.png)](https://crates.io/crates/cfg)
+<div align="center">
+  <h1>cfg</h1>
+  <p>
+    <strong>Context-free grammar tools.</strong>
+  </p>
+  <p>
+
+[![crates.io][crates.io shield]][crates.io link]
+[![Documentation][docs.rs badge]][docs.rs link]
+![Rust CI][github ci badge]
+[![rustc 1.0+]][Rust 1.0]
+[![serde_derive: rustc 1.31+]][Rust 1.31]
+<br />
+[![Dependency Status][deps.rs status]][deps.rs link]
+[![Download Status][shields.io download count]][crates.io link]
+
+  </p>
+</div>
+
+[crates.io shield]: https://img.shields.io/crates/v/cfg?label=latest
+[crates.io link]: https://crates.io/crates/cfg
+[docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.5.0
+[docs.rs link]: https://docs.rs/cfg/0.5.0/bit_vec/
+[github ci badge]: https://github.com/contain-rs/linked-hash-map/workflows/Rust/badge.svg?branch=master
+[rustc 1.0+]: https://img.shields.io/badge/rustc-1.0%2B-blue.svg
+[serde_derive: rustc 1.31+]: https://img.shields.io/badge/serde_derive-rustc_1.31+-lightgray.svg
+[Rust 1.0]: https://blog.rust-lang.org/2015/05/15/Rust-1.0.html
+[Rust 1.31]: https://blog.rust-lang.org/2018/12/06/Rust-1.31-and-rust-2018.html
+[deps.rs status]: https://deps.rs/crate/cfg/0.5.0/status.svg
+[deps.rs link]: https://deps.rs/crate/cfg/0.5.0
+[shields.io download count]: https://img.shields.io/crates/d/cfg.svg
 
 Rust library for manipulating context-free grammars.
-[You can check the documentation here](http://pczarn.github.io/cfg/).
+[You can check the documentation here](https://docs.rs/cfg/).
 
 ## Analyzing and modifying grammars
 
