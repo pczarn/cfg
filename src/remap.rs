@@ -25,7 +25,8 @@ struct Intern {
 }
 
 /// Contains maps for translation between internal and external symbols.
-#[derive(Serialize, Deserialize, Clone, Default, Debug)]
+#[derive(Clone, Default, Debug)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Mapping {
     /// An array of internal symbols, indexed by external symbol ID.
     pub to_internal: Vec<Option<Symbol>>,

@@ -19,8 +19,10 @@
 extern crate bit_matrix;
 extern crate bit_vec;
 extern crate optional;
+#[cfg(feature = "serde")]
 extern crate serde;
 #[macro_use]
+#[cfg(feature = "serde_derive")]
 extern crate serde_derive;
 #[cfg(feature = "num")]
 extern crate num;

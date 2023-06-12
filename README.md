@@ -1,7 +1,34 @@
-## cfg • [![Build status](https://api.travis-ci.org/pczarn/cfg.png?branch=master)](https://travis-ci.org/pczarn/cfg) [![Latest version](https://img.shields.io/crates/v/cfg.png)](https://crates.io/crates/cfg)
+<div align="center">
+  <h1>cfg</h1>
+  <p>
+    <strong>Context-free grammar tools.</strong>
+  </p>
+  <p>
+
+[![crates.io][crates.io shield]][crates.io link]
+[![Documentation][docs.rs badge]][docs.rs link]
+![Rust CI][github ci badge]
+![MSRV][rustc 1.56+]
+<br />
+<br />
+[![Dependency Status][deps.rs status]][deps.rs link]
+[![Download Status][shields.io download count]][crates.io link]
+
+  </p>
+</div>
+
+[crates.io shield]: https://img.shields.io/crates/v/cfg?label=latest
+[crates.io link]: https://crates.io/crates/cfg
+[docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.5.0
+[docs.rs link]: https://docs.rs/cfg/0.5.0/cfg/
+[github ci badge]: https://github.com/pczarn/cfg/workflows/CI/badge.svg?branch=master
+[rustc 1.56+]: https://img.shields.io/badge/rustc-1.56%2B-blue.svg
+[deps.rs status]: https://deps.rs/crate/cfg/0.5.0/status.svg
+[deps.rs link]: https://deps.rs/crate/cfg/0.5.0
+[shields.io download count]: https://img.shields.io/crates/d/cfg.svg
 
 Rust library for manipulating context-free grammars.
-[You can check the documentation here](http://pczarn.github.io/cfg/).
+[You can check the documentation here](https://docs.rs/cfg/).
 
 ## Analyzing and modifying grammars
 
