@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::Symbol;
 use super::random::GenRange;
+use crate::Symbol;
 use grammar::ContextFreeRef;
 use rule::GrammarRule;
 

@@ -17,7 +17,7 @@ pub trait Random {
     }
 }
 
-pub struct ByteSource<I: Iterator<Item=u8>>(I);
+pub struct ByteSource<I: Iterator<Item = u8>>(I);
 
 pub trait GenRange {
     fn gen(&mut self, limit: f64) -> f64;
@@ -25,11 +25,11 @@ pub trait GenRange {
 
 impl<R: Rng> GenRange for R {
     fn gen(&mut self, limit: f64) -> f64 {
-        self.gen_range(0.0 .. limit)
+        self.gen_range(0.0..limit)
     }
 }
 
-impl<I: Iterator<Item=u8>> GenRange for ByteSource<I> {
+impl<I: Iterator<Item = u8>> GenRange for ByteSource<I> {
     fn gen(&mut self, limit: f64) -> f64 {
         self.0.next().unwrap_or(0) as f64 * limit / 255.0
     }
