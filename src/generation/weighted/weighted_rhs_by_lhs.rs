@@ -77,7 +77,7 @@ impl<W: Weight> WeightedRhsByLhs<W> {
                     .partial_cmp(&value)
                     .expect("invalid float")
             }) {
-                Ok(idx) | Err(idx) => &weighted_rhs_list.rhs_list[idx - 1].rhs[..],
+                Ok(idx) | Err(idx) => &weighted_rhs_list.rhs_list[idx.saturating_sub(1)].rhs[..],
             }
         } else {
             &[]

@@ -8,7 +8,7 @@ use rand::{thread_rng, Rng};
 pub struct LimitExceeded;
 
 pub trait Random {
-    fn random<R: Rng>(&self, limit: Option<u64>, rng: &mut R)
+    fn random<R: GenRange>(&self, limit: Option<u64>, rng: &mut R)
         -> Result<Vec<Symbol>, LimitExceeded>;
 
     fn with_thread_rng(&self, limit: Option<u64>) -> Result<Vec<Symbol>, LimitExceeded> {
@@ -21,6 +21,12 @@ pub struct ByteSource<I: Iterator<Item = u8>>(I);
 
 pub trait GenRange {
     fn gen(&mut self, limit: f64) -> f64;
+}
+
+impl<I: Iterator<Item = u8>> ByteSource<I> {
+    pub fn new(iter: I) -> Self {
+        ByteSource(iter)
+    }
 }
 
 impl<R: Rng> GenRange for R {
@@ -55,7 +61,7 @@ impl<W: Weight> Random for WeightedBinarizedGrammar<W> {
                 }
             } else {
                 let rhs = weighted.pick_rhs(sym, rng);
-                work.extend(rhs);
+                work.extend(rhs.iter().cloned().rev());
             }
         }
         Ok(result)
