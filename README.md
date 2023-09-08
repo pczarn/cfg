@@ -34,14 +34,22 @@ Rust library for manipulating context-free grammars.
 
 The following features are implemented thus far:
 
-* cycle detection and elimination,
-* useless rule detection and elimination,
-* grammar binarization,
-* nulling rule elimination for binarized grammars,
-* FIRST and FOLLOW set computation,
-* minimal distance computation,
-* unused symbol removal,
-* generation for PCFGs.
+* rich rule building
+  * sequence rules,
+  * precedenced rules.
+* conversions to a shape similar to Chomsky Normal Form
+  * grammar binarization,
+  * nulling rule elimination for binarized grammars.
+* sanity
+  * cycle detection and elimination,
+  * useless rule detection and elimination,
+  * unused symbol removal.
+* analysis for LR(1), LL(1) and others
+  * FIRST and FOLLOW set computation,
+  * minimal distance computation,
+  * LL(1) classification.
+* tools for probabilistic grammars
+  * generation for PCFGs.
 
 ## Building grammars
 
