@@ -77,6 +77,9 @@ impl BinarizedGrammar {
                                 (0..=rhs.len()).map(|i| RuleDot::new(0, i)).collect();
                             prev_history
                         }
+                        &LinkedHistoryNode::Distances { .. } => {
+                            prev_history
+                        }
                     }
                 }
                 &HistoryNode::Root(RootHistoryNode::NoOp) => History::new(0, 0),

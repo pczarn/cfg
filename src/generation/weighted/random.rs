@@ -20,6 +20,7 @@ pub trait Random {
     }
 }
 
+#[derive(Clone)]
 pub struct ByteSource<I: Iterator<Item = u8>>(I);
 
 pub trait GenRange {
@@ -44,30 +45,47 @@ impl<R: Rng> GenRange for R {
     }
 }
 
-impl<I: Iterator<Item = u8>> GenRange for ByteSource<I> {
+impl<I: Iterator<Item = u8> + Clone> GenRange for ByteSource<I> {
     fn gen(&mut self, limit: f64) -> f64 {
         self.0.next().unwrap_or(0) as f64 * limit / 255.0
     }
 }
 
 impl<W: Weight> Random for WeightedBinarizedGrammar<W> {
-    fn random<R: GenRange>(
+    fn random<R: GenRange + Clone>(
         &self,
         limit: Option<u64>,
         rng: &mut R,
+        negative_rules: &[NegativeRules],
+        to_char: Fn(Symbol) -> Option<char>,
     ) -> Result<Vec<Symbol>, LimitExceeded> {
         let weighted = self.weighted();
         let mut work = vec![self.start()];
         let mut result = vec![];
+        let mut string = String::new();
         let terminal_set = SymbolBitSet::terminal_set(self);
+        let negative: BTreeMap<Symbol, &str> = negative_rules.iter().map(|neg| (neg.sym, &neg.chars[..])).collect();
+        let mut backtracking: BTreeMap<usize, Vec<(String, R)>> = vec![];
+        let mut 
         while let Some(sym) = work.pop() {
             if terminal_set.has_sym(sym) {
                 result.push(sym);
+                if let Some(ch) = to_char(sym) {
+                    string.extend(ch);
+                }
                 if let Some(max_terminals) = limit {
                     if result.len() as u64 > max_terminals {
                         return Err(LimitExceeded);
                     }
                 }
+                if let Some((forbidden, backtrack_rng)) = backtracking.get(&string.len()) {
+                    if string.ends_with(forbidden) {
+                        *rng = backtrack_rng;
+                        string.truncate(string.len() - forbidden.len());
+                    }
+                }
+            } else if let Some(forbidden) = negative.get(&sym) {
+                backtracking.insert(string.len() + forbidden.len(), (forbidden, rng.clone()));
             } else {
                 let rhs = weighted.pick_rhs(sym, rng);
                 work.extend(rhs.iter().cloned().rev());

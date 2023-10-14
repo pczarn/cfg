@@ -45,6 +45,9 @@ pub enum LinkedHistoryNode {
     Weight {
         weight: f64,
     },
+    Distances {
+        events: Vec<u32>,
+    },
 }
 
 #[derive(Clone, Copy)]

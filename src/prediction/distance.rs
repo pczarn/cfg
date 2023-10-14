@@ -1,8 +1,7 @@
 //! Calculation of minimum distance from one part of the grammar to another.
 
-use std::cmp;
-
 use crate::analysis::RhsClosure;
+use crate::history::LinkedHistoryNode;
 use crate::prelude::*;
 use crate::rule::GrammarRule;
 use crate::symbol::{Symbol, SymbolBitSet};
@@ -11,7 +10,7 @@ use crate::symbol::{Symbol, SymbolBitSet};
 /// Similar to multi-source shortest path search in a graph.
 pub struct MinimalDistance<'a, G: 'a> {
     grammar: &'a G,
-    distances: Vec<Vec<Option<u32>>>,
+    distances: Vec<(HistoryId, Vec<Option<u32>>)>,
     prediction_distances: Vec<Option<u32>>,
     completion_distances: Vec<Option<u32>>,
     min_of: Vec<Option<u32>>,
@@ -26,7 +25,7 @@ where
     pub fn new(grammar: &'a G) -> Self {
         let distances = grammar
             .rules()
-            .map(|rule| vec![None; rule.rhs().len() + 1])
+            .map(|rule| (rule.history_id(), vec![None; rule.rhs().len() + 1]))
             .collect();
         MinimalDistance {
             grammar: grammar,
@@ -38,19 +37,15 @@ where
     }
 
     /// Returns distances in order respective to the order of rule iteration.
-    pub fn distances(&self) -> &[Vec<Option<u32>>] {
+    pub fn distances(&self) -> &[(HistoryId, Vec<Option<u32>>)] {
         &self.distances[..]
     }
 
     /// Calculates minimal distance from one parts of the grammar to others.
     /// Returns distances in order respective to the order of rule iteration.
-    pub fn minimal_distances<I, J>(&mut self, iter: I) -> &[Vec<Option<u32>>]
-    where
-        I: Iterator<Item = (<&'a G as RuleContainerRef<'a>>::RuleRef, J)>,
-        J: Iterator<Item = usize>,
-    {
+    pub fn minimal_distances(&mut self) -> &[(HistoryId, Vec<Option<u32>>)] {
         self.minimal_sentence_lengths();
-        self.immediate_minimal_distances(iter);
+        self.immediate_minimal_distances();
         self.transitive_minimal_distances();
         self.distances()
     }
@@ -71,15 +66,19 @@ where
         RhsClosure::new(self.grammar).rhs_closure_with_values(&mut self.min_of);
     }
 
-    fn immediate_minimal_distances<I, J>(&mut self, iter: I)
-    where
-        I: Iterator<Item = (<&'a G as RuleContainerRef<'a>>::RuleRef, J)>,
-        J: Iterator<Item = usize>,
-    {
+    fn immediate_minimal_distances(&mut self) {
         // Calculates distances within rules.
-        for (idx, (rule, positions)) in iter.enumerate() {
-            for position in positions {
-                let (min, _) = self.update_rule_distances(0, &rule.rhs()[..position], idx);
+        for (idx, rule) in self.grammar.rules().enumerate() {
+            let mut history = &self.grammar.history_graph()[rule.history_id().get()];
+            let mut positions = &[][..];
+            while let &HistoryNode::Linked { prev, ref node } = history {
+                if let &LinkedHistoryNode::Distances { ref events } = node {
+                    positions = &events[..];
+                }
+                history = &self.grammar.history_graph()[prev.get()];
+            }
+            for &position in positions {
+                let (min, _) = self.update_rule_distances(0, &rule.rhs()[.. position as usize], idx);
                 set_min(&mut self.prediction_distances[rule.lhs().usize()], min);
             }
         }
@@ -102,13 +101,13 @@ where
 
     // Update distances in a rule.
     fn update_rule_distances(&mut self, mut cur: u32, rhs: &[Symbol], idx: usize) -> (u32, bool) {
-        let set = &mut self.distances[idx];
+        let &mut (_, ref mut set) = &mut self.distances[idx];
         for (dot, sym) in rhs.iter().enumerate().rev() {
             set_min(&mut self.completion_distances[sym.usize()], cur);
             set_min(&mut set[dot + 1], cur);
             cur += self.min_of[sym.usize()].unwrap();
             if let Some(sym_predicted) = self.prediction_distances[sym.usize()] {
-                cur = cmp::min(cur, sym_predicted);
+                cur = cur.min(sym_predicted);
             }
         }
         let changed = set_min(&mut set[0], cur);
