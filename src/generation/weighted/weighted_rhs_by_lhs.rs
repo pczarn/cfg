@@ -1,10 +1,8 @@
 use std::collections::BTreeMap;
 
+use crate::history::LinkedHistoryNode;
+use crate::prelude::*;
 use super::random::GenRange;
-use super::random::GenRange;
-use crate::Symbol;
-use grammar::ContextFreeRef;
-use rule::GrammarRule;
 
 use super::*;
 
@@ -43,21 +41,39 @@ impl<W: Weight> WeightedRhsByLhs<W> {
     }
 }
 
-impl<W: Weight> WeightedGrammar<W> {
-    pub fn weighted(&self) -> WeightedRhsByLhs<W> {
+impl Cfg {
+    pub fn weighted(&self) -> WeightedRhsByLhs<f64> {
         let mut weighted = WeightedRhsByLhs::new();
         for rule in self.rules() {
-            weighted.add_weight(rule.history().weight(), rule.lhs(), rule.rhs());
+            let mut history_id = rule.history_id();
+            let mut result = None;
+            while let &HistoryNode::Linked { prev, ref node } = &self.history_graph()[history_id.get()] {
+                if let &LinkedHistoryNode::Weight { weight } = node {
+                    result = Some(weight);
+                    break;
+                }
+                history_id = prev;
+            }
+            weighted.add_weight(result.unwrap_or(1.0), rule.lhs(), rule.rhs());
         }
         weighted
     }
 }
 
-impl<W: Weight> WeightedBinarizedGrammar<W> {
-    pub fn weighted(&self) -> WeightedRhsByLhs<W> {
+impl BinarizedCfg {
+    pub fn weighted(&self) -> WeightedRhsByLhs<f64> {
         let mut weighted = WeightedRhsByLhs::new();
         for rule in self.rules() {
-            weighted.add_weight(rule.history().weight(), rule.lhs(), rule.rhs());
+            let mut history_id = rule.history_id();
+            let mut result = None;
+            while let &HistoryNode::Linked { prev, ref node } = &self.history_graph()[history_id.get()] {
+                if let &LinkedHistoryNode::Weight { weight } = node {
+                    result = Some(weight);
+                    break;
+                }
+                history_id = prev;
+            }
+            weighted.add_weight(result.unwrap_or(1.0), rule.lhs(), rule.rhs());
         }
         weighted
     }
@@ -70,6 +86,9 @@ impl<W: Weight> WeightedRhsByLhs<W> {
         R: GenRange,
     {
         if let Some(weighted_rhs_list) = self.weights.get(&lhs) {
+            if weighted_rhs_list.rhs_list.len() == 1 {
+                return &weighted_rhs_list.rhs_list[0].rhs[..];
+            }
             let value = rng.gen(weighted_rhs_list.total_weight.into());
             match weighted_rhs_list.rhs_list.binary_search_by(|weighted_rhs| {
                 weighted_rhs

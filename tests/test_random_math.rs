@@ -23,43 +23,36 @@ fn test_precedenced_arith() {
     use rand::rngs::SmallRng;
     use rand::SeedableRng;
 
-    let grammar = precedenced_arith::weighted_grammar();
+    let (grammar, start, sym_map, _) = precedenced_arith::weighted_grammar();
     let binarized = grammar.binarize();
 
     let mut rng = SmallRng::seed_from_u64(42);
-    let string = binarized.random(Some(1_000_000), &mut rng);
-    let expected = Ok(vec![
-        11u32.into(),
-        15u32.into(),
-        17u32.into(),
-        7u32.into(),
-        9u32.into(),
-        18u32.into(),
-        6u32.into(),
-        10u32.into(),
-        5u32.into(),
-        18u32.into(),
-        14u32.into(),
-        19u32.into(),
-        7u32.into(),
-        13u32.into(),
-        4u32.into(),
-        10u32.into(),
-        19u32.into(),
-        19u32.into(),
-        15u32.into(),
-        6u32.into(),
-        18u32.into(),
-        8u32.into(),
-        4u32.into(),
-        9u32.into(),
-        17u32.into(),
-        5u32.into(),
-        13u32.into(),
-        6u32.into(),
-        13u32.into(),
-        8u32.into(),
-    ]);
+    let syms = binarized.random(start, Some(1_000_000), &mut rng, &[], |_| None);
+    let string = syms.map(|sym_list| {
+        sym_list.into_iter().map(|s| sym_map.get(&s).cloned().unwrap_or('X')).collect::<String>()
+    });
+    let expected = Ok("(5/0*1/6948/92*3614-90)-8*8-(7/615)+3/1".to_string());
+    assert_eq!(string, expected);
+}
+
+#[cfg(feature = "generation")]
+#[test]
+fn test_precedenced_arith_with_negative_lookahead() {
+    use cfg::generation::weighted::NegativeRule;
+    use rand::rngs::SmallRng;
+    use rand::SeedableRng;
+
+    let (grammar, start, sym_map, neg) = precedenced_arith::weighted_grammar();
+    let binarized = grammar.binarize();
+
+    let mut rng = SmallRng::seed_from_u64(42);
+    let neg = NegativeRule { sym: neg, chars: "0" };
+    let to_char = |sym| sym_map.get(&sym).cloned();
+    let syms = binarized.random(start, Some(1_000_000), &mut rng, &[neg], to_char);
+    let string = syms.map(|sym_list| {
+        sym_list.into_iter().map(|s| sym_map.get(&s).cloned().unwrap_or('X')).collect::<String>()
+    });
+    let expected = Ok("(5/3*(8-2)/3614/990*(98)-(7/615))-3/1-7+((4179*683)/1)".to_string());
     assert_eq!(string, expected);
 }
 
