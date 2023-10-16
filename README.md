@@ -49,7 +49,7 @@ The following features are implemented thus far:
   * minimal distance computation,
   * LL(1) classification.
 * tools for probabilistic grammars
-  * generation for PCFGs.
+  * generation for PCFGs + negative zero-width lookahead.
 
 ## Building grammars
 
@@ -123,7 +123,7 @@ grammar.precedenced_rule(expr)
 
 ## Using a custom grammar representation
 
-Your grammar type has to implement a trait, and two more traits are needed for grammar references<>:
+Your grammar type has to implement a trait, and two more traits are needed for grammar references:
 
 * implement `RuleContainer` for `MyGrammar`
 * implement `RuleContainerRef` for `&'a MyGrammar`
