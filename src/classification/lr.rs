@@ -5,10 +5,9 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
-use rule::GrammarRule;
-use symbol::{Symbol, SymbolBitSet};
-use ContextFree;
-use ContextFreeRef;
+use crate::history::RootHistoryNode;
+use crate::prelude::*;
+use crate::symbol::SymbolBitSet;
 
 type Dot = u32;
 type RuleId = u32;
@@ -59,8 +58,8 @@ impl Lr0Items {
 
 impl<'a, G> Lr0ClosureBuilder<'a, G>
 where
-    G: ContextFree,
-    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
+    G: RuleContainer + Default,
+    for<'b> &'b G: RuleContainerRef<'b, Target = G>,
 {
     /// Creates a builder for an LR(0) item closure.
     pub fn new(grammar: &'a mut G) -> Self {
@@ -141,9 +140,8 @@ where
 
 impl<'a, G> Lr0FsmBuilder<'a, G>
 where
-    G: ContextFree,
-    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
-    G::History: Default,
+    G: RuleContainer + Default,
+    for<'b> &'b G: RuleContainerRef<'b, Target = G>,
 {
     /// Creates a new LR(0) Finite State Machine builder.
     pub fn new(grammar: &'a mut G) -> Self {
@@ -191,10 +189,14 @@ where
     fn augment_grammar(&mut self, start_sym: Symbol) -> (Symbol, RuleId) {
         let new_start = self.closure.grammar.sym();
         let rule_id = self.closure.grammar.rules().count() as RuleId;
+        let history_id = self
+            .closure
+            .grammar
+            .add_history_node(RootHistoryNode::NoOp.into());
         self.closure
             .grammar
             .rule(new_start)
-            .rhs_with_history(&[start_sym], Default::default());
+            .rhs_with_history(&[start_sym], history_id);
         (new_start, rule_id)
     }
 

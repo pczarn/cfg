@@ -3,8 +3,8 @@ extern crate cfg;
 mod support;
 
 use cfg::classification::useful::Usefulness;
+use cfg::prelude::*;
 use cfg::sequence::Separator::*;
-use cfg::*;
 
 #[test]
 fn test_sequence() {

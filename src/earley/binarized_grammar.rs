@@ -3,25 +3,20 @@ use std::ops::{Deref, DerefMut};
 
 use bit_matrix::BitMatrix;
 
-use super::history::History;
-use binarized::BinarizedRules;
-use classification::useful::Usefulness;
-use remap::{Mapping, Remap};
-use rule::container::RuleContainer;
-use rule::GrammarRule;
-use rule::RuleRef;
-use symbol::SymbolSource;
-use BinarizedCfg;
-use ContextFree;
-use ContextFreeRef;
-use Symbol;
+use crate::binarized::BinarizedRules;
+use crate::classification::useful::Usefulness;
+use crate::history::{HistoryGraph, RootHistoryNode};
+use crate::prelude::*;
+use crate::remap::{Mapping, Remap};
+use crate::rule::GrammarRule;
+use crate::rule::RuleRef;
 
 type Dot = u32;
 
 /// Drop-in replacement for `cfg::BinarizedCfg`.
 #[derive(Clone, Default)]
 pub struct BinarizedGrammar {
-    pub(super) inherit: BinarizedCfg<History>,
+    pub(super) inherit: BinarizedCfg,
     pub(super) start: Option<Symbol>,
     pub(super) has_wrapped_start: bool,
 }
@@ -41,11 +36,9 @@ impl BinarizedGrammar {
     }
 }
 
-impl ContextFree for BinarizedGrammar {}
-
-impl<'a> ContextFreeRef<'a> for &'a BinarizedGrammar {
-    type RuleRef = RuleRef<'a, History>;
-    type Rules = BinarizedRules<'a, History>;
+impl<'a> RuleContainerRef<'a> for &'a BinarizedGrammar {
+    type RuleRef = RuleRef<'a>;
+    type Rules = BinarizedRules<'a>;
 
     fn rules(self) -> Self::Rules {
         self.inherit.rules()
@@ -53,7 +46,13 @@ impl<'a> ContextFreeRef<'a> for &'a BinarizedGrammar {
 }
 
 impl RuleContainer for BinarizedGrammar {
-    type History = History;
+    fn history_graph(&self) -> &HistoryGraph {
+        self.inherit.history_graph()
+    }
+
+    fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
+        self.inherit.add_history_node(node)
+    }
 
     fn sym_source(&self) -> &SymbolSource {
         self.inherit.sym_source()
@@ -65,18 +64,18 @@ impl RuleContainer for BinarizedGrammar {
 
     fn retain<F>(&mut self, f: F)
     where
-        F: FnMut(Symbol, &[Symbol], &History) -> bool,
+        F: FnMut(Symbol, &[Symbol], HistoryId) -> bool,
     {
         self.inherit.retain(f)
     }
 
-    fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: History) {
+    fn add_rule(&mut self, lhs: Symbol, rhs: &[Symbol], history: HistoryId) {
         self.inherit.add_rule(lhs, rhs, history);
     }
 }
 
 impl Deref for BinarizedGrammar {
-    type Target = BinarizedCfg<History>;
+    type Target = BinarizedCfg;
     fn deref(&self) -> &Self::Target {
         &self.inherit
     }
@@ -92,7 +91,8 @@ impl BinarizedGrammar {
     pub fn wrap_start(&mut self) {
         let start = self.start();
         let (new_start, eof) = self.sym();
-        self.add_rule(new_start, &[start, eof], History::default());
+        let history = self.add_history_node(RootHistoryNode::NoOp.into());
+        self.add_rule(new_start, &[start, eof], history);
         self.set_start(new_start);
         self.has_wrapped_start = true;
     }
@@ -101,8 +101,8 @@ impl BinarizedGrammar {
         if !self.has_wrapped_start {
             return None;
         }
-        let is_start_rule = |rule: &RuleRef<History>| rule.lhs() == self.start();
-        let rhs0 = |rule: RuleRef<History>| rule.rhs().get(0).cloned();
+        let is_start_rule = |rule: &RuleRef| rule.lhs() == self.start();
+        let rhs0 = |rule: RuleRef| rule.rhs().get(0).cloned();
         self.rules().find(is_start_rule).and_then(rhs0)
     }
 
@@ -110,8 +110,8 @@ impl BinarizedGrammar {
         if !self.has_wrapped_start {
             return None;
         }
-        let is_start_rule = |rule: &RuleRef<History>| rule.lhs() == self.start();
-        let rhs1 = |rule: RuleRef<History>| rule.rhs().get(1).cloned();
+        let is_start_rule = |rule: &RuleRef| rule.lhs() == self.start();
+        let rhs1 = |rule: RuleRef| rule.rhs().get(1).cloned();
         self.rules().find(is_start_rule).and_then(rhs1)
     }
 
@@ -119,7 +119,7 @@ impl BinarizedGrammar {
         if !self.has_wrapped_start {
             return None;
         }
-        let is_start_rule = |rule: RuleRef<History>| rule.lhs() == self.start();
+        let is_start_rule = |rule: RuleRef| rule.lhs() == self.start();
         let as_dot = |pos| pos as Dot;
         self.rules().position(is_start_rule).map(as_dot)
     }

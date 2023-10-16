@@ -4,7 +4,7 @@ mod support;
 
 use cfg::classification::useful::Usefulness;
 use cfg::precedence::Associativity::*;
-use cfg::{Cfg, ContextFree, ContextFreeRef};
+use cfg::prelude::*;
 
 #[test]
 fn test_simple_precedence() {
@@ -42,7 +42,8 @@ fn test_simple_precedence() {
         .rhs([top, plus, top])
         .rhs([top, minus, top])
         .lower_precedence()
-        .rhs([var, eq, top]);
+        .rhs([var, eq, top])
+        .finalize();
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, top, num, var) = equivalent.sym();
@@ -94,7 +95,8 @@ fn test_ternary_quaternary() {
         .associativity(Right)
         .rhs([top, ternary_op, top, sep, top])
         .associativity(Right)
-        .rhs([top, quaternary_op, top, sep, top, sep, top]);
+        .rhs([top, quaternary_op, top, sep, top, sep, top])
+        .finalize();
 
     let mut equivalent: Cfg = Cfg::new();
     let (start, top, num) = equivalent.sym();

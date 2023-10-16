@@ -45,10 +45,15 @@ pub mod precedence;
 pub mod prediction;
 pub mod remap;
 pub mod rule;
+pub mod rule_container;
 pub mod sequence;
 pub mod symbol;
 
-pub use binarized::BinarizedCfg;
-pub use grammar::{Cfg, ContextFree, ContextFreeMut, ContextFreeRef};
-pub use rule::GrammarRule;
-pub use symbol::Symbol;
+pub mod prelude {
+    pub use crate::binarized::BinarizedCfg;
+    pub use crate::grammar::Cfg;
+    pub use crate::history::{HistoryId, HistoryNode};
+    pub use crate::rule::GrammarRule;
+    pub use crate::rule_container::{RuleContainer, RuleContainerMut, RuleContainerRef};
+    pub use crate::symbol::{Symbol, SymbolSource};
+}

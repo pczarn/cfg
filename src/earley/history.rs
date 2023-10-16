@@ -1,9 +1,13 @@
 use optional::Optioned;
 use std::iter;
 
-use history::*;
-use rule::GrammarRule;
-use Symbol;
+use crate::{
+    history::{LinkedHistoryNode, RootHistoryNode},
+    prelude::*,
+};
+
+use super::BinarizedGrammar;
+use crate::history::BinarizedRhsSubset;
 
 type ExternalOrigin = Option<u32>;
 type EventId = Optioned<u32>;
@@ -12,26 +16,11 @@ type NullingEliminated = Option<(Symbol, bool)>;
 pub type ExternalDottedRule = (u32, u32);
 pub type Event = (EventId, MinimalDistance);
 
-/// Default history.
 #[derive(Copy, Clone)]
-pub struct BuildHistory {
-    num_rules: usize,
-}
-
-impl BuildHistory {
-    /// Creates default history.
-    pub(crate) fn new(num_rules: usize) -> Self {
-        BuildHistory { num_rules }
-    }
-}
-
-impl HistorySource<History> for BuildHistory {
-    fn build(&mut self, _lhs: Symbol, rhs: &[Symbol]) -> History {
-        // for sequences, rhs.len() will be 1 or 2
-        let ret = History::new(self.num_rules as u32, rhs.len());
-        self.num_rules += 1;
-        ret
-    }
+enum SymKind {
+    Element,
+    Separator,
+    Other,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -39,12 +28,68 @@ pub struct History {
     pub dots: Vec<RuleDot>,
     pub origin: ExternalOrigin,
     pub nullable: NullingEliminated,
+    pub weight: Option<f64>,
+    pub sequence: Option<SequenceDetails>,
 }
 
 #[derive(Copy, Clone, Debug)]
 pub struct RuleDot {
     pub event: Option<(EventId, ExternalDottedRule)>,
     pub distance: MinimalDistance,
+}
+
+#[derive(Clone, Copy, Default, Debug)]
+pub struct SequenceDetails {
+    top: bool,
+    rhs: Symbol,
+    sep: Option<Symbol>,
+}
+
+impl BinarizedGrammar {
+    pub fn final_history(&self) -> Vec<History> {
+        let mut result: Vec<History> = Vec::with_capacity(self.history_graph().capacity());
+        for node in self.history_graph().iter() {
+            let new_history = match node {
+                &HistoryNode::Linked {
+                    prev,
+                    node: ref linked_node,
+                } => {
+                    let mut prev_history = result[prev.get()].clone();
+                    match linked_node {
+                        &LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
+                        &LinkedHistoryNode::Binarize { depth, .. } => prev_history.binarize(depth),
+                        &LinkedHistoryNode::EliminateNulling {
+                            which, rhs0, rhs1, ..
+                        } => prev_history.eliminate_nulling(rhs0, rhs1, which),
+                        &LinkedHistoryNode::RewriteSequence { top, rhs, sep, .. } => {
+                            prev_history.sequence = Some(SequenceDetails { top, rhs, sep });
+                            prev_history
+                        }
+                        &LinkedHistoryNode::Weight { weight, .. } => {
+                            prev_history.weight = Some(weight);
+                            prev_history
+                        }
+                        &LinkedHistoryNode::Rhs { ref rhs, .. } => {
+                            if let Some(sequence_details) = prev_history.sequence {
+                                prev_history.rewrite_sequence(sequence_details, &rhs[..]);
+                            }
+                            prev_history.dots =
+                                (0..=rhs.len()).map(|i| RuleDot::new(0, i)).collect();
+                            prev_history
+                        }
+                        &LinkedHistoryNode::Distances { .. } => prev_history,
+                    }
+                }
+                &HistoryNode::Root(RootHistoryNode::NoOp) => History::new(0, 0),
+                &HistoryNode::Root(RootHistoryNode::Rule { lhs: _ }) => History::new(0, 0),
+                &HistoryNode::Root(RootHistoryNode::Origin { origin }) => {
+                    History::new(origin as u32, 0)
+                }
+            };
+            result.push(new_history);
+        }
+        result
+    }
 }
 
 impl RuleDot {
@@ -99,16 +144,8 @@ impl History {
     pub fn dot(&self, n: usize) -> RuleDot {
         self.dots[n]
     }
-}
 
-impl Action for History {
-    fn no_op(&self) -> Self {
-        History::default()
-    }
-}
-
-impl Binarize for History {
-    fn binarize<R>(&self, _rule: &R, depth: usize) -> Self {
+    fn binarize(&self, depth: u32) -> Self {
         let none = RuleDot::none();
         let dots = if self.dots.is_empty() {
             [none; 3]
@@ -123,7 +160,7 @@ impl Binarize for History {
                     [self.dots[0], none, none]
                 }
             } else {
-                [none, self.dots[dot_len - 2 - depth], none]
+                [none, self.dots[dot_len - 2 - depth as usize], none]
             }
         };
 
@@ -132,53 +169,49 @@ impl Binarize for History {
         History {
             origin,
             dots: dots[..].to_vec(),
-            nullable: self.nullable,
+            ..self.clone()
         }
     }
-}
 
-impl EliminateNulling for History {
-    fn eliminate_nulling<R>(&self, rule: &R, subset: BinarizedRhsSubset) -> Self
-    where
-        R: GrammarRule,
-    {
+    fn eliminate_nulling(
+        &self,
+        rhs0: Symbol,
+        rhs1: Option<Symbol>,
+        subset: BinarizedRhsSubset,
+    ) -> Self {
         if let BinarizedRhsSubset::All = subset {
             History {
                 origin: self.origin,
                 ..History::default()
             }
         } else {
-            let right = if let BinarizedRhsSubset::Right = subset {
-                true
+            let sym = if let BinarizedRhsSubset::Right = subset {
+                rhs1.unwrap()
             } else {
-                false
+                rhs0
             };
-            let sym = rule.rhs()[right as usize];
             History {
-                nullable: Some((sym, right)),
+                nullable: Some((sym, BinarizedRhsSubset::Right == subset)),
                 ..self.clone()
             }
         }
     }
-}
 
-#[derive(Copy, Clone)]
-enum SymKind {
-    Element,
-    Separator,
-    Other,
-}
+    fn rewrite_sequence(&self, details: SequenceDetails, new_rhs: &[Symbol]) -> Self {
+        if details.top {
+            self.rewrite_sequence_top(details, new_rhs)
+        } else {
+            self.rewrite_sequence_bottom(details, new_rhs)
+        }
+    }
 
-impl RewriteSequence for History {
-    type Rewritten = History;
-
-    fn top(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self {
-        let mut bottom = self.bottom(rhs, sep, new_rhs);
+    fn rewrite_sequence_top(&self, details: SequenceDetails, new_rhs: &[Symbol]) -> Self {
+        let mut bottom = self.rewrite_sequence_bottom(details, new_rhs);
         bottom.origin = self.origin;
         bottom
     }
 
-    fn bottom(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self {
+    fn rewrite_sequence_bottom(&self, details: SequenceDetails, new_rhs: &[Symbol]) -> Self {
         //  -  sym (1) Sep (2)
         //  -  lhs (1) Sep (2) Rhs (1)
         //  -  lhs (0) Rhs (1)
@@ -188,9 +221,9 @@ impl RewriteSequence for History {
         let syms = new_rhs
             .iter()
             .map(|&sym| {
-                if sym == rhs {
+                if sym == details.rhs {
                     SymKind::Element
-                } else if Some(sym) == sep {
+                } else if Some(sym) == details.sep {
                     SymKind::Separator
                 } else {
                     SymKind::Other

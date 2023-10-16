@@ -3,11 +3,9 @@
 use bit_matrix::BitMatrix;
 use bit_vec::BitVec;
 
-use analysis::{self, RhsClosure};
-use grammar::{ContextFree, ContextFreeMut, ContextFreeRef};
-use rule::container::RuleContainer;
-use rule::GrammarRule;
-use symbol::{Symbol, SymbolBitSet};
+use crate::analysis::{self, RhsClosure};
+use crate::prelude::*;
+use crate::symbol::SymbolBitSet;
 
 /// Contains the information about usefulness of the grammar's rules.
 /// Useful rules are both reachable and productive.
@@ -43,8 +41,8 @@ pub struct UselessRule<R> {
 /// Returns the set of used symbols.
 fn used_syms<'a, G>(grammar: &'a G) -> BitVec
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     let num_syms = grammar.sym_source().num_syms();
     let mut used_syms = BitVec::from_elem(num_syms, false);
@@ -61,8 +59,8 @@ where
 /// Returns the set of productive symbols.
 fn productive_syms<'a, G>(grammar: &'a G) -> BitVec
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
     let mut productive_syms = SymbolBitSet::terminal_or_nulling_set(&grammar).into_bit_vec();
     RhsClosure::new(grammar).rhs_closure(&mut productive_syms);
@@ -71,9 +69,9 @@ where
 
 impl<'a, G> Usefulness<&'a mut G>
 where
-    G: ContextFree,
-    for<'b> &'b G: ContextFreeRef<'b, Target = G>,
-    for<'b> &'b mut G: ContextFreeMut<'b, Target = G>,
+    G: RuleContainer + Default,
+    for<'b> &'b G: RuleContainerRef<'b, Target = G>,
+    for<'b> &'b mut G: RuleContainerMut<'b, Target = G>,
 {
     /// Analyzes usefulness of the grammar's rules. In particular, it checks for reachable
     /// and productive symbols.
@@ -157,12 +155,12 @@ where
 // Watch out: Normal type bounds conflict with HRTB.
 impl<'a, G> Usefulness<&'a mut G>
 where
-    G: ContextFree,
-    &'a G: ContextFreeRef<'a, Target = G>,
-    &'a mut G: ContextFreeMut<'a, Target = G>,
+    G: RuleContainer + Default,
+    &'a G: RuleContainerRef<'a, Target = G>,
+    &'a mut G: RuleContainerMut<'a, Target = G>,
 {
     /// Returns an iterator over the grammar's useless rules.
-    pub fn useless_rules(&'a self) -> UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules> {
+    pub fn useless_rules(&'a self) -> UselessRules<'a, G, <&'a G as RuleContainerRef<'a>>::Rules> {
         UselessRules {
             rules: self.grammar.rules(),
             usefulness: self,
@@ -183,12 +181,12 @@ where
     }
 }
 
-impl<'a, G> Iterator for UselessRules<'a, G, <&'a G as ContextFreeRef<'a>>::Rules>
+impl<'a, G> Iterator for UselessRules<'a, G, <&'a G as RuleContainerRef<'a>>::Rules>
 where
-    G: ContextFree + 'a,
-    &'a G: ContextFreeRef<'a, Target = G>,
+    G: RuleContainer + Default + 'a,
+    &'a G: RuleContainerRef<'a, Target = G>,
 {
-    type Item = UselessRule<<<&'a G as ContextFreeRef<'a>>::Rules as Iterator>::Item>;
+    type Item = UselessRule<<<&'a G as RuleContainerRef<'a>>::Rules as Iterator>::Item>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.usefulness.all_useful {

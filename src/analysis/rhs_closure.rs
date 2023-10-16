@@ -2,9 +2,7 @@ use std::cmp::Ordering::{Greater, Less};
 
 use bit_vec::BitVec;
 
-use grammar::{ContextFree, ContextFreeRef};
-use rule::GrammarRule;
-use symbol::Symbol;
+use crate::prelude::*;
 
 /// Rhs closure. In some sense, it is a reverse of breadth
 /// first search (reverse BFS).
@@ -20,8 +18,8 @@ where
     /// Records information which is needed to calculate the RHS transitive closure.
     pub fn new<'a, G>(grammar: &'a G) -> Self
     where
-        G: ContextFree<History = R::History>,
-        &'a G: ContextFreeRef<'a, RuleRef = R, Target = G>,
+        G: RuleContainer + Default,
+        &'a G: RuleContainerRef<'a, Target = G, RuleRef = R>,
         R: 'a,
     {
         let mut inverse_derivation = Vec::with_capacity(2 * grammar.rules().size_hint().0);

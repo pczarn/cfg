@@ -9,7 +9,7 @@ mod last;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use symbol::Symbol;
+use crate::prelude::*;
 
 pub use self::distance::MinimalDistance;
 pub use self::first::{FirstSets, FirstSetsCollector};

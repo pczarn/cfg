@@ -1,13 +1,175 @@
 //! Any data carried alongside a grammar rule can be its _history_. Rule histories may contain
 //! more than semantic actions.
 
-use std::marker::PhantomData;
+use std::num::NonZeroUsize;
 
-use rule::GrammarRule;
-use symbol::Symbol;
+use crate::symbol::Symbol;
+
+pub type HistoryId = NonZeroUsize;
+
+#[derive(Clone)]
+pub struct HistoryGraph {
+    nodes: Vec<HistoryNode>,
+}
+
+#[derive(Clone)]
+pub enum HistoryNode {
+    Linked {
+        prev: HistoryId,
+        node: LinkedHistoryNode,
+    },
+    Root(RootHistoryNode),
+}
+
+#[derive(Clone)]
+pub enum LinkedHistoryNode {
+    Rhs {
+        rhs: Vec<Symbol>,
+    },
+    Binarize {
+        depth: u32,
+    },
+    EliminateNulling {
+        rhs0: Symbol,
+        rhs1: Option<Symbol>,
+        which: BinarizedRhsSubset,
+    },
+    AssignPrecedence {
+        looseness: u32,
+    },
+    RewriteSequence {
+        top: bool,
+        rhs: Symbol,
+        sep: Option<Symbol>,
+    },
+    Weight {
+        weight: f64,
+    },
+    Distances {
+        events: Vec<u32>,
+    },
+}
+
+#[derive(Clone, Copy)]
+pub enum RootHistoryNode {
+    NoOp,
+    Rule { lhs: Symbol },
+    Origin { origin: usize },
+}
+
+impl From<RootHistoryNode> for HistoryNode {
+    fn from(value: RootHistoryNode) -> Self {
+        HistoryNode::Root(value)
+    }
+}
+
+pub struct HistoryNodeRhs {
+    pub prev: HistoryId,
+    pub rhs: Vec<Symbol>,
+}
+
+#[derive(Clone, Copy)]
+pub struct HistoryNodeBinarize {
+    pub prev: HistoryId,
+    pub depth: u32,
+}
+
+#[derive(Clone, Copy)]
+pub struct HistoryNodeWeight {
+    pub prev: HistoryId,
+    pub weight: f64,
+}
+
+#[derive(Clone, Copy)]
+pub struct HistoryNodeEliminateNulling {
+    pub prev: HistoryId,
+    pub rhs0: Symbol,
+    pub rhs1: Option<Symbol>,
+    pub which: BinarizedRhsSubset,
+}
+
+#[derive(Clone, Copy)]
+pub struct HistoryNodeAssignPrecedence {
+    pub prev: HistoryId,
+    pub looseness: u32,
+}
+
+#[derive(Clone, Copy)]
+pub struct HistoryNodeRewriteSequence {
+    pub prev: HistoryId,
+    pub top: bool,
+    pub rhs: Symbol,
+    pub sep: Option<Symbol>,
+}
+
+impl From<HistoryNodeRhs> for HistoryNode {
+    fn from(value: HistoryNodeRhs) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::Rhs { rhs: value.rhs },
+        }
+    }
+}
+
+impl From<HistoryNodeBinarize> for HistoryNode {
+    fn from(value: HistoryNodeBinarize) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::Binarize { depth: value.depth },
+        }
+    }
+}
+
+impl From<HistoryNodeWeight> for HistoryNode {
+    fn from(value: HistoryNodeWeight) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::Weight {
+                weight: value.weight,
+            },
+        }
+    }
+}
+
+impl From<HistoryNodeEliminateNulling> for HistoryNode {
+    fn from(value: HistoryNodeEliminateNulling) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::EliminateNulling {
+                rhs0: value.rhs0,
+                rhs1: value.rhs1,
+                which: value.which,
+            },
+        }
+    }
+}
+
+impl From<HistoryNodeAssignPrecedence> for HistoryNode {
+    fn from(value: HistoryNodeAssignPrecedence) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::AssignPrecedence {
+                looseness: value.looseness,
+            },
+        }
+    }
+}
+
+impl From<HistoryNodeRewriteSequence> for HistoryNode {
+    fn from(value: HistoryNodeRewriteSequence) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::RewriteSequence {
+                top: value.top,
+                rhs: value.rhs,
+                sep: value.sep,
+            },
+        }
+    }
+}
 
 /// Used to inform which symbols on a rule'Symbol RHS are nullable, and will be eliminated.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq)]
 pub enum BinarizedRhsSubset {
     /// The first of two symbols.
     Left,
@@ -17,160 +179,37 @@ pub enum BinarizedRhsSubset {
     All,
 }
 
-/// A history which carries no data. All operations on `NullHistory` are no-op.
-#[derive(Clone, Copy, Debug, Default)]
-pub struct NullHistory;
-
-/// Trait for history types that may have semantic actions.
-pub trait Action {
-    /// Returns a history with no-op semantic action.
-    fn no_op(&self) -> Self;
-}
-
-/// Trait for history types that allow the rule to be binarized.
-pub trait Binarize {
-    /// Returns a history. May record the binarization.
-    fn binarize<R>(&self, rule: &R, depth: usize) -> Self
-    where
-        R: GrammarRule;
-}
-
-/// Trait for history types that allow the rule to have nulling symbols
-/// eliminated from the RHS.
-pub trait EliminateNulling {
-    /// Returns a history. May record the elimination.
-    fn eliminate_nulling<R>(&self, rule: &R, which: BinarizedRhsSubset) -> Self
-    where
-        R: GrammarRule;
-}
-
-/// Trait for history types that allow the rule to have its precedence assigned.
-pub trait AssignPrecedence {
-    /// Returns a history. May record the precedence.
-    fn assign_precedence<R>(&self, rule: &R, looseness: u32) -> Self
-    where
-        R: GrammarRule;
-}
-
-/// Trait for history types that allow the sequence rule to be rewritten into grammar rules.
-pub trait RewriteSequence {
-    /// Must be an `Action`, because all created grammar rules except the topmost one will have
-    /// no-op semantic action.
-    type Rewritten;
-
-    /// Returns a history. May record the rewrite.
-    fn top(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten;
-    /// Returns a history. May record the rewrite.
-    fn bottom(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten;
-}
-
-impl Action for NullHistory {
-    fn no_op(&self) -> Self {
-        NullHistory
-    }
-}
-
-impl Binarize for NullHistory {
-    fn binarize<R>(&self, _rule: &R, _depth: usize) -> Self {
-        NullHistory
-    }
-}
-
-impl EliminateNulling for NullHistory {
-    fn eliminate_nulling<R>(&self, _rule: &R, _which: BinarizedRhsSubset) -> Self {
-        NullHistory
-    }
-}
-
-impl AssignPrecedence for NullHistory {
-    fn assign_precedence<R>(&self, _rule: &R, _looseness: u32) -> Self {
-        NullHistory
-    }
-}
-
-impl RewriteSequence for NullHistory {
-    type Rewritten = Self;
-
-    fn top(&self, _rhs: Symbol, _sep: Option<Symbol>, _new: &[Symbol]) -> Self {
-        NullHistory
-    }
-
-    fn bottom(&self, _rhs: Symbol, _sep: Option<Symbol>, _new: &[Symbol]) -> Self {
-        NullHistory
-    }
-}
-
-impl<'a, T> RewriteSequence for &'a T
-where
-    T: RewriteSequence,
-{
-    type Rewritten = T::Rewritten;
-
-    fn top(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten {
-        (**self).top(rhs, sep, new_rhs)
-    }
-
-    fn bottom(&self, rhs: Symbol, sep: Option<Symbol>, new_rhs: &[Symbol]) -> Self::Rewritten {
-        (**self).bottom(rhs, sep, new_rhs)
-    }
-}
-
-/// A trait for history factories.
-pub trait HistorySource<H> {
-    /// Create a history.
-    fn build(&mut self, lhs: Symbol, rhs: &[Symbol]) -> H;
-}
-
-/// Clone history.
-pub struct CloneHistory<'a, H: 'a> {
-    history: &'a H,
-    marker: PhantomData<Symbol>,
-}
-
-impl<'a, H> CloneHistory<'a, H> {
-    /// Creates a cloned history factory.
-    pub fn new(history: &'a H) -> Self {
-        CloneHistory {
-            history: history,
-            marker: PhantomData,
+impl HistoryGraph {
+    pub fn new() -> Self {
+        Self {
+            nodes: vec![RootHistoryNode::NoOp.into()],
         }
     }
-}
 
-impl<'a, H> HistorySource<H> for CloneHistory<'a, H>
-where
-    H: Clone,
-{
-    fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
-        self.history.clone()
+    pub fn next_id(&mut self) -> HistoryId {
+        self.nodes
+            .len()
+            .try_into()
+            .expect("problem with zero length history graph")
+    }
+
+    pub fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
+        let result = self.next_id();
+        self.push(node);
+        result
     }
 }
 
-/// Factory of default histories.
-pub struct DefaultHistory<H>(PhantomData<H>);
+impl ::std::ops::Deref for HistoryGraph {
+    type Target = Vec<HistoryNode>;
 
-impl<H> DefaultHistory<H> {
-    /// Creates a default history factory.
-    pub fn new() -> Self {
-        DefaultHistory(PhantomData)
+    fn deref(&self) -> &Self::Target {
+        &self.nodes
     }
 }
 
-impl<H> HistorySource<H> for DefaultHistory<H>
-where
-    H: Default,
-{
-    fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> H {
-        H::default()
-    }
-}
-
-/// A source that only works for building NullHistory.
-#[derive(Clone, Copy)]
-pub struct NullHistorySource;
-
-impl HistorySource<NullHistory> for NullHistorySource {
-    fn build(&mut self, _lhs: Symbol, _rhs: &[Symbol]) -> NullHistory {
-        NullHistory
+impl ::std::ops::DerefMut for HistoryGraph {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.nodes
     }
 }

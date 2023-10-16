@@ -1,7 +1,8 @@
 //! Source
 
-use symbol::repr::{SymbolRepr, FIRST_ID};
-use symbol::Symbol;
+use super::repr::{SymbolRepr, FIRST_ID};
+
+use crate::prelude::*;
 
 /// A source of numeric symbols.
 #[allow(missing_copy_implementations)]

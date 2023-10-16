@@ -5,28 +5,25 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-use history::{HistorySource, NullHistory, RewriteSequence};
-use rule::builder::RuleBuilder;
-use rule::container::RuleContainer;
-use sequence::builder::SequenceRuleBuilder;
-use sequence::destination::SequenceDestination;
-use sequence::Separator::{Liberal, Proper, Trailing};
-use sequence::{Separator, Sequence};
-use symbol::Symbol;
+use crate::history::{HistoryId, HistoryNodeRewriteSequence, RootHistoryNode};
+use crate::rule::builder::RuleBuilder;
+use crate::rule_container::RuleContainer;
+use crate::sequence::builder::SequenceRuleBuilder;
+use crate::sequence::destination::SequenceDestination;
+use crate::sequence::Separator::{Liberal, Proper, Trailing};
+use crate::sequence::{Separator, Sequence};
+use crate::symbol::Symbol;
 
 /// Rewrites sequence rules into production rules.
-pub struct SequencesToProductions<H, D>
+pub struct SequencesToProductions<D>
 where
-    H: RewriteSequence,
     D: RuleContainer,
 {
     destination: D,
-    stack: Vec<Sequence<NullHistory>>,
+    stack: Vec<Sequence>,
     map: HashMap<PartialSequence, Symbol>,
-    top_history: Option<H>,
-    at_top: bool,
-    rhs: Option<Symbol>,
-    separator: Option<Symbol>,
+    top: Option<HistoryId>,
+    lhs: Option<Symbol>,
 }
 
 // A key into a private map.
@@ -38,22 +35,29 @@ struct PartialSequence {
     separator: Separator,
 }
 
-impl<H, D> SequenceDestination<H> for SequencesToProductions<H, D>
+impl<D> SequenceDestination for SequencesToProductions<D>
 where
-    D: RuleContainer<History = H::Rewritten>,
-    H: Clone + RewriteSequence,
-    H::Rewritten: Clone,
+    D: RuleContainer,
 {
-    fn add_sequence(&mut self, seq: Sequence<H>) {
+    fn add_sequence(&mut self, seq: Sequence) {
         self.rewrite(seq);
     }
 }
 
-impl<H, D> SequencesToProductions<H, D>
+impl From<Sequence> for PartialSequence {
+    fn from(value: Sequence) -> Self {
+        PartialSequence {
+            rhs: value.rhs,
+            start: value.start,
+            end: value.end,
+            separator: value.separator,
+        }
+    }
+}
+
+impl<D> SequencesToProductions<D>
 where
-    D: RuleContainer<History = H::Rewritten>,
-    H: Clone + RewriteSequence,
-    H::Rewritten: Clone,
+    D: RuleContainer,
 {
     /// Initializes a rewrite.
     pub fn new(destination: D) -> Self {
@@ -61,90 +65,86 @@ where
             destination: destination,
             stack: vec![],
             map: HashMap::new(),
-            top_history: None,
-            at_top: false,
-            rhs: None,
-            separator: None,
+            top: None,
+            lhs: None,
         }
     }
 
     /// Rewrites sequence rules.
-    pub fn rewrite_sequences(sequence_rules: &[Sequence<H>], rules: D) {
-        let mut rewrite = SequenceRuleBuilder::new(SequencesToProductions::new(rules));
+    pub fn rewrite_sequences(sequence_rules: &[Sequence], rule_container: D) {
+        let mut rewrite = SequenceRuleBuilder::new(SequencesToProductions::new(rule_container));
         for rule in sequence_rules {
             rewrite = rewrite
                 .sequence(rule.lhs)
                 .separator(rule.separator)
                 .inclusive(rule.start, rule.end)
-                .rhs_with_history(rule.rhs, &rule.history);
+                .rhs_with_history(rule.rhs, rule.history_id);
         }
     }
 
     /// Rewrites a sequence rule.
-    pub fn rewrite(&mut self, top: Sequence<H>) {
+    pub fn rewrite(&mut self, top: Sequence) {
         self.stack.clear();
         self.map.clear();
-        self.top_history = Some(top.history);
-        let top = Sequence {
-            lhs: top.lhs,
-            rhs: top.rhs,
-            start: top.start,
-            end: top.end,
-            separator: top.separator,
-            history: NullHistory,
-        };
-        self.rhs = Some(top.rhs);
-        self.separator = top.separator.into();
-        self.at_top = true;
+        let prev = top.history_id.unwrap_or_else(|| {
+            self.destination
+                .add_history_node(RootHistoryNode::NoOp.into())
+        });
+        let history_id_top = self.destination.add_history_node(
+            HistoryNodeRewriteSequence {
+                top: true,
+                rhs: top.rhs,
+                sep: top.separator.into(),
+                prev,
+            }
+            .into(),
+        );
+        self.top = Some(history_id_top);
         self.reduce(top);
-        self.at_top = false;
+        let prev = top.history_id.unwrap_or_else(|| {
+            self.destination
+                .add_history_node(RootHistoryNode::NoOp.into())
+        });
+        let history_id_bottom = self.destination.add_history_node(
+            HistoryNodeRewriteSequence {
+                top: false,
+                rhs: top.rhs,
+                sep: top.separator.into(),
+                prev,
+            }
+            .into(),
+        );
+        *self.top.as_mut().unwrap() = history_id_bottom;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
             self.reduce(seq);
         }
     }
 
-    fn rule(&mut self, lhs: Symbol) -> RuleBuilder<&mut D, DefaultSeqHistory<H>> {
-        let default = DefaultSeqHistory {
-            top_history: self.top_history.as_ref().unwrap(),
-            at_top: self.at_top,
-            elem: self.rhs.unwrap(),
-            separator: self.separator,
-        };
-        RuleBuilder::new(&mut self.destination)
-            .rule(lhs)
-            .default_history(default)
-    }
-
-    fn recurse(&mut self, seq: &Sequence<NullHistory>) -> Symbol {
+    fn recurse(&mut self, seq: &Sequence) -> Symbol {
         let sym_source = &mut self.destination;
         // As a placeholder
-        let partial = PartialSequence {
-            rhs: seq.rhs,
-            separator: seq.separator,
-            start: seq.start,
-            end: seq.end,
-        };
+        let partial: PartialSequence = (*seq).into();
 
         match self.map.entry(partial) {
             Entry::Vacant(vacant) => {
                 let lhs = sym_source.sym();
                 vacant.insert(lhs);
-                self.stack.push(Sequence {
-                    lhs: lhs,
-                    rhs: seq.rhs,
-                    start: seq.start,
-                    end: seq.end,
-                    separator: seq.separator,
-                    history: seq.history,
-                });
+                self.stack.push(Sequence { lhs, ..*seq });
                 lhs
             }
             Entry::Occupied(lhs) => *lhs.get(),
         }
     }
 
-    fn reduce(&mut self, sequence: Sequence<NullHistory>) {
+    fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
+        RuleBuilder::new(&mut self.destination)
+            .rule(self.lhs.unwrap())
+            .history(self.top.unwrap())
+            .rhs(rhs);
+    }
+
+    fn reduce(&mut self, sequence: Sequence) {
         let Sequence {
             lhs,
             rhs,
@@ -153,53 +153,57 @@ where
             separator,
             ..
         } = sequence;
+        self.lhs = Some(lhs);
         // TODO optimize reductions
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
                 let sym1 = self.recurse(&sequence.clone().separator(Proper(sep)));
                 let sym2 = self.recurse(&sequence.clone().separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
-                self.rule(lhs).rhs([sym1]).rhs([sym2]);
+                self.rhs([sym1]);
+                self.rhs([sym2]);
             }
             (_, 0, Some(0)) => {
                 // seq ::= epsilon | sym
-                self.rule(lhs).rhs([]);
+                self.rhs([]);
             }
             (_, 0, end) => {
                 // seq ::= epsilon | sym
-                self.rule(lhs).rhs([]);
+                self.rhs([]);
                 let sym = self.recurse(&sequence.inclusive(1, end));
-                self.rule(lhs).rhs([sym]);
+                self.rhs([sym]);
             }
             (Trailing(sep), _, _) => {
                 let sym = self.recurse(&sequence.separator(Proper(sep)));
                 // seq ::= sym sep
-                self.rule(lhs).rhs([sym, sep]);
+                self.rhs([sym, sep]);
             }
             (_, 1, None) => {
-                if self.at_top {
+                if self.top.is_some() {
+                    // ?
                     let rec = self.recurse(&sequence);
-                    self.rule(lhs).rhs([rec]);
+                    self.rhs([rec]);
                 } else {
                     // seq ::= item
-                    self.rule(lhs).rhs([rhs]);
+                    self.rhs([rhs]);
                     // Left recursive
                     // seq ::= seq sep item
                     if let Proper(sep) = separator {
-                        self.rule(lhs).rhs([lhs, sep, rhs]);
+                        self.rhs([lhs, sep, rhs]);
                     } else {
-                        self.rule(lhs).rhs([lhs, rhs]);
+                        self.rhs([lhs, rhs]);
                     }
                 }
             }
             (_, 1, Some(1)) => {
-                self.rule(lhs).rhs([rhs]);
+                self.rhs([rhs]);
             }
             (_, 1, Some(2)) => {
                 let sym1 = self.recurse(&sequence.clone().range(1..=1));
                 let sym2 = self.recurse(&sequence.clone().range(2..=2));
                 // seq ::= sym1 | sym2
-                self.rule(lhs).rhs([sym1]).rhs([sym2]);
+                self.rhs([sym1]);
+                self.rhs([sym2]);
             }
             (_, 1, Some(end)) => {
                 // end >= 3
@@ -213,13 +217,14 @@ where
                 let block = self.recurse(&block.separator(separator.prefix_separator()));
                 let rhs2 = self.recurse(&seq2);
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs([rhs1]).rhs([block, rhs2]);
+                self.rhs([rhs1]);
+                self.rhs([block, rhs2]);
             }
             (Proper(sep), 2, Some(2)) => {
-                self.rule(lhs).rhs([rhs, sep, rhs]);
+                self.rhs([rhs, sep, rhs]);
             }
             (_, 2, Some(2)) => {
-                self.rule(lhs).rhs([rhs, rhs]);
+                self.rhs([rhs, rhs]);
             }
             (_, 2.., end) => {
                 // to do infinity
@@ -244,32 +249,8 @@ where
                     self.recurse(&seq2.separator(separator)),
                 );
                 // seq ::= sym1 sym2
-                self.rule(lhs).rhs([rhs1, rhs2]);
+                self.rhs([rhs1, rhs2]);
             }
-        }
-    }
-}
-
-struct DefaultSeqHistory<'a, H: 'a>
-where
-    H: RewriteSequence,
-{
-    top_history: &'a H,
-    at_top: bool,
-    elem: Symbol,
-    separator: Option<Symbol>,
-}
-
-impl<'a, H> HistorySource<H::Rewritten> for DefaultSeqHistory<'a, H>
-where
-    H: RewriteSequence,
-    H::Rewritten: Clone,
-{
-    fn build(&mut self, _lhs: Symbol, rhs: &[Symbol]) -> H::Rewritten {
-        if self.at_top {
-            self.top_history.top(self.elem, self.separator, rhs)
-        } else {
-            self.top_history.bottom(self.elem, self.separator, rhs)
         }
     }
 }

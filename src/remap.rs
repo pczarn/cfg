@@ -5,14 +5,13 @@ use std::iter;
 use std::mem;
 use std::ops;
 
-use grammar::ContextFree;
-use rule::{GrammarRule, Rule};
-use symbol::{Symbol, SymbolSource};
+use crate::prelude::*;
+use crate::rule::{GrammarRule, Rule};
 
 /// Remaps symbols and removes unused symbols.
 pub struct Remap<'a, G: 'a>
 where
-    G: ContextFree,
+    G: RuleContainer,
 {
     grammar: &'a mut G,
     mapping: Mapping,
@@ -36,8 +35,7 @@ pub struct Mapping {
 
 impl<'a, G> Remap<'a, G>
 where
-    G: ContextFree,
-    G::History: Clone,
+    G: RuleContainer,
 {
     /// Creates `Remap` to record information about remapped symbols.
     pub fn new(grammar: &'a mut G) -> Self {
@@ -93,14 +91,15 @@ where
                 added_rules.push(Rule::new(
                     map(lhs),
                     rhs.iter().cloned().map(&mut map).collect(),
-                    history.clone(),
+                    history,
                 ));
                 false
             }
         });
         for rule in added_rules {
             let rule_lhs = rule.lhs();
-            self.grammar.add_rule(rule_lhs, &rule.rhs[..], rule.history);
+            self.grammar
+                .add_rule(rule_lhs, &rule.rhs[..], rule.history_id());
         }
     }
 

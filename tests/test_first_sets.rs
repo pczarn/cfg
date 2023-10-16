@@ -1,7 +1,7 @@
 extern crate cfg;
 
 use cfg::prediction::FirstSetsCollector;
-use cfg::{Cfg, ContextFree};
+use cfg::prelude::*;
 
 use std::collections::{BTreeMap, BTreeSet};
 

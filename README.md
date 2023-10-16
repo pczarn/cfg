@@ -70,6 +70,12 @@ let (start, expr, identifier, number,
 
 Rules have a LHS symbol and zero or more RHS symbols.
 
+Example BNF:
+```bnf
+start ::= expr | identifier l_paren expr r_paren
+```
+
+With our library:
 ```rust
 grammar.rule(start).rhs([expr])
                    .rhs([identifier, l_paren, expr, r_paren]);
@@ -81,6 +87,12 @@ Sequence rules have a LHS symbol, a RHS symbol, a range of repetitions, and
 optional separation. Aside from separation, they closely resemble regular
 expression repetitions.
 
+Example BNF:
+```bnf
+number ::= digit+
+```
+
+With our library:
 ```rust
 grammar.sequence(number).inclusive(1, None).rhs(digit);
 ```
@@ -111,12 +123,11 @@ grammar.precedenced_rule(expr)
 
 ## Using a custom grammar representation
 
-Your grammar type has to implement several traits:
+Your grammar type has to implement a trait, and two more traits are needed for grammar references<>:
 
-* `RuleContainer`
-* `ContextFree`
-* `ContextFreeRef`
-* `ContextFreeMut`
+* implement `RuleContainer` for `MyGrammar`
+* implement `RuleContainerRef` for `&'a MyGrammar`
+* implement `RuleContainerMut` for `&'a mut MyGrammar`
 
 ## License
 

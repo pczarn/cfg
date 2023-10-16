@@ -3,8 +3,8 @@ extern crate cfg;
 mod support;
 
 use cfg::classification::useful::Usefulness;
+use cfg::prelude::*;
 use cfg::remap::Remap;
-use cfg::*;
 
 #[test]
 fn test_remap_unused_symbols() {

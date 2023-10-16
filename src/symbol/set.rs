@@ -5,9 +5,7 @@ use std::iter;
 use bit_vec;
 use bit_vec::BitVec;
 
-use grammar::{ContextFree, ContextFreeRef};
-use rule::GrammarRule;
-use symbol::Symbol;
+use crate::prelude::*;
 
 /// A set of symbols in the form of a bit vector.
 pub struct SymbolBitSet {
@@ -23,8 +21,8 @@ impl SymbolBitSet {
     /// Constructs a `SymbolBitSet`.
     pub fn new<'a, G>(grammar: &'a G, elem: bool) -> Self
     where
-        G: ContextFree,
-        &'a G: ContextFreeRef<'a, Target = G>,
+        G: RuleContainer + Default,
+        &'a G: RuleContainerRef<'a, Target = G>,
     {
         SymbolBitSet {
             bit_vec: BitVec::from_elem(grammar.num_syms(), elem),
@@ -37,8 +35,8 @@ impl SymbolBitSet {
     /// Constructs a data structure in O(n) time.
     pub fn terminal_set<'a, G>(grammar: &'a G) -> Self
     where
-        G: ContextFree,
-        &'a G: ContextFreeRef<'a, Target = G>,
+        G: RuleContainer + Default,
+        &'a G: RuleContainerRef<'a, Target = G>,
     {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {
@@ -53,8 +51,8 @@ impl SymbolBitSet {
     /// Constructs a data structure in O(n) time.
     pub fn terminal_or_nulling_set<'a, G>(grammar: &'a G) -> Self
     where
-        G: ContextFree,
-        &'a G: ContextFreeRef<'a, Target = G>,
+        G: RuleContainer + Default,
+        &'a G: RuleContainerRef<'a, Target = G>,
     {
         let mut set = SymbolBitSet::new(grammar, true);
         for rule in grammar.rules() {

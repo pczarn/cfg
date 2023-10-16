@@ -1,8 +1,9 @@
+#[cfg(feature = "generation")]
+use std::collections::BTreeMap;
+
 use cfg::earley::Grammar;
 #[cfg(feature = "generation")]
-use cfg::generation::weighted::history::WeightedHistory;
-#[cfg(feature = "generation")]
-use cfg::generation::weighted::WeightedGrammar;
+use cfg::{history::LinkedHistoryNode, prelude::*};
 
 pub fn grammar() -> Grammar {
     let mut bnf = Grammar::new();
@@ -27,37 +28,36 @@ pub fn grammar() -> Grammar {
 }
 
 #[cfg(feature = "generation")]
-pub fn weighted_grammar() -> WeightedGrammar<u32> {
-    use cfg::earley::history::History;
-    let mut bnf = WeightedGrammar::new();
-    let (sum, product, factor, number, plus, minus, mul, div, lparen, rparen) = bnf.sym();
-    let weighted_hist =
-        |weight, len| WeightedHistory::with_history_and_weight(History::new(0, len), weight);
+pub fn weighted_grammar() -> (Cfg, Symbol, BTreeMap<Symbol, char>, Symbol) {
+    let mut bnf = Cfg::new();
+    let mut map = BTreeMap::new();
+    let (sum, product, factor, number, plus, minus, mul, div, lparen, rparen, neg) = bnf.sym();
+    let weight = |w| LinkedHistoryNode::Weight { weight: w };
+    map.insert(plus, '+');
+    map.insert(minus, '-');
+    map.insert(mul, '*');
+    map.insert(div, '/');
+    map.insert(lparen, '(');
+    map.insert(rparen, ')');
     bnf.rule(sum)
-        .history(weighted_hist(1, 3))
-        .rhs([sum, plus, product])
-        .history(weighted_hist(1, 3))
-        .rhs([sum, minus, product])
-        .history(weighted_hist(3, 1))
-        .rhs([product])
+        .rhs_with_linked_history([sum, plus, product], weight(1.0))
+        .rhs_with_linked_history([sum, minus, product], weight(1.0))
+        .rhs_with_linked_history([product], weight(3.0))
         .rule(product)
-        .history(weighted_hist(1, 3))
-        .rhs([product, mul, factor])
-        .history(weighted_hist(1, 3))
-        .rhs([product, div, factor])
-        .history(weighted_hist(3, 1))
-        .rhs([factor])
+        .rhs_with_linked_history([product, mul, factor], weight(1.0))
+        .rhs_with_linked_history([product, div, factor], weight(1.0))
+        .rhs_with_linked_history([factor], weight(3.0))
         .rule(factor)
-        .history(weighted_hist(1, 3))
-        .rhs([lparen, sum, rparen])
-        .history(weighted_hist(3, 1))
-        .rhs([number]);
-    for _ in 0..10 {
+        .rhs_with_linked_history([lparen, sum, rparen], weight(1.0))
+        .rhs_with_linked_history([neg, number], weight(3.0))
+        .rule(neg)
+        .rhs_with_linked_history([], weight(1.0));
+    for ch in '0'..='9' {
         let sym = bnf.sym();
         bnf.rule(number).rhs(&[sym, number]).rhs(&[sym]);
+        map.insert(sym, ch);
     }
-    bnf.set_start(sum);
-    bnf
+    (bnf, sum, map, neg)
 }
 
 #[macro_export]

@@ -3,8 +3,7 @@ extern crate cfg;
 mod support;
 
 use cfg::classification::useful::Usefulness;
-use cfg::rule::container::RuleContainer;
-use cfg::*;
+use cfg::prelude::*;
 
 #[test]
 fn test_binarize() {

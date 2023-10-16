@@ -1,75 +1,66 @@
 extern crate cfg;
 
-use cfg::history::{Action, RewriteSequence};
+use std::num::NonZeroUsize;
+
+use cfg::history::LinkedHistoryNode;
 use cfg::prediction::MinimalDistance;
-use cfg::*;
+use cfg::prelude::*;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct History {
-    events: &'static [u32],
+fn empty() -> LinkedHistoryNode {
+    LinkedHistoryNode::Distances { events: vec![] }
 }
 
-impl History {
-    fn new(slice: &'static [u32]) -> Self {
-        History { events: slice }
-    }
-}
-
-impl Action for History {
-    fn no_op(&self) -> Self {
-        unimplemented!()
-    }
-}
-impl RewriteSequence for History {
-    type Rewritten = Self;
-
-    fn top(&self, _rhs: Symbol, _sep: Option<Symbol>, _new_rhs: &[Symbol]) -> Self {
-        unimplemented!()
-    }
-
-    fn bottom(&self, _rhs: Symbol, _sep: Option<Symbol>, _new_rhs: &[Symbol]) -> Self {
-        unimplemented!()
+fn distances(elems: &[u32]) -> LinkedHistoryNode {
+    LinkedHistoryNode::Distances {
+        events: elems.to_vec(),
     }
 }
 
 #[test]
 fn test_minimum_distance() {
-    let mut cfg: Cfg<History> = Cfg::new();
+    let mut cfg = Cfg::new();
     //   0      1  2  3  4  5
     let (start, a, b, c, x, y) = cfg.sym();
     const POS_3: &'static [u32] = &[3];
     cfg.rule(a)
-        .rhs_with_history([], History::new(&[]))
+        .rhs_with_linked_history([], empty())
         .rule(start)
-        .rhs_with_history([a, x, b, c, y], History::new(POS_3))
-        .rhs_with_history([c], History::new(&[]))
+        .rhs_with_linked_history([a, x, b, c, y], distances(POS_3))
+        .rhs_with_linked_history([c], empty())
         .rule(b)
-        .rhs_with_history([a, a], History::new(&[]))
-        .rhs_with_history([a, c], History::new(&[]))
+        .rhs_with_linked_history([a, a], empty())
+        .rhs_with_linked_history([a, c], empty())
         .rule(c)
-        .rhs_with_history([x], History::new(&[]))
-        .rhs_with_history([y], History::new(&[]));
+        .rhs_with_linked_history([x], empty())
+        .rhs_with_linked_history([y], empty());
 
-    let iter = cfg
-        .rules()
-        .map(|rule| (rule, rule.history.events.iter().map(|&pos| pos as usize)));
     let mut minimal_distance = MinimalDistance::new(&cfg);
-    let distances = minimal_distance.minimal_distances(iter);
+    let distances = minimal_distance.minimal_distances();
     // min(x) = min(y) = 1
     // min(b) = 0
     // min(a) = 0
     // min(c) = 1
     let expected_distances = vec![
-        vec![Some(0)],
-        vec![Some(1), Some(1), Some(0), Some(0), None, None],
-        vec![None, None],
-        vec![Some(0), Some(0), Some(0)],
-        vec![Some(1), Some(1), Some(0)],
-        vec![Some(1), Some(0)],
-        vec![Some(1), Some(0)],
+        (NonZeroUsize::new(3).unwrap(), vec![Some(0)]),
+        (
+            NonZeroUsize::new(6).unwrap(),
+            vec![Some(1), Some(1), Some(0), Some(0), None, None],
+        ),
+        (NonZeroUsize::new(9).unwrap(), vec![None, None]),
+        (
+            NonZeroUsize::new(12).unwrap(),
+            vec![Some(0), Some(0), Some(0)],
+        ),
+        (
+            NonZeroUsize::new(15).unwrap(),
+            vec![Some(1), Some(1), Some(0)],
+        ),
+        (NonZeroUsize::new(18).unwrap(), vec![Some(1), Some(0)]),
+        (NonZeroUsize::new(21).unwrap(), vec![Some(1), Some(0)]),
     ];
 
-    for (result, expected) in distances.iter().zip(expected_distances.iter()) {
-        assert_eq!(&result[..], &expected[..]);
-    }
+    assert_eq!(distances, &expected_distances[..]);
+    // for (result, expected) in distances.iter().zip(expected_distances.iter()) {
+    //     assert_eq!(result, expected);
+    // }
 }
