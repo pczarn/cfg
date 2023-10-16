@@ -123,7 +123,6 @@ impl Random for BinarizedCfg {
                 if let Some(back) = backtracking.get_mut(&string.len()) {
                     for &mut (ref forbidden, ref backtrack_rng, ref mut attempts, result_len, ref prev_work) in back.iter_mut() {
                         if string.ends_with(forbidden) {
-                            println!("{:?}", string);
                             *rng = backtrack_rng.clone();
                             string.truncate(string.len() - forbidden.len());
                             result.truncate(result_len);

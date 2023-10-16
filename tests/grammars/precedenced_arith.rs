@@ -1,8 +1,13 @@
-use cfg::prelude::*;
-use cfg::earley::Grammar;
-use cfg::history::LinkedHistoryNode;
 
+#[cfg(feature = "generation")]
 use std::collections::BTreeMap;
+
+#[cfg(feature = "generation")]
+use cfg::{
+    history::LinkedHistoryNode,
+    prelude::*,
+};
+use cfg::earley::Grammar;
 
 pub fn grammar() -> Grammar {
     let mut bnf = Grammar::new();
