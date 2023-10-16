@@ -78,7 +78,7 @@ where
                 history = &self.grammar.history_graph()[prev.get()];
             }
             for &position in positions {
-                let (min, _) = self.update_rule_distances(0, &rule.rhs()[.. position as usize], idx);
+                let (min, _) = self.update_rule_distances(0, &rule.rhs()[..position as usize], idx);
                 set_min(&mut self.prediction_distances[rule.lhs().usize()], min);
             }
         }

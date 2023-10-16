@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
+use super::random::GenRange;
 use crate::history::LinkedHistoryNode;
 use crate::prelude::*;
-use super::random::GenRange;
 
 use super::*;
 
@@ -47,7 +47,9 @@ impl Cfg {
         for rule in self.rules() {
             let mut history_id = rule.history_id();
             let mut result = None;
-            while let &HistoryNode::Linked { prev, ref node } = &self.history_graph()[history_id.get()] {
+            while let &HistoryNode::Linked { prev, ref node } =
+                &self.history_graph()[history_id.get()]
+            {
                 if let &LinkedHistoryNode::Weight { weight } = node {
                     result = Some(weight);
                     break;
@@ -66,7 +68,9 @@ impl BinarizedCfg {
         for rule in self.rules() {
             let mut history_id = rule.history_id();
             let mut result = None;
-            while let &HistoryNode::Linked { prev, ref node } = &self.history_graph()[history_id.get()] {
+            while let &HistoryNode::Linked { prev, ref node } =
+                &self.history_graph()[history_id.get()]
+            {
                 if let &LinkedHistoryNode::Weight { weight } = node {
                     result = Some(weight);
                     break;

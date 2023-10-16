@@ -2,7 +2,7 @@
 
 use std::convert::AsRef;
 
-use crate::history::{HistoryNodeRhs, RootHistoryNode, LinkedHistoryNode};
+use crate::history::{HistoryNodeRhs, LinkedHistoryNode, RootHistoryNode};
 use crate::precedence::PrecedencedRuleBuilder;
 use crate::prelude::*;
 
@@ -92,7 +92,11 @@ where
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_linked_history<Sr>(mut self, syms: Sr, linked_history: LinkedHistoryNode) -> Self
+    pub fn rhs_with_linked_history<Sr>(
+        mut self,
+        syms: Sr,
+        linked_history: LinkedHistoryNode,
+    ) -> Self
     where
         Sr: AsRef<[Symbol]>,
     {
@@ -109,7 +113,10 @@ where
             }
             .into(),
         );
-        let history_id = self.rules.add_history_node(HistoryNode::Linked { prev: new_history, node: linked_history });
+        let history_id = self.rules.add_history_node(HistoryNode::Linked {
+            prev: new_history,
+            node: linked_history,
+        });
         self.rules
             .add_rule(self.lhs.unwrap(), syms.as_ref(), history_id);
         self

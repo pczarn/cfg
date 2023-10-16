@@ -11,7 +11,9 @@ fn empty() -> LinkedHistoryNode {
 }
 
 fn distances(elems: &[u32]) -> LinkedHistoryNode {
-    LinkedHistoryNode::Distances { events: elems.to_vec() }
+    LinkedHistoryNode::Distances {
+        events: elems.to_vec(),
+    }
 }
 
 #[test]
@@ -40,10 +42,19 @@ fn test_minimum_distance() {
     // min(c) = 1
     let expected_distances = vec![
         (NonZeroUsize::new(3).unwrap(), vec![Some(0)]),
-        (NonZeroUsize::new(6).unwrap(), vec![Some(1), Some(1), Some(0), Some(0), None, None]),
+        (
+            NonZeroUsize::new(6).unwrap(),
+            vec![Some(1), Some(1), Some(0), Some(0), None, None],
+        ),
         (NonZeroUsize::new(9).unwrap(), vec![None, None]),
-        (NonZeroUsize::new(12).unwrap(), vec![Some(0), Some(0), Some(0)]),
-        (NonZeroUsize::new(15).unwrap(), vec![Some(1), Some(1), Some(0)]),
+        (
+            NonZeroUsize::new(12).unwrap(),
+            vec![Some(0), Some(0), Some(0)],
+        ),
+        (
+            NonZeroUsize::new(15).unwrap(),
+            vec![Some(1), Some(1), Some(0)],
+        ),
         (NonZeroUsize::new(18).unwrap(), vec![Some(1), Some(0)]),
         (NonZeroUsize::new(21).unwrap(), vec![Some(1), Some(0)]),
     ];
