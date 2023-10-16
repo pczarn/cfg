@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use rpds::List;
 
 use crate::{prelude::*, symbol::SymbolBitSet};
-use rand::{thread_rng, Rng, rngs::ThreadRng};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum RandomGenError {
@@ -124,8 +124,7 @@ impl Random for BinarizedCfg {
             .iter()
             .map(|neg| (neg.sym, &neg.chars[..]))
             .collect();
-        let mut backtracking: BTreeMap<usize, Vec<BacktrackState<R>>> =
-            BTreeMap::new();
+        let mut backtracking: BTreeMap<usize, Vec<BacktrackState<R>>> = BTreeMap::new();
         // let mut
         while let Some(&sym) = work.first() {
             work.drop_first_mut();
@@ -140,8 +139,7 @@ impl Random for BinarizedCfg {
                     }
                 }
                 if let Some(back) = backtracking.get_mut(&string.len()) {
-                    for state in back.iter_mut()
-                    {
+                    for state in back.iter_mut() {
                         if string.ends_with(state.forbidden) {
                             *rng = state.rng.clone();
                             string.truncate(string.len() - state.forbidden.len());
@@ -164,7 +162,7 @@ impl Random for BinarizedCfg {
                         rng: rng.clone(),
                         attempts: 0,
                         result_len: result.len(),
-                        prev_work: work.clone()
+                        prev_work: work.clone(),
                     });
             } else {
                 let rhs = weighted.pick_rhs(sym, rng);
