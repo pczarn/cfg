@@ -18,11 +18,16 @@ name = "cfg"
 bit-matrix = "0.6"
 bit-vec = "0.6"
 optional = "0.5"
+
+# serialize
 serde = { version = "1.0", optional = true }
 serde_derive =  { version = "1.0", optional = true }
+
+# generation
 rand = { version = "0.8", optional = true, features = ["small_rng"] }
 num = { version = "0.4", optional = true }
+rpds = { version = "1.0.1", optional = true }
 
 [features]
-generation = ["rand", "num"]
+generation = ["rand", "num", "rpds"]
 serialize = ["serde", "serde_derive"]

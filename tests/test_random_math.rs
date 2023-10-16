@@ -27,7 +27,7 @@ fn test_precedenced_arith() {
     let binarized = grammar.binarize();
 
     let mut rng = SmallRng::seed_from_u64(42);
-    let syms = binarized.random(start, Some(1_000_000), &mut rng, &[], |_| None);
+    let syms = binarized.random(start, Some(1_000_000), &mut rng, &[], |_, _: &mut _| None);
     let string = syms.map(|sym_list| {
         sym_list
             .into_iter()
@@ -53,7 +53,7 @@ fn test_precedenced_arith_with_negative_lookahead() {
         sym: neg,
         chars: "0",
     };
-    let to_char = |sym| sym_map.get(&sym).cloned();
+    let to_char = |sym, _: &mut _| sym_map.get(&sym).cloned();
     let syms = binarized.random(start, Some(1_000_000), &mut rng, &[neg], to_char);
     let string = syms.map(|sym_list| {
         sym_list
