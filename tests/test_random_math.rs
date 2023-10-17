@@ -27,13 +27,15 @@ fn test_precedenced_arith() {
     let binarized = grammar.binarize();
 
     let mut rng = SmallRng::seed_from_u64(42);
-    let syms = binarized.random(start, Some(1_000_000), &mut rng, &[], |_, _: &mut _| None);
-    let string = syms.map(|sym_list| {
-        sym_list
-            .into_iter()
-            .map(|s| sym_map.get(&s).cloned().unwrap_or('X'))
-            .collect::<String>()
-    });
+    let to_char = |s, _: &mut _| sym_map.get(&s).cloned();
+    let string = binarized.random(start, Some(1_000_000), &mut rng, &[], to_char).map(|(_syms, chars)| chars.into_iter().collect());
+    // let string = syms.map(|sym_list| {
+    //     sym_list
+    //         .into_iter()
+    //         .map(|s| .unwrap_or('X'))
+    //         .collect::<String>()
+    // });
+    // let string = chars.into_iter().collect();
     let expected = Ok("(5/0*1/6948/92*3614-90)-8*8-(7/615)+3/1".to_string());
     assert_eq!(string, expected);
 }
@@ -54,13 +56,13 @@ fn test_precedenced_arith_with_negative_lookahead() {
         chars: "0",
     };
     let to_char = |sym, _: &mut _| sym_map.get(&sym).cloned();
-    let syms = binarized.random(start, Some(1_000_000), &mut rng, &[neg], to_char);
-    let string = syms.map(|sym_list| {
-        sym_list
-            .into_iter()
-            .map(|s| sym_map.get(&s).cloned().unwrap_or('X'))
-            .collect::<String>()
-    });
+    let string = binarized.random(start, Some(1_000_000), &mut rng, &[neg], to_char).map(|(_syms, chars)| chars.into_iter().collect());
+    // let string = syms.map(|sym_list| {
+    //     sym_list
+    //         .into_iter()
+    //         .map(|s| sym_map.get(&s).cloned().unwrap_or('X'))
+    //         .collect::<String>()
+    // });
     let expected = Ok("(5/3*(8-2)/3614/990*(98)-(7/615))-3/1-7+((4179*683)/1)".to_string());
     assert_eq!(string, expected);
 }
