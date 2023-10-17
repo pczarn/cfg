@@ -114,7 +114,7 @@ impl Random for BinarizedCfg {
         negative_rules: &[NegativeRule],
         to_char: F,
     ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
-        env_logger::try_init();
+        let _ = env_logger::try_init();
         for rule in self.rules() {
             debug!("RULE: {:?} ::= {:?}", rule.lhs(), rule.rhs());
         }
