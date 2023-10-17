@@ -2,8 +2,8 @@
 
 use std::collections::BTreeMap;
 
-use rpds::List;
 use log::debug;
+use rpds::List;
 
 use crate::{prelude::*, symbol::SymbolBitSet};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
@@ -154,7 +154,9 @@ impl Random for BinarizedCfg {
                             string.truncate(string.len() - state.forbidden.len());
                             result.truncate(state.result_len);
                             work = state.prev_work.clone();
-                            let attempts = backtracking_attempts.get_mut(&string.len()).expect("bt.attempt not found");
+                            let attempts = backtracking_attempts
+                                .get_mut(&string.len())
+                                .expect("bt.attempt not found");
                             rng.mutate_start(*attempts);
                             *attempts += 1;
                             if *attempts > 256 * 64 {
