@@ -8,7 +8,7 @@
 [![crates.io][crates.io shield]][crates.io link]
 [![Documentation][docs.rs badge]][docs.rs link]
 ![Rust CI][github ci badge]
-![MSRV][rustc 1.63+]
+![MSRV][rustc 1.65+]
 <br />
 <br />
 [![Dependency Status][deps.rs status]][deps.rs link]
@@ -22,7 +22,7 @@
 [docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.8.0
 [docs.rs link]: https://docs.rs/cfg/0.8.0/cfg/
 [github ci badge]: https://github.com/pczarn/cfg/workflows/CI/badge.svg?branch=master
-[rustc 1.63+]: https://img.shields.io/badge/rustc-1.63%2B-blue.svg
+[rustc 1.65+]: https://img.shields.io/badge/rustc-1.65%2B-blue.svg
 [deps.rs status]: https://deps.rs/crate/cfg/0.8.0/status.svg
 [deps.rs link]: https://deps.rs/crate/cfg/0.8.0
 [shields.io download count]: https://img.shields.io/crates/d/cfg.svg
