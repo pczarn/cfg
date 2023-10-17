@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 
+use log::debug;
 use rpds::List;
 
 use crate::{prelude::*, symbol::SymbolBitSet};
@@ -21,7 +22,7 @@ pub trait Random {
         rng: &mut R,
         negative_rules: &[NegativeRule],
         to_char: F,
-    ) -> Result<Vec<Symbol>, RandomGenError>;
+    ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError>;
 
     fn with_thread_rng<F: Fn(Symbol, &mut ThreadRng) -> Option<char>>(
         &self,
@@ -29,7 +30,7 @@ pub trait Random {
         limit: Option<u64>,
         negative_rules: &[NegativeRule],
         to_char: F,
-    ) -> Result<Vec<Symbol>, RandomGenError> {
+    ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
         let mut thread_rng = thread_rng();
         self.random(start, limit, &mut thread_rng, negative_rules, to_char)
     }
@@ -98,9 +99,8 @@ pub struct NegativeRule {
 }
 
 struct BacktrackState<'a, R> {
-    forbidden: &'a str,
+    forbidden: &'a [char],
     rng: R,
-    attempts: u64,
     result_len: usize,
     prev_work: List<Symbol>,
 }
@@ -113,25 +113,34 @@ impl Random for BinarizedCfg {
         rng: &mut R,
         negative_rules: &[NegativeRule],
         to_char: F,
-    ) -> Result<Vec<Symbol>, RandomGenError> {
+    ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
+        let _ = env_logger::try_init();
+        for rule in self.rules() {
+            debug!("RULE: {:?} ::= {:?}", rule.lhs(), rule.rhs());
+        }
         let weighted = self.weighted();
         let mut work = List::new();
         work.push_front_mut(start);
         let mut result = vec![];
-        let mut string = String::new();
+        let mut string = vec![];
         let terminal_set = SymbolBitSet::terminal_set(self);
-        let negative: BTreeMap<Symbol, &str> = negative_rules
+        let negative: BTreeMap<Symbol, Vec<char>> = negative_rules
             .iter()
-            .map(|neg| (neg.sym, &neg.chars[..]))
+            .map(|neg| (neg.sym, neg.chars.chars().collect()))
             .collect();
         let mut backtracking: BTreeMap<usize, Vec<BacktrackState<R>>> = BTreeMap::new();
+        let mut backtracking_attempts: BTreeMap<usize, u64> = BTreeMap::new();
         // let mut
         while let Some(&sym) = work.first() {
             work.drop_first_mut();
+            debug!("WORK: pop {:?}", sym);
             if terminal_set.has_sym(sym) {
                 result.push(sym);
                 if let Some(ch) = to_char(sym, rng) {
-                    string.extend(::std::iter::once(ch));
+                    string.push(ch);
+                    debug!("TERMINAL: string: {:?}, result: {:?}", ch, sym);
+                } else {
+                    debug!("TERMINAL: result: {:?}", sym);
                 }
                 if let Some(max_terminals) = limit {
                     if result.len() as u64 > max_terminals {
@@ -140,38 +149,43 @@ impl Random for BinarizedCfg {
                 }
                 if let Some(back) = backtracking.get_mut(&string.len()) {
                     for state in back.iter_mut() {
-                        if string.ends_with(state.forbidden) {
+                        if string.ends_with(&state.forbidden[..]) {
                             *rng = state.rng.clone();
                             string.truncate(string.len() - state.forbidden.len());
                             result.truncate(state.result_len);
                             work = state.prev_work.clone();
-                            rng.mutate_start(state.attempts);
-                            state.attempts += 1;
-                            if state.attempts > 1024 * 1024 * 32 {
+                            let attempts = backtracking_attempts
+                                .get_mut(&string.len())
+                                .expect("bt.attempt not found");
+                            rng.mutate_start(*attempts);
+                            *attempts += 1;
+                            if *attempts > 256 * 64 {
                                 return Err(RandomGenError::NegativeRuleAttemptsExceeded);
                             }
                         }
                     }
                 }
-            } else if let Some(&forbidden) = negative.get(&sym) {
+            } else if let Some(forbidden) = negative.get(&sym) {
+                debug!("NEGATIVE: forbidden {:?} at {:?}", forbidden, string.len());
                 backtracking
                     .entry(string.len() + forbidden.len())
                     .or_insert(vec![])
                     .push(BacktrackState {
-                        forbidden: forbidden,
+                        forbidden: &forbidden[..],
                         rng: rng.clone(),
-                        attempts: 0,
                         result_len: result.len(),
                         prev_work: work.clone(),
                     });
+                backtracking_attempts.entry(string.len()).or_insert(0);
             } else {
                 let rhs = weighted.pick_rhs(sym, rng);
+                debug!("PICK RHS: from {:?} at {:?}", rhs, string.len());
                 for sym in rhs.iter().cloned().rev() {
                     work.push_front_mut(sym);
                 }
             }
         }
-        Ok(result)
+        Ok((result, string))
     }
 }
 
@@ -186,6 +200,7 @@ fn test_simplest_random_generation() {
     assert_eq!(binarized.num_syms(), 2);
     assert_eq!(binarized.rules().count(), 1);
 
-    let string = binarized.with_thread_rng(lhs, Some(1), &[], |_, _| None);
-    assert_eq!(string, Ok(vec![rhs]));
+    let to_char = |sym, _: &mut _| if sym == rhs { Some('X') } else { None };
+    let string = binarized.with_thread_rng(lhs, Some(1), &[], to_char);
+    assert_eq!(string, Ok((vec![rhs], vec!['X'])));
 }

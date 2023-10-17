@@ -179,20 +179,15 @@ where
                 self.rhs([sym, sep]);
             }
             (_, 1, None) => {
-                if self.top.is_some() {
-                    // ?
-                    let rec = self.recurse(&sequence);
-                    self.rhs([rec]);
+                // ???
+                // seq ::= item
+                self.rhs([rhs]);
+                // Left recursive
+                // seq ::= seq sep item
+                if let Proper(sep) = separator {
+                    self.rhs([lhs, sep, rhs]);
                 } else {
-                    // seq ::= item
-                    self.rhs([rhs]);
-                    // Left recursive
-                    // seq ::= seq sep item
-                    if let Proper(sep) = separator {
-                        self.rhs([lhs, sep, rhs]);
-                    } else {
-                        self.rhs([lhs, rhs]);
-                    }
+                    self.rhs([lhs, rhs]);
                 }
             }
             (_, 1, Some(1)) => {
