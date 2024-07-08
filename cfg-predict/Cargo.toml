@@ -1,0 +1,8 @@
+[package]
+name = "cfg-predict"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cfg-symbol = { path = "../cfg-symbol/" }
+cfg-grammar = { path = "../cfg-grammar/" }
