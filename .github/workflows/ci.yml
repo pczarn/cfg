@@ -103,10 +103,10 @@ jobs:
             with:
                 toolchain: nightly-${{ env.date }}
                 components: rustfmt
+                working-directory: .
           - uses: LoliGothick/rustfmt-check@master
             with:
                 token: ${{ secrets.GITHUB_TOKEN }}
                 toolchain: nightly-${{ env.date }}
                 flags: --all
-                options: --manifest-path=Cargo.toml
                 working-directory: .
