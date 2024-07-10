@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use cfg_grammar::{BinarizedCfg, RuleContainer};
+use cfg_grammar::BinarizedCfg;
 use cfg_symbol::Symbol;
 // use log::debug;
 use rpds::List;
@@ -197,7 +197,7 @@ impl Random for BinarizedCfg {
 
 #[test]
 fn test_simplest_random_generation() {
-    use cfg_grammar::Cfg;
+    use cfg_grammar::{Cfg, RuleContainer};
 
     let mut grammar = Cfg::new();
     let [lhs, rhs] = grammar.sym();
