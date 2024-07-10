@@ -23,12 +23,13 @@ cfg-classify = { path = "../cfg-classify/", optional = true }
 cfg-generate = { path = "../cfg-generate/", optional = true }
 cfg-earley = { path = "../cfg-earley/", optional = true }
 cfg-predict = { path = "../cfg-predict/", optional = true }
+cfg-sequence = { path = "../cfg-sequence/", optional = true }
 
 # # serialize
 # miniserde = { version = "0.1", optional = true }
 
 [features]
-default = ["cfg-classify", "cfg-generate", "cfg-earley", "cfg-predict", "cfg-generate"]
+default = ["cfg-classify", "cfg-generate", "cfg-earley", "cfg-predict", "cfg-generate", "cfg-sequence"]
 serialize = ["cfg-grammar/serialize"]
 ll = ["cfg-classify/cfg-predict"]
 weighted-generation = ["cfg-generate/weighted"]
