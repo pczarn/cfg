@@ -121,7 +121,7 @@ impl Random for BinarizedCfg {
     ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
         // let _ = env_logger::try_init();
         // for rule in self.rules() {
-            // debug!("RULE: {:?} ::= {:?}", rule.lhs, rule.rhs);
+        // debug!("RULE: {:?} ::= {:?}", rule.lhs, rule.rhs);
         // }
         let weighted = self.weighted();
         let mut work = List::new();
@@ -146,7 +146,7 @@ impl Random for BinarizedCfg {
                     // debug!("TERMINAL: string: {:?}, result: {:?}", ch, sym);
                 }
                 // } else {
-                    // debug!("TERMINAL: result: {:?}", sym);
+                // debug!("TERMINAL: result: {:?}", sym);
                 // }
                 if let Some(max_terminals) = limit {
                     if result.len() as u64 > max_terminals {
