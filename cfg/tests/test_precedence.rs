@@ -1,5 +1,3 @@
-extern crate cfg;
-
 mod support;
 
 use cfg::precedenced_rule::Associativity::*;

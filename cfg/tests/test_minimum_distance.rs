@@ -1,5 +1,3 @@
-extern crate cfg;
-
 use std::num::NonZeroUsize;
 
 use cfg::history::node::LinkedHistoryNode;

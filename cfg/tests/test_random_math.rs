@@ -1,7 +1,3 @@
-extern crate cfg;
-#[cfg(feature = "rand")]
-extern crate rand;
-
 #[macro_use]
 mod grammars;
 

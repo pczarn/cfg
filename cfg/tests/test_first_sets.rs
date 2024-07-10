@@ -1,5 +1,3 @@
-extern crate cfg;
-
 use cfg::{Cfg, RuleContainer};
 use cfg_predict::{FirstSets, PredictSets};
 

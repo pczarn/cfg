@@ -13,15 +13,6 @@
 #![cfg_attr(test, deny(warnings))]
 #![cfg_attr(test, allow(missing_docs))]
 
-extern crate bit_vec;
-extern crate cfg_symbol;
-#[cfg(feature = "serialize")]
-extern crate miniserde;
-#[cfg(feature = "num")]
-extern crate num;
-#[cfg(feature = "rand")]
-extern crate rand;
-
 pub mod binarized_cfg;
 pub mod cfg;
 pub mod history;

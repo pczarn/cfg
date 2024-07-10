@@ -1,5 +1,3 @@
-extern crate cfg;
-
 mod support;
 
 use cfg::classify::useful::Usefulness;

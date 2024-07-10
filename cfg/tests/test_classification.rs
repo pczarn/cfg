@@ -1,5 +1,3 @@
-extern crate cfg;
-
 use std::rc::Rc;
 
 #[cfg(feature = "ll")]

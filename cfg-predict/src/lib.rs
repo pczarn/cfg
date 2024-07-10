@@ -1,6 +1,6 @@
 //! Prediction for predictive parsers.
-
-// Based on code by Niko Matsakis.
+//!
+//! FIRST and FOLLOW sets impls are based on code by Niko Matsakis.
 
 mod distance;
 mod first;
