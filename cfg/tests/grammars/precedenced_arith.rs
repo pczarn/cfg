@@ -1,11 +1,11 @@
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
 use std::collections::BTreeMap;
 
 use cfg::earley::Grammar;
 
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
 use cfg::history::node::LinkedHistoryNode;
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
 use cfg::{Cfg, RuleContainer, Symbol};
 
 pub fn grammar() -> Grammar {
@@ -29,7 +29,7 @@ pub fn grammar() -> Grammar {
     bnf
 }
 
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
 pub fn weighted_grammar() -> (Cfg, Symbol, BTreeMap<Symbol, char>, Symbol) {
     let mut bnf = Cfg::new();
     let mut map = BTreeMap::new();

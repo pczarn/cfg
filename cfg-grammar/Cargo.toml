@@ -1,6 +1,6 @@
 [package]
 name = "cfg-grammar"
-version = "0.9.0"
+version = "0.0.1"
 edition = "2021"
 
 authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]

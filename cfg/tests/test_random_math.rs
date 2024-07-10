@@ -1,9 +1,9 @@
 #[macro_use]
 mod grammars;
 
-#[cfg(feature = "rand")]
-use cfg::generation::weighted::Random;
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
+use cfg::generate::weighted::Random;
+#[cfg(feature = "weighted-generation")]
 use grammars::*;
 
 // const SUM_TOKENS: &'static [u32] = precedenced_arith!(
@@ -13,7 +13,7 @@ use grammars::*;
 //     '(' '3' '6' ')' ')'
 // );
 
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
 #[test]
 fn test_precedenced_arith() {
     use rand::rngs::SmallRng;
@@ -38,10 +38,10 @@ fn test_precedenced_arith() {
     assert_eq!(string, expected);
 }
 
-#[cfg(feature = "generation")]
+#[cfg(feature = "weighted-generation")]
 #[test]
 fn test_precedenced_arith_with_negative_lookahead() {
-    use cfg::generation::weighted::NegativeRule;
+    use cfg::generate::weighted::NegativeRule;
     use rand::rngs::SmallRng;
     use rand::SeedableRng;
 
