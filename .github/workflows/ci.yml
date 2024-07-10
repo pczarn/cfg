@@ -92,18 +92,21 @@ jobs:
   #     - uses: dtolnay/rust-toolchain@clippy
   #     - run: cargo clippy --features weighted-generation -- -Dclippy::all -Dclippy::pedantic
 
-  fmt:
-    name: rustfmt-check
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            components: rustfmt
-            override: true
-      - uses: LoliGothick/rustfmt-check@master
-        with:
-            token: ${{ secrets.GITHUB_TOKEN }}
+  format:
+      name: rustfmt-check
+      runs-on: ubuntu-latest
+      if: github.event_name == 'pull_request'
+      steps:
+          - uses: actions/checkout@v2
+          - run: echo "date=$(date -d '1 month ago' +'%Y-%m-%d')" >> $GITHUB_ENV
+          - uses: dtolnay/rust-toolchain@master
+            with:
+                toolchain: nightly-${{ env.date }}
+                components: rustfmt
+          - uses: LoliGothick/rustfmt-check@master
+            with:
+                token: ${{ secrets.GITHUB_TOKEN }}
+                toolchain: nightly-${{ env.date }}
+                flags: --all
+                options: --manifest-path=Cargo.toml
+                working-directory: .
