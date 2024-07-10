@@ -1,3 +1,5 @@
+#![cfg(feature = "cfg-classify")]
+
 use std::rc::Rc;
 
 #[cfg(feature = "ll")]

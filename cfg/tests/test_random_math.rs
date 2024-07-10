@@ -1,3 +1,5 @@
+#![cfg(feature = "cfg-earley")]
+
 #[macro_use]
 mod grammars;
 

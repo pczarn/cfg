@@ -1,3 +1,5 @@
+#![cfg(feature = "cfg-predict")]
+
 use cfg::{Cfg, RuleContainer};
 use cfg_predict::{LastSets, PredictSets};
 

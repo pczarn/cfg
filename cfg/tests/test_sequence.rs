@@ -1,19 +1,23 @@
+#![cfg(all(feature = "cfg-classify", feature = "cfg-sequence"))]
+
 mod support;
 
-use cfg::classification::useful::Usefulness;
+use cfg::classify::useful::Usefulness;
 use cfg::sequence::Separator::*;
 use cfg::{Cfg, RuleContainer};
+use cfg_sequence::destination::SequenceDestination;
+use cfg_sequence::rewrite::SequencesToProductions;
 
 #[test]
 fn test_sequence() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem, sep] = cfg.sym();
 
-    cfg.sequence(start)
+    SequencesToProductions::new(&mut cfg)
+        .sequence(start)
         .separator(Trailing(sep))
         .inclusive(1, Some(1))
         .rhs(elem);
-    cfg.rewrite_sequences();
 
     let mut equivalent: Cfg = Cfg::new();
     let [start, elem, sep, g0] = equivalent.sym();
@@ -29,8 +33,10 @@ fn test_nulling_sequence() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem] = cfg.sym();
 
-    cfg.sequence(start).inclusive(0, Some(0)).rhs(elem);
-    cfg.rewrite_sequences();
+    SequencesToProductions::new(&mut cfg)
+        .sequence(start)
+        .inclusive(0, Some(0))
+        .rhs(elem);
 
     let mut equivalent: Cfg = Cfg::new();
     let start = equivalent.next_sym();
@@ -46,11 +52,11 @@ fn test_sequence_1_4() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem, sep] = cfg.sym();
 
-    cfg.sequence(start)
+    SequencesToProductions::new(&mut cfg)
+        .sequence(start)
         .separator(Trailing(sep))
         .inclusive(1, Some(4))
         .rhs(elem);
-    cfg.rewrite_sequences();
 
     let mut equiv: Cfg = Cfg::new();
     let [start, elem, sep, g0, g1, g2, g3, g4] = equiv.sym();
@@ -81,8 +87,10 @@ fn test_sequence_combinations() {
         let mut cfg: Cfg = Cfg::new();
         let [start, elem] = cfg.sym();
 
-        cfg.sequence(start).inclusive(i, Some(99)).rhs(elem);
-        cfg.rewrite_sequences();
+        SequencesToProductions::new(&mut cfg)
+            .sequence(start)
+            .inclusive(i, Some(99))
+            .rhs(elem);
 
         assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
     }

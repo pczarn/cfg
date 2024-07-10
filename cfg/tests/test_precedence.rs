@@ -1,3 +1,5 @@
+#![cfg(feature = "cfg-classify")]
+
 mod support;
 
 use cfg::precedenced_rule::Associativity::*;

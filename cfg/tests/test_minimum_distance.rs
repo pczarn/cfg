@@ -1,3 +1,5 @@
+#![cfg(feature = "cfg-predict")]
+
 use std::num::NonZeroUsize;
 
 use cfg::history::node::LinkedHistoryNode;
