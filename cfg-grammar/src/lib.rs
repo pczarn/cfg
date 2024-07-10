@@ -12,7 +12,6 @@
 )]
 #![cfg_attr(test, deny(warnings))]
 #![cfg_attr(test, allow(missing_docs))]
-#![cfg_attr(feature = "nightly", feature(collections, collections_range, core,))]
 
 extern crate bit_vec;
 extern crate cfg_symbol;
@@ -22,13 +21,6 @@ extern crate miniserde;
 extern crate num;
 #[cfg(feature = "rand")]
 extern crate rand;
-
-#[cfg(feature = "nightly")]
-extern crate alloc;
-#[cfg(feature = "nightly")]
-extern crate collections;
-#[cfg(feature = "nightly")]
-extern crate core;
 
 pub mod binarized_cfg;
 pub mod cfg;
