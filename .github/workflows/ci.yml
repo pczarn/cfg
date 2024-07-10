@@ -65,13 +65,29 @@ jobs:
       - run: cargo build --features serialize
       - run: cargo build --features weighted-generation,serialize
 
-  msrv:
+  # msrv:
+  #   name: Rust ${{matrix.rust}}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       rust: [1.65.0, 1.66.0, 1.67.0]
+  #   timeout-minutes: 45
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{matrix.rust}}
+  #     - run: cargo build --features serialize
+  #     - run: cargo test
+
+  msrv_weighted_generation:
     name: Rust ${{matrix.rust}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        rust: [1.65.0, 1.66.0, 1.67.0]
+        rust: [1.76.0, 1.77.0]
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v3
