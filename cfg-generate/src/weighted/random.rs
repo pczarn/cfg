@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use cfg_grammar::{BinarizedCfg, RuleContainer};
 use cfg_symbol::Symbol;
-use log::debug;
+// use log::debug;
 use rpds::List;
 
 use cfg_grammar::symbol::set::SymbolBitSet;
@@ -119,10 +119,10 @@ impl Random for BinarizedCfg {
         negative_rules: &[NegativeRule],
         to_char: F,
     ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
-        let _ = env_logger::try_init();
-        for rule in self.rules() {
-            debug!("RULE: {:?} ::= {:?}", rule.lhs, rule.rhs);
-        }
+        // let _ = env_logger::try_init();
+        // for rule in self.rules() {
+            // debug!("RULE: {:?} ::= {:?}", rule.lhs, rule.rhs);
+        // }
         let weighted = self.weighted();
         let mut work = List::new();
         work.push_front_mut(start);
@@ -138,15 +138,16 @@ impl Random for BinarizedCfg {
         // let mut
         while let Some(&sym) = work.first() {
             work.drop_first_mut();
-            debug!("WORK: pop {:?}", sym);
+            // debug!("WORK: pop {:?}", sym);
             if terminal_set.has_sym(sym) {
                 result.push(sym);
                 if let Some(ch) = to_char(sym, rng) {
                     string.push(ch);
-                    debug!("TERMINAL: string: {:?}, result: {:?}", ch, sym);
-                } else {
-                    debug!("TERMINAL: result: {:?}", sym);
+                    // debug!("TERMINAL: string: {:?}, result: {:?}", ch, sym);
                 }
+                // } else {
+                    // debug!("TERMINAL: result: {:?}", sym);
+                // }
                 if let Some(max_terminals) = limit {
                     if result.len() as u64 > max_terminals {
                         return Err(RandomGenError::LimitExceeded);
@@ -171,7 +172,7 @@ impl Random for BinarizedCfg {
                     }
                 }
             } else if let Some(forbidden) = negative.get(&sym) {
-                debug!("NEGATIVE: forbidden {:?} at {:?}", forbidden, string.len());
+                // debug!("NEGATIVE: forbidden {:?} at {:?}", forbidden, string.len());
                 backtracking
                     .entry(string.len() + forbidden.len())
                     .or_insert(vec![])
@@ -184,7 +185,7 @@ impl Random for BinarizedCfg {
                 backtracking_attempts.entry(string.len()).or_insert(0);
             } else {
                 let rhs = weighted.pick_rhs(sym, rng);
-                debug!("PICK RHS: from {:?} at {:?}", rhs, string.len());
+                // debug!("PICK RHS: from {:?} at {:?}", rhs, string.len());
                 for sym in rhs.iter().cloned().rev() {
                     work.push_front_mut(sym);
                 }

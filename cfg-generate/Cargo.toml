@@ -11,8 +11,6 @@ cfg-grammar = { path = "../cfg-grammar/", optional = true }
 rand = { version = "0.8", optional = true, features = ["small_rng"] }
 num = { version = "0.4", optional = true }
 rpds = { version = "1.1.0", optional = true }
-env_logger = { version = "0.11", optional = true }
-log = { version = "0.4", optional = true }
 
 [features]
-weighted = ["rand", "num", "rpds", "env_logger", "log", "cfg-grammar"]
+weighted = ["rand", "num", "rpds", "cfg-grammar"]
