@@ -124,7 +124,7 @@ number ::= digit+
 
 With our library:
 ```rust
-grammar.sequence(number).inclusive(1, None).rhs(digit);
+SequencesToProductions::new(&mut grammar).sequence(number).inclusive(1, None).rhs(digit);
 ```
 
 ### Building precedenced rules
