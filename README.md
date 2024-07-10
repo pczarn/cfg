@@ -28,7 +28,7 @@
 [shields.io download count]: https://img.shields.io/crates/d/cfg.svg
 
 Rust library for manipulating context-free grammars.
-[You can check the documentation here](https://docs.rs/cfg/).
+[You can check the documentation here](https://docs.rs/cfg/latest/cfg/).
 
 ## Analyzing and modifying grammars
 

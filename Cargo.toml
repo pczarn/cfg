@@ -1,35 +1,8 @@
-[package]
-name = "cfg"
-version = "0.8.0"
-edition = "2021"
+[workspace]
 
-authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
-description = "Library for manipulating context-free grammars."
-keywords = ["grammar", "parsing", "language"]
-documentation = "http://pczarn.github.io/cfg/"
-homepage = "http://pczarn.github.io/cfg/"
-repository = "https://github.com/pczarn/cfg"
-license = "MIT/Apache-2.0"
+members = [
+    "cfg", "cfg-classify", "cfg-earley", "cfg-generate", "cfg-predict", "cfg-sequence",
+    "cfg-symbol",
+]
 
-[lib]
-name = "cfg"
-
-[dependencies]
-bit-matrix = "0.6"
-bit-vec = "0.6"
-optional = "0.5"
-
-# serialize
-serde = { version = "1.0", optional = true }
-serde_derive =  { version = "1.0", optional = true }
-
-# generation
-rand = { version = "0.8", optional = true, features = ["small_rng"] }
-num = { version = "0.4", optional = true }
-rpds = { version = "1.0.1", optional = true }
-env_logger = { version = "0.10", optional = true }
-log = { version = "0.4", optional = true }
-
-[features]
-generation = ["rand", "num", "rpds", "env_logger", "log"]
-serialize = ["serde", "serde_derive"]
+resolver = "2"

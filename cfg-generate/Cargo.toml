@@ -1,0 +1,16 @@
+[package]
+name = "cfg-generate"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+cfg-symbol = { path = "../cfg-symbol/" }
+cfg-grammar = { path = "../cfg-grammar/", optional = true }
+
+# generation
+rand = { version = "0.8", optional = true, features = ["small_rng"] }
+num = { version = "0.4", optional = true }
+rpds = { version = "1.1.0", optional = true }
+
+[features]
+weighted = ["rand", "num", "rpds", "cfg-grammar"]
