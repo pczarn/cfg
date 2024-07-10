@@ -19,8 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo test
       - run: cargo test --features weighted-generation
+      - run: cargo test --features serialize
+      - run: cargo test --features weighted-generation,serialize
+      - run: cargo test
+      - run: cargo test --no-default-features
 
   windows:
     name: Test suite (windows)
@@ -29,8 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo test
       - run: cargo test --features weighted-generation
+      - run: cargo test --features serialize
+      - run: cargo test --features weighted-generation,serialize
+      - run: cargo test
+      - run: cargo test --no-default-features
 
   stable:
     name: Rust ${{matrix.rust}}
@@ -45,10 +51,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.rust}}
-      - run: cargo build --features weighted-generation
-      - run: cargo build --features serialize
-      - run: cargo build --features weighted-generation,serialize
+      - run: cargo test --features weighted-generation
+      - run: cargo test --features serialize
+      - run: cargo test --features weighted-generation,serialize
       - run: cargo test
+      - run: cargo test --no-default-features
 
   nightly:
     name: Rust nightly ${{matrix.os == 'windows' && '(windows)' || ''}}
@@ -61,9 +68,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo build --features weighted-generation
-      - run: cargo build --features serialize
-      - run: cargo build --features weighted-generation,serialize
+      - run: cargo test --features weighted-generation
+      - run: cargo test --features serialize
+      - run: cargo test --features weighted-generation,serialize
+      - run: cargo test
+      - run: cargo test --no-default-features
 
   # msrv:
   #   name: Rust ${{matrix.rust}}
@@ -94,10 +103,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.rust}}
-      - run: cargo build --features weighted-generation
-      - run: cargo build --features serialize
-      - run: cargo build --features weighted-generation,serialize
+      - run: cargo test --features weighted-generation
+      - run: cargo test --features serialize
+      - run: cargo test --features weighted-generation,serialize
       - run: cargo test
+      - run: cargo test --no-default-features
 
   # clippy:
   #   name: Clippy

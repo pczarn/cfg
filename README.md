@@ -153,11 +153,7 @@ grammar.precedenced_rule(expr)
 
 ## Using a custom grammar representation
 
-Your grammar type has to implement a trait, and two more traits are needed for grammar references:
-
-* implement `RuleContainer` for `MyGrammar`
-* implement `RuleContainerRef` for `&'a MyGrammar`
-* implement `RuleContainerMut` for `&'a mut MyGrammar`
+Your grammar type has to implement the `RuleContainer` trait.
 
 ## License
 

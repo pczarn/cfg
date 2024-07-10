@@ -4,8 +4,8 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-cfg-symbol = { path = "../cfg-symbol/" }
-cfg-classify = { path = "../cfg-classify/" }
-cfg-grammar = { path = "../cfg-grammar/" }
-cfg-sequence = { path = "../cfg-sequence/" }
 bit-matrix = "0.8"
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-classify = { version = "0.0.1", path = "../cfg-classify/" }
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/" }

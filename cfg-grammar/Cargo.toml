@@ -16,7 +16,7 @@ name = "cfg_grammar"
 
 [dependencies]
 bit-vec = "0.7"
-cfg-symbol = { path = "../cfg-symbol/" }
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 
 # serialize
 miniserde = { version = "0.1", optional = true }

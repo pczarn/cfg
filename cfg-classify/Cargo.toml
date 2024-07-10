@@ -4,8 +4,8 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-cfg-grammar = { path = "../cfg-grammar/" }
-cfg-symbol = { path = "../cfg-symbol/" }
-cfg-predict = { path = "../cfg-predict/", optional = true }
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-predict = { version = "0.0.1", path = "../cfg-predict/", optional = true }
 bit-matrix = "0.8"
 bit-vec = "0.7"

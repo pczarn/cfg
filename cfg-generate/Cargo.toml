@@ -4,8 +4,8 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-cfg-symbol = { path = "../cfg-symbol/" }
-cfg-grammar = { path = "../cfg-grammar/", optional = true }
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/", optional = true }
 
 # generation
 rand = { version = "0.8", optional = true, features = ["small_rng"] }

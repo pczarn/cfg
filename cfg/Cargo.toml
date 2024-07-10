@@ -17,13 +17,13 @@ name = "cfg"
 [dependencies]
 bit-matrix = "0.8"
 bit-vec = "0.7"
-cfg-symbol = { path = "../cfg-symbol/" }
-cfg-grammar = { path = "../cfg-grammar/" }
-cfg-classify = { path = "../cfg-classify/", optional = true }
-cfg-generate = { path = "../cfg-generate/", optional = true }
-cfg-earley = { path = "../cfg-earley/", optional = true }
-cfg-predict = { path = "../cfg-predict/", optional = true }
-cfg-sequence = { path = "../cfg-sequence/", optional = true }
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+cfg-classify = { version = "0.0.1", path = "../cfg-classify/", optional = true }
+cfg-generate = { version = "0.0.1", path = "../cfg-generate/", optional = true }
+cfg-earley = { version = "0.0.1", path = "../cfg-earley/", optional = true }
+cfg-predict = { version = "0.0.1", path = "../cfg-predict/", optional = true }
+cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/", optional = true }
 
 rand = { version = "0.8", optional = true, features = ["small_rng"] }
 

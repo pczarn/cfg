@@ -1,8 +1,8 @@
 [package]
 name = "cfg-sequence"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-cfg-symbol = { path = "../cfg-symbol/" }
-cfg-grammar = { path = "../cfg-grammar/" }
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
