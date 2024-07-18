@@ -57,12 +57,9 @@ impl Lr0Items {
     }
 }
 
-impl<'a, G> Lr0ClosureBuilder<'a, G>
-where
-    G: RuleContainer,
-{
+impl<'a> Lr0ClosureBuilder<'a> {
     /// Creates a builder for an LR(0) item closure.
-    pub fn new(grammar: &'a mut G) -> Self {
+    pub fn new(grammar: &'a mut Cfg) -> Self {
         Lr0ClosureBuilder {
             queue: VecDeque::new(),
             terminal_set: SymbolBitSet::terminal_set(&grammar),
@@ -138,12 +135,9 @@ where
     }
 }
 
-impl<'a, G> Lr0FsmBuilder<'a, G>
-where
-    G: RuleContainer,
-{
+impl<'a> Lr0FsmBuilder<'a> {
     /// Creates a new LR(0) Finite State Machine builder.
-    pub fn new(grammar: &'a mut G) -> Self {
+    pub fn new(grammar: &'a mut Cfg) -> Self {
         Lr0FsmBuilder {
             closure: Lr0ClosureBuilder::new(grammar),
             sets_queue: VecDeque::new(),

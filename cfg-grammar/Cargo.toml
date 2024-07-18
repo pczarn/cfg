@@ -17,6 +17,7 @@ name = "cfg_grammar"
 [dependencies]
 bit-vec = "0.7"
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-history = { version = "0.0.1", path = "../cfg-history/" }
 smallvec = { version = "1.13", features = ["const_generics"], optional = true }
 
 # serialize

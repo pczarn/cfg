@@ -1,11 +1,22 @@
 use bit_matrix::BitMatrix;
 
-use crate::local_prelude::*;
+use cfg_grammar::Cfg;
+
+struct SymbolBitMatrix {
+    bit_matrix: BitMatrix,
+}
+
+impl SymbolBitMatrix {
+    pub fn new(num_syms: usize) -> Self {
+        SymbolBitMatrix {
+            bit_matrix: BitMatrix::new(num_syms, num_syms),
+        }
+    }
+}
 
 /// Returns the direct derivation matrix.
 pub fn direct_derivation_matrix<'a>(grammar: &'a Cfg) -> BitMatrix {
-    let num_syms = grammar.sym_source().num_syms();
-    let mut derivation = BitMatrix::new(num_syms, num_syms);
+    let mut derivation = SymbolBitMatrix::new(grammar.sym_source().num_syms());
 
     for rule in grammar.rules() {
         derivation.set(rule.lhs.usize(), rule.lhs.usize(), true);

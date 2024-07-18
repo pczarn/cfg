@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "cfg", "cfg-classify", "cfg-classify-useful", "cfg-reachability", "cfg-earley", "cfg-generate", "cfg-predict", "cfg-predict-sets", "cfg-sequence",
+    "cfg", "cfg-classify", "cfg-classify-useful", "cfg-symbol-matrix", "cfg-earley", "cfg-generate", "cfg-predict", "cfg-predict-sets", "cfg-sequence",
     "cfg-symbol", "cfg-symbol-matrix", "cfg-history", "cfg-classify-ll", "cfg-classify-lr", "cfg-classify-linear", "cfg-classify-cyclical", "cfg-classify-regular", "cfg-earley-history",
 ]
 

@@ -1,6 +1,6 @@
 //! Informs whether symbols are terminal or nonterminal.
 
-use std::iter;
+use std::{iter, ops};
 
 use bit_vec;
 use bit_vec::BitVec;
@@ -43,7 +43,7 @@ impl SymbolBitSet {
     ///
     /// Constructs a data structure in O(n) time.
     pub fn terminal(&mut self, grammar: &Cfg) {
-        self.initialize(grammar.sym_source())
+        self.initialize(grammar.sym_source());
         for rule in grammar.rules() {
             self[rule.lhs] = false;
         }
@@ -54,7 +54,7 @@ impl SymbolBitSet {
     ///
     /// Constructs a data structure in O(n) time.
     pub fn nulling(&mut self, grammar: &Cfg) {
-        self.initialize(grammar.sym_source())
+        self.initialize(grammar.sym_source());
         for rule in grammar.rules() {
             if rule.rhs.is_empty() {
                 self.set(rule.lhs, true);
@@ -67,10 +67,14 @@ impl SymbolBitSet {
     ///
     /// Constructs a data structure in O(n) time.
     pub fn productive(&mut self, grammar: &Cfg) {
-        self.initialize(grammar.sym_source())
+        self.initialize(grammar.sym_source());
         for rule in grammar.rules() {
             self.set(rule.lhs, true);
         }
+    }
+
+    pub fn set(&mut self, index: Symbol, elem: bool) {
+        self.bit_vec.set(index.usize(), elem);
     }
 
     /// Converts into a bit vector.
@@ -98,12 +102,17 @@ impl<'a> Iterator for Iter<'a> {
     }
 }
 
-impl Index<Symbol> for SymbolBitSet {
-    type Result = bool;
+static TRUE: bool = true;
+static FALSE: bool = false;
 
-    fn get
-}
+impl ops::Index<Symbol> for SymbolBitSet {
+    type Output = bool;
 
-impl IndexSet<Symbol> for SymbolBitSet {
-
+    fn index(&self, index: Symbol) -> &Self::Output {
+        if self.bit_vec[index.into()] {
+            &TRUE
+        } else {
+            &FALSE
+        }
+    }
 }

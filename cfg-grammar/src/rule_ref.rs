@@ -3,7 +3,7 @@
 //! on its right-hand side. In this library, each rule carries additional
 //! value called "history."
 
-use crate::local_prelude::*;
+use crate::{cfg::CfgRule, local_prelude::*};
 
 /// Trait for rules of a context-free grammar.
 pub trait AsRuleRef {
@@ -30,8 +30,12 @@ pub struct RuleRef<'a> {
     pub history_id: HistoryId,
 }
 
-impl<'a> AsRuleRef for RuleRef<'a> {
-    fn as_rule_ref(&self) -> RuleRef {
-        *self
+impl<'a> From<&'a CfgRule> for RuleRef<'a> {
+    fn from(value: &'a CfgRule) -> Self {
+        RuleRef {
+            lhs: value.lhs,
+            rhs: &value.rhs[..],
+            history_id: value.history_id,
+        }
     }
 }

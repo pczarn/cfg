@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 
 use cfg_grammar::rhs_closure::RhsClosure;
-use cfg_grammar::symbol::symbol_set::SymbolBitSet;
-use cfg_grammar::RuleContainer;
+use cfg_grammar::symbol_set::SymbolBitSet;
+use cfg_grammar::Cfg;
 use cfg_predict::{FirstSets, FollowSets, PredictSets};
 use cfg_symbol::Symbol;
 
@@ -37,7 +37,7 @@ pub enum LlNonterminalClass {
 
 impl<'a> LlParseTable<'a> {
     /// Creates an LL parse table.
-    pub fn new(grammar: &'a G, start_sym: Symbol) -> Self {
+    pub fn new(grammar: &'a Cfg, start_sym: Symbol) -> Self {
         let mut this = LlParseTable {
             map: BTreeMap::new(),
             grammar,
