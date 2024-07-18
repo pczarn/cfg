@@ -4,7 +4,6 @@ use std::cmp::Ordering::{Greater, Less};
 use bit_vec::BitVec;
 
 use crate::local_prelude::*;
-use crate::rule::RuleRef;
 
 /// Rhs closure. In some sense, it is a reverse of breadth
 /// first search (reverse BFS).
@@ -44,7 +43,7 @@ impl<'a> PartialEq for Derivation<'a> {
 
 impl<'a> RhsClosure<'a> {
     /// Records information which is needed to calculate the RHS transitive closure.
-    pub fn new<G>(grammar: &'a G) -> Self
+    pub fn new(grammar: &'a G) -> Self
     where
         G: RuleContainer,
     {
@@ -59,7 +58,7 @@ impl<'a> RhsClosure<'a> {
         inverse_derivation.sort();
 
         RhsClosure {
-            inverse_derivation: inverse_derivation,
+            inverse_derivation,
             work_stack: vec![],
         }
     }

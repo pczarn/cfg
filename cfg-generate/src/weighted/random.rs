@@ -7,7 +7,7 @@ use cfg_symbol::Symbol;
 // use log::debug;
 use rpds::List;
 
-use cfg_grammar::symbol::set::SymbolBitSet;
+use cfg_grammar::symbol::symbol_set::SymbolBitSet;
 use rand::rngs::ThreadRng;
 use rand::{thread_rng, Rng};
 

@@ -3,7 +3,7 @@
 mod support;
 
 use cfg::classify::useful::Usefulness;
-use cfg::symbol::remap::Remap;
+use cfg::symbol::remap_symbols::Remap;
 use cfg::{Cfg, RuleContainer};
 
 #[test]

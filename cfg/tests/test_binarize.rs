@@ -1,5 +1,7 @@
 #![cfg(feature = "cfg-classify")]
 
+use test_case::test_case;
+
 mod support;
 
 use cfg::classify::useful::Usefulness;
@@ -22,34 +24,10 @@ fn test_binarize() {
         .rule(a)
         .rhs([]);
 
-    let mut cfg = cfg.binarize();
+    cfg.limit_rule_length(1..=2);
 
     {
-        let mut equivalent = BinarizedCfg::new();
-        let [start, a, b, c, x, y, g0] = equivalent.sym();
-
-        equivalent
-            .rule(start)
-            .rhs([g0, b])
-            .rule(g0)
-            .rhs([a, x])
-            .rule(start)
-            .rhs([c])
-            .rule(b)
-            .rhs([a, a])
-            .rhs([a, c])
-            .rule(c)
-            .rhs([x])
-            .rhs([y])
-            .rule(a)
-            .rhs([]);
-        support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    };
-
-    let nulling = cfg.eliminate_nulling_rules();
-
-    {
-        let mut equivalent = BinarizedCfg::new();
+        let mut equivalent = Cfg::new();
         let [start, _a, b, c, x, y, g0] = equivalent.sym();
         equivalent
             .rule(start)
@@ -63,22 +41,22 @@ fn test_binarize() {
             .rule(g0)
             .rhs([x])
             .rule(b)
-            .rhs([c]);
+            .rhs([c])
+            .rule(a)
+            .rhs([])
+            .rule(b)
+            .rhs([a, a]);
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    };
-
-    {
-        let mut equivalent_nulling = BinarizedCfg::new();
-        let [_, a, b] = equivalent_nulling.sym();
-        equivalent_nulling.rule(a).rhs([]).rule(b).rhs([a, a]);
-        support::assert_eq_rules(equivalent_nulling.rules(), nulling.rules());
     };
 
     assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
 }
 
-#[test]
-fn test_binarize_very_long_rule() {
+#[test_case(3)]
+#[test_case(100)]
+#[test_case(1000)]
+#[test_case(423)]
+fn test_binarize_very_long_rule(num_syms: usize) {
     const RULE_COUNT: usize = 10_000;
 
     let mut cfg: Cfg = Cfg::new();
@@ -87,16 +65,16 @@ fn test_binarize_very_long_rule() {
     let mut long_rhs = cfg
         .sym_source_mut()
         .generate()
-        .take(100)
+        .take(num_syms)
         .collect::<Vec<_>>();
     long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
     cfg.rule(start).rhs(long_rhs);
 
     assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
-    let cfg = cfg.binarize();
+    cfg.binarize();
     assert_eq!(cfg.rules().count(), RULE_COUNT - 1);
 
-    let mut equivalent = BinarizedCfg::new();
+    let mut equivalent = Cfg::new();
     let start = equivalent.next_sym();
 
     let mut long_rhs = equivalent

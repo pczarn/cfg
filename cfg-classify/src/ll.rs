@@ -3,15 +3,15 @@
 use std::collections::BTreeMap;
 
 use cfg_grammar::rhs_closure::RhsClosure;
-use cfg_grammar::symbol::set::SymbolBitSet;
+use cfg_grammar::symbol::symbol_set::SymbolBitSet;
 use cfg_grammar::RuleContainer;
 use cfg_predict::{FirstSets, FollowSets, PredictSets};
 use cfg_symbol::Symbol;
 
 /// LL parse table.
-pub struct LlParseTable<'a, G> {
+pub struct LlParseTable<'a> {
     map: BTreeMap<LlParseTableKey, Vec<usize>>,
-    grammar: &'a G,
+    grammar: &'a Cfg,
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -35,10 +35,7 @@ pub enum LlNonterminalClass {
     ContextFree,
 }
 
-impl<'a, G> LlParseTable<'a, G>
-where
-    G: RuleContainer,
-{
+impl<'a> LlParseTable<'a> {
     /// Creates an LL parse table.
     pub fn new(grammar: &'a G, start_sym: Symbol) -> Self {
         let mut this = LlParseTable {

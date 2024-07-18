@@ -3,7 +3,7 @@
 use cfg_grammar::history::node::LinkedHistoryNode;
 use cfg_grammar::rhs_closure::RhsClosure;
 // use cfg_grammar::rule::GrammarRule;
-use cfg_grammar::symbol::set::SymbolBitSet;
+use cfg_grammar::symbol::symbol_set::SymbolBitSet;
 use cfg_grammar::*;
 
 /// Calculation of minimum distance from one part of the grammar to another.

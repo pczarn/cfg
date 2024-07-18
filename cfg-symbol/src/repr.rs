@@ -1,24 +1,17 @@
 use core::num::NonZeroU32;
 
-#[cfg(feature = "serialize")]
-use miniserde::de::{Deserialize, Visitor};
-#[cfg(feature = "serialize")]
-use miniserde::Serialize;
-#[cfg(feature = "serialize")]
-use miniserde::{make_place, Error, Result};
-
-#[cfg(feature = "serialize")]
-make_place!(Place);
-
 pub type SymbolRepr = u32;
 /// The first usable symbol ID.
 pub const FIRST_ID: SymbolRepr = 0;
 /// The first usable symbol ID.
-pub const NULL_ID: SymbolRepr = !0;
+pub const NULL_ID: SymbolRepr = u32::MAX;
 
 /// A common grammar symbol type.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
-pub struct Symbol(NonZeroU32);
+pub struct Symbol {
+    n: NonZeroU32,
+}
 
 impl Default for Symbol {
     fn default() -> Self {
@@ -33,14 +26,16 @@ impl From<SymbolRepr> for Symbol {
             id, NULL_ID,
             "invalid coversion from a null id to non-null Symbol"
         );
-        Symbol(NonZeroU32::new(id.wrapping_add(1)).unwrap())
+        Symbol {
+            n: NonZeroU32::new(id.wrapping_add(1)).unwrap(),
+        }
     }
 }
 
-impl Into<SymbolRepr> for Symbol {
+impl From<Symbol> for SymbolRepr {
     #[inline]
-    fn into(self) -> SymbolRepr {
-        self.0.get().wrapping_sub(1)
+    fn from(val: Symbol) -> SymbolRepr {
+        val.n.get().wrapping_sub(1)
     }
 }
 
@@ -59,37 +54,44 @@ impl From<usize> for Symbol {
     }
 }
 
-impl Into<usize> for Symbol {
+impl From<Symbol> for usize {
     #[inline]
-    fn into(self) -> usize {
-        let id: SymbolRepr = self.into();
+    fn from(val: Symbol) -> usize {
+        let id: SymbolRepr = val.into();
         id as usize
     }
 }
 
-#[cfg(feature = "serialize")]
-impl Visitor for Place<Symbol> {
-    fn nonnegative(&mut self, n: u64) -> Result<()> {
-        if n < ::std::u32::MAX as u64 {
-            self.out = Some((n as SymbolRepr).into());
-            Ok(())
-        } else {
-            Err(Error)
+#[cfg(feature = "miniserde")]
+mod miniserde_impls {
+    use super::{Symbol, SymbolRepr};
+    use miniserde::de::{Deserialize, Visitor};
+    use miniserde::{de, ser, Serialize};
+    use miniserde::{make_place, Error, Result};
+
+    make_place!(Place);
+
+    impl Visitor for Place<Symbol> {
+        fn nonnegative(&mut self, n: u64) -> Result<()> {
+            if n < SymbolRepr::MAX as u64 {
+                self.out = Some((n as SymbolRepr).into());
+                Ok(())
+            } else {
+                Err(Error)
+            }
         }
     }
-}
 
-#[cfg(feature = "serialize")]
-impl Deserialize for Symbol {
-    fn begin(out: &mut Option<Self>) -> &mut dyn miniserde::de::Visitor {
-        Place::new(out)
+    impl Deserialize for Symbol {
+        fn begin(out: &mut Option<Self>) -> &mut dyn de::Visitor {
+            Place::new(out)
+        }
     }
-}
 
-#[cfg(feature = "serialize")]
-impl Serialize for Symbol {
-    fn begin(&self) -> miniserde::ser::Fragment {
-        let n: u32 = (*self).into();
-        miniserde::ser::Fragment::U64(n as u64)
+    impl Serialize for Symbol {
+        fn begin(&self) -> ser::Fragment {
+            let n: u32 = (*self).into();
+            ser::Fragment::U64(n as u64)
+        }
     }
 }

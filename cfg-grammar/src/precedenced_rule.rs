@@ -2,11 +2,10 @@
 
 use std::convert::AsRef;
 
-use crate::history::node::{HistoryNodeAssignPrecedence, HistoryNodeRhs, RootHistoryNode};
-use crate::rule::builder::RuleBuilder;
-use crate::rule::cfg_rule::CfgRule;
-use crate::rule::RuleRef;
-use crate::{local_prelude::*, AsRuleRef};
+use crate::cfg::CfgRule;
+use crate::history::{HistoryNodeAssignPrecedence, HistoryNodeRhs, RootHistoryNode};
+use crate::local_prelude::*;
+use crate::rule_builder::RuleBuilder;
 
 use self::Associativity::*;
 
@@ -48,7 +47,7 @@ where
         let tightest_lhs = rules.next_sym();
         PrecedencedRuleBuilder {
             rules,
-            lhs: lhs,
+            lhs,
             tighter_lhs: tightest_lhs,
             current_lhs: tightest_lhs,
             history: None,

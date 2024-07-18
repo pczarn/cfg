@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
 use cfg_grammar::history::node::RootHistoryNode;
-use cfg_grammar::symbol::set::SymbolBitSet;
+use cfg_grammar::symbol::symbol_set::SymbolBitSet;
 use cfg_grammar::RuleContainer;
 use cfg_symbol::Symbol;
 

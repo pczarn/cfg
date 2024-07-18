@@ -15,22 +15,19 @@ use crate::derivation;
 
 /// Provides information about cycles among unit derivations in the grammar. There are two ways of
 /// pruning cycles.
-pub struct Cycles<G> {
-    grammar: G,
+pub struct Cycles<'a> {
+    grammar: &'a Cfg,
     unit_derivation: BitMatrix,
     cycle_free: bool,
 }
 
 /// An iterator over the grammar's useless rules.
-pub struct CycleParticipants<'a, G, I> {
+pub struct CycleParticipants<'a, I> {
     rules: I,
-    cycles: &'a Cycles<&'a mut G>,
+    cycles: &'a Cycles<'a>,
 }
 
-impl<G> Cycles<G>
-where
-    G: RuleContainer,
-{
+impl<'a> Cycles<'a> {
     /// Analyzes the grammar's cycles.
     pub fn new<'a>(grammar: &'a mut G) -> Cycles<&'a mut G> {
         let unit_derivation = derivation::unit_derivation_matrix(grammar);

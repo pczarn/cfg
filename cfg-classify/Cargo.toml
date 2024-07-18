@@ -14,6 +14,6 @@ license = "Apache-2.0 OR MIT"
 [dependencies]
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-cfg-predict = { version = "0.0.1", path = "../cfg-predict/", optional = true }
+cfg-predict-sets = { version = "0.0.1", path = "../cfg-predict-sets/", optional = true }
 bit-matrix = "0.8"
 bit-vec = "0.7"

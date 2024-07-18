@@ -30,8 +30,12 @@ rand = { version = "0.8", optional = true, features = ["small_rng"] }
 # # serialize
 # miniserde = { version = "0.1", optional = true }
 
+[dev-dependencies]
+test-case = "3.3"
+
 [features]
 default = ["cfg-classify", "cfg-generate", "cfg-earley", "cfg-predict", "cfg-generate", "cfg-sequence"]
-serialize = ["cfg-grammar/serialize"]
-ll = ["cfg-classify/cfg-predict"]
+serde = ["cfg-grammar/serde"]
+miniserde = ["cfg-grammar/miniserde"]
+ll = ["cfg-classify/cfg-predict-sets"]
 weighted-generation = ["cfg-generate/weighted", "cfg-generate", "rand"]
