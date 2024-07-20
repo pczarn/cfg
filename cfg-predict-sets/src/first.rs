@@ -9,18 +9,14 @@ use cfg_symbol::Symbol;
 use super::{PerSymbolSets, PredictSets};
 
 /// Collector of FIRST sets.
-pub struct FirstSets<'a, G> {
+pub struct FirstSets {
     pub(super) map: PerSymbolSets,
     lookahead: Vec<Option<Symbol>>,
     changed: bool,
     terminal_set: SymbolBitSet,
-    grammar: &'a G,
 }
 
-impl<'a, G> FirstSets<'a, G>
-where
-    G: RuleContainer,
-{
+impl FirstSets {
     /// Compute all FIRST sets of the grammar.
     ///
     /// We define a binary relation FIRST(N, S), in which N is related to S
@@ -28,16 +24,15 @@ where
     /// α is a nullable string of symbols.
     ///
     /// We compute the transitive closure of this relation.
-    pub fn new(grammar: &'a G) -> Self {
+    pub fn new(grammar: &Cfg) -> Self {
         let mut this = FirstSets {
             map: BTreeMap::new(),
             lookahead: vec![],
             changed: true,
             terminal_set: SymbolBitSet::terminal_set(grammar),
-            grammar,
         };
 
-        this.collect();
+        this.collect(grammar);
         this
     }
 
@@ -66,10 +61,10 @@ where
         result
     }
 
-    fn collect(&mut self) {
+    fn collect(&mut self, grammar: &Cfg) {
         while self.changed {
             self.changed = false;
-            for rule in self.grammar.rules() {
+            for rule in grammar.rules() {
                 let set_changed = self.rule(rule.lhs, rule.rhs);
                 self.changed |= set_changed;
             }
@@ -120,7 +115,7 @@ where
     }
 }
 
-impl<'a, G> PredictSets for FirstSets<'a, G> {
+impl PredictSets for FirstSets {
     /// Returns a reference to FIRST sets.
     fn predict_sets(&self) -> &PerSymbolSets {
         &self.map

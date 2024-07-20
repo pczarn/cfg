@@ -76,7 +76,7 @@ impl<'a> Remap<'a> {
             }
         });
         for rule in added_rules {
-            self.grammar.add_rule(rule.as_rule_ref());
+            self.grammar.add_rule(rule);
         }
     }
 

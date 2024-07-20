@@ -12,5 +12,4 @@ repository = "https://github.com/pczarn/cfg"
 license = "Apache-2.0 OR MIT"
 
 [dependencies]
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }

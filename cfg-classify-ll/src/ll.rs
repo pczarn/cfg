@@ -91,6 +91,7 @@ impl<'a> LlParseTable<'a> {
                 }
             }
         }
+        self.grammar.
         let mut closure = RhsClosure::new(self.grammar);
         let mut property = SymbolBitSet::new(self.grammar, false).into_bit_vec();
         for (&nonterminal, &class) in result.classes.iter() {

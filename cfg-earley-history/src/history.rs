@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use cfg_symbol::Symbol;
 
-use cfg_grammar::{
+use cfg_history::{
     history::node::{BinarizedRhsSubset, LinkedHistoryNode, RootHistoryNode},
     HistoryNode, RuleContainer,
 };

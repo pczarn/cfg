@@ -3,21 +3,9 @@
 //! on its right-hand side. In this library, each rule carries additional
 //! value called "history."
 
+use smallvec::SmallVec;
+
 use crate::{cfg::CfgRule, local_prelude::*};
-
-/// Trait for rules of a context-free grammar.
-pub trait AsRuleRef {
-    fn as_rule_ref(&self) -> RuleRef;
-}
-
-impl<'a, R> AsRuleRef for &'a R
-where
-    R: AsRuleRef,
-{
-    fn as_rule_ref(&self) -> RuleRef {
-        (**self).as_rule_ref()
-    }
-}
 
 /// References rule's components.
 #[derive(Copy, Clone)]
@@ -35,6 +23,19 @@ impl<'a> From<&'a CfgRule> for RuleRef<'a> {
         RuleRef {
             lhs: value.lhs,
             rhs: &value.rhs[..],
+            history_id: value.history_id,
+        }
+    }
+}
+
+impl<'a> From<RuleRef<'a>> for CfgRule {
+    fn from(value: RuleRef<'a>) -> Self {
+        CfgRule {
+            lhs: value.lhs,
+            #[cfg(not(feature = "smallvec"))]
+            rhs: value.rhs.to_vec(),
+            #[cfg(feature = "smallvec")]
+            rhs: SmallVec::from_slice(value.rhs),
             history_id: value.history_id,
         }
     }

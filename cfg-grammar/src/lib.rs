@@ -20,16 +20,15 @@ pub mod rule_builder;
 pub mod rule_ref;
 pub mod symbol_set;
 
-pub use crate::cfg::Cfg;
-pub use crate::rule_ref::{AsRuleRef, RuleRef};
-pub use cfg_symbol::source::SymbolSource;
-pub use cfg_symbol::Symbol;
+pub use crate::cfg::*;
+pub use crate::remap_symbols::Remap;
+pub use crate::rule_ref::RuleRef;
+pub use crate::symbol_set::SymbolBitSet;
 
 pub(crate) mod local_prelude {
+    pub use crate::precedenced_rule::PrecedencedRuleBuilder;
+    pub use crate::*;
     pub use cfg_history::HistoryId;
-    // pub use crate::rule_builder::RuleBuilder;
-    pub use crate::rule_ref::{AsRuleRef, RuleRef};
-    // pub use crate::symbol_set::SymbolBitSet;
     pub use cfg_symbol::source::SymbolSource;
     pub use cfg_symbol::Symbol;
 }

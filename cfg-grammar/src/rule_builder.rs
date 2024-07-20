@@ -2,9 +2,8 @@
 
 use std::convert::AsRef;
 
-use crate::history::{HistoryNodeRhs, LinkedHistoryNode, RootHistoryNode};
 use crate::local_prelude::*;
-use crate::precedenced_rule::PrecedencedRuleBuilder;
+use cfg_history::{HistoryNodeRhs, LinkedHistoryNode, RootHistoryNode};
 
 /// The rule builder.
 pub struct RuleBuilder<'a> {
@@ -46,7 +45,7 @@ impl<'a> RuleBuilder<'a> {
         S: AsRef<[Symbol]>,
     {
         let new_history = match self.history.take() {
-            Some(history) => self.rules.add_history_node(
+            Some(history) => self.grammar.add_history_node(
                 HistoryNodeRhs {
                     prev: history,
                     rhs: syms.as_ref().to_vec(),
@@ -54,13 +53,13 @@ impl<'a> RuleBuilder<'a> {
                 .into(),
             ),
             None => {
-                let base_id = self.rules.add_history_node(
+                let base_id = self.grammar.add_history_node(
                     RootHistoryNode::Rule {
                         lhs: self.lhs.unwrap(),
                     }
                     .into(),
                 );
-                self.rules.add_history_node(
+                self.grammar.add_history_node(
                     HistoryNodeRhs {
                         prev: base_id,
                         rhs: syms.as_ref().to_vec(),
@@ -73,13 +72,13 @@ impl<'a> RuleBuilder<'a> {
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_history<S>(mut self, syms: S, history_id: HistoryId) -> Self
+    pub fn rhs_with_history<S>(self, syms: S, history_id: HistoryId) -> Self
     where
         S: AsRef<[Symbol]>,
     {
         let lhs = self.lhs.unwrap();
         let rhs = syms.as_ref();
-        self.rules.add_rule(RuleRef {
+        self.grammar.add_rule(RuleRef {
             lhs,
             rhs,
             history_id,
@@ -88,13 +87,16 @@ impl<'a> RuleBuilder<'a> {
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_linked_history<S>(mut self, syms: S, linked_history: LinkedHistoryNode) -> Self
+    pub fn rhs_with_linked_history<S>(self, syms: S, linked_history: LinkedHistoryNode) -> Self
     where
         S: AsRef<[Symbol]>,
     {
-        let base_id = self.grammar.add_history_node(RootHistoryNode::Rule {
-            lhs: self.lhs.unwrap(),
-        });
+        let base_id = self.grammar.add_history_node(
+            RootHistoryNode::Rule {
+                lhs: self.lhs.unwrap(),
+            }
+            .into(),
+        );
         let history_id = self.grammar.add_multiple_history_nodes(
             base_id,
             [

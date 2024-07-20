@@ -5,7 +5,7 @@ use std::{iter, ops};
 use bit_vec;
 use bit_vec::BitVec;
 
-use crate::*;
+use crate::local_prelude::*;
 
 /// A set of symbols in the form of a bit vector.
 pub struct SymbolBitSet {
@@ -26,14 +26,14 @@ impl SymbolBitSet {
     }
 
     fn initialize(&mut self, symbol_source: &SymbolSource) {
-        todo!()
+        todo!("{:?}", symbol_source)
     }
 
     pub fn used(&mut self, grammar: &Cfg) {
         for rule in grammar.rules() {
-            self[rule.lhs] = true;
+            self.set(rule.lhs, true);
             for &sym in rule.rhs {
-                self[sym] = true;
+                self.set(sym, true);
             }
         }
     }
@@ -45,7 +45,7 @@ impl SymbolBitSet {
     pub fn terminal(&mut self, grammar: &Cfg) {
         self.initialize(grammar.sym_source());
         for rule in grammar.rules() {
-            self[rule.lhs] = false;
+            self.set(rule.lhs, false);
         }
     }
 
