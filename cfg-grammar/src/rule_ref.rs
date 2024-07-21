@@ -3,12 +3,13 @@
 //! on its right-hand side. In this library, each rule carries additional
 //! value called "history."
 
+#[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
 
 use crate::{cfg::CfgRule, local_prelude::*};
 
 /// References rule's components.
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct RuleRef<'a> {
     /// Left-hand side.
     pub lhs: Symbol,

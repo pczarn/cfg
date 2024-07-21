@@ -10,16 +10,13 @@ use crate::destination::SequenceDestination;
 use crate::Separator::{self, Liberal, Proper, Trailing};
 use crate::Sequence;
 use crate::Symbol;
-use cfg_grammar::history::node::{HistoryId, HistoryNodeRewriteSequence, RootHistoryNode};
-use cfg_grammar::rule::builder::RuleBuilder;
-use cfg_grammar::rule_container::RuleContainer;
+use cfg_grammar::rule_builder::RuleBuilder;
+use cfg_grammar::Cfg;
+use cfg_history::{HistoryId, HistoryNodeRewriteSequence, RootHistoryNode};
 
 /// Rewrites sequence rules into production rules.
-pub struct SequencesToProductions<'a, D>
-where
-    D: RuleContainer,
-{
-    destination: &'a mut D,
+pub struct SequencesToProductions<'a> {
+    destination: &'a mut Cfg,
     stack: Vec<Sequence>,
     map: HashMap<PartialSequence, Symbol>,
     top: Option<HistoryId>,
@@ -35,10 +32,7 @@ struct PartialSequence {
     separator: Separator,
 }
 
-impl<'a, D> SequenceDestination for SequencesToProductions<'a, D>
-where
-    D: RuleContainer,
-{
+impl<'a> SequenceDestination for SequencesToProductions<'a> {
     fn add_sequence(&mut self, seq: Sequence) {
         self.rewrite(seq);
     }
@@ -55,12 +49,9 @@ impl From<Sequence> for PartialSequence {
     }
 }
 
-impl<'a, D> SequencesToProductions<'a, D>
-where
-    D: RuleContainer,
-{
+impl<'a> SequencesToProductions<'a> {
     /// Initializes a rewrite.
-    pub fn new(destination: &'a mut D) -> Self {
+    pub fn new(destination: &'a mut Cfg) -> Self {
         SequencesToProductions {
             destination,
             stack: vec![],
@@ -71,7 +62,7 @@ where
     }
 
     /// Rewrites sequence rules.
-    pub fn rewrite_sequences(sequence_rules: &[Sequence], rule_container: &'a mut D) {
+    pub fn rewrite_sequences(sequence_rules: &[Sequence], rule_container: &'a mut Cfg) {
         let sequences = SequencesToProductions::new(rule_container);
         let mut rewrite = SequenceRuleBuilder::new(sequences);
         for rule in sequence_rules {

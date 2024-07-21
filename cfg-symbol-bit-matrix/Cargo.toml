@@ -1,8 +1,9 @@
 [package]
-name = "cfg-symbol-matrix"
+name = "cfg-symbol-bit-matrix"
 version = "0.0.1"
 edition = "2021"
 
 [dependencies]
 bit-matrix = "0.8"
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }

@@ -91,14 +91,10 @@ impl<'a> RuleBuilder<'a> {
     where
         S: AsRef<[Symbol]>,
     {
-        let base_id = self.grammar.add_history_node(
+        let history_id = self.grammar.add_multiple_history_nodes(
             RootHistoryNode::Rule {
                 lhs: self.lhs.unwrap(),
-            }
-            .into(),
-        );
-        let history_id = self.grammar.add_multiple_history_nodes(
-            base_id,
+            },
             [
                 LinkedHistoryNode::Rhs {
                     rhs: syms.as_ref().to_vec(),

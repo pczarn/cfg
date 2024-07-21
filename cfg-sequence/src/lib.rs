@@ -6,7 +6,7 @@ pub mod rewrite;
 
 use std::ops::{Bound, RangeBounds};
 
-use cfg_grammar::HistoryId;
+use cfg_history::HistoryId;
 use cfg_symbol::Symbol;
 
 use self::Separator::*;

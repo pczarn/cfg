@@ -9,7 +9,7 @@ use smallvec::SmallVec;
 use crate::local_prelude::*;
 use cfg_history::{
     BinarizedRhsRange::*, HistoryGraph, HistoryId, HistoryNode, HistoryNodeBinarize,
-    HistoryNodeEliminateNulling,
+    HistoryNodeEliminateNulling, LinkedHistoryNode, RootHistoryNode,
 };
 
 #[cfg(not(feature = "smallvec"))]
@@ -24,6 +24,8 @@ pub struct Cfg {
     sym_source: SymbolSource,
     /// The array of rules.
     rules: Vec<CfgRule>,
+    /// Start symbols.
+    roots: MaybeSmallVec<Symbol>,
     /// History container.
     history_graph: HistoryGraph,
     rhs_len_invariant: Option<usize>,
@@ -44,13 +46,12 @@ pub struct CfgRule {
 
 /// Two (maybe Small) `Vec`s of rule indices.
 #[derive(Clone)]
-struct Occurences {
+pub struct Occurences {
     lhs: MaybeSmallVec<RuleIndex>,
     rhs: MaybeSmallVec<RuleIndex>,
 }
 
 type RuleIndex = usize;
-type Index = usize;
 
 impl Default for Cfg {
     fn default() -> Self {
@@ -98,6 +99,14 @@ impl Cfg {
     /// Returns the number of symbols in use.
     pub fn num_syms(&self) -> usize {
         self.sym_source().num_syms()
+    }
+
+    pub fn set_start(&mut self, start: Symbol) {
+        self.roots = MaybeSmallVec::from_slice(&[symbol]);
+    }
+
+    pub fn set_roots(&mut self, roots: &[Symbol]) {
+        self.roots
     }
 
     /// Modifies this grammar to its weak equivalent.
@@ -246,7 +255,7 @@ impl Cfg {
     pub fn add_rule<R: Into<CfgRule>>(&mut self, rule: R) {
         let rule = rule.into();
         if self.rule_rhs_len_allowed_range().contains(&rule.rhs.len()) {
-            self.rules.push(rule.into());
+            self.rules.push(rule);
         } else {
             // Rewrite to a set of binarized rules.
             // From `LHS ⸬= A B C … X Y Z` to:
@@ -317,12 +326,16 @@ impl Cfg {
         result
     }
 
-    pub fn add_multiple_history_nodes(
+    pub fn add_multiple_history_nodes<const N: usize>(
         &mut self,
-        prev: HistoryId,
-        nodes: impl AsRef<[LinkedHistoryNode]>,
+        root: RootHistoryNode,
+        nodes: [LinkedHistoryNode; N],
     ) -> HistoryId {
-        todo!()
+        let mut prev = self.add_history_node(HistoryNode::Root(root));
+        for node in nodes {
+            prev = self.add_history_node(HistoryNode::Linked { prev, node });
+        }
+        prev
     }
 
     /// Starts building a new rule.
@@ -340,10 +353,10 @@ impl Cfg {
         self.tmp_stack.extend(property.iter());
 
         while let Some(work_sym) = self.tmp_stack.pop() {
-            if let Some(&occurences) = self.occurence_cache.get(&work_sym) {
-                for rule_id in occurences.rhs {
+            if let Some(occurences) = self.occurence_cache.get(&work_sym) {
+                for &rule_id in &occurences.rhs {
                     let rule = &self.rules[rule_id];
-                    if !property[rule.lhs] && rule.rhs.iter().any(|sym| property[sym]) {
+                    if !property[rule.lhs] && rule.rhs.iter().any(|sym| property[*sym]) {
                         property.set(rule.lhs, true);
                         self.tmp_stack.push(rule.lhs);
                     }
@@ -352,7 +365,7 @@ impl Cfg {
         }
     }
 
-    pub fn rhs_closure_with_values(&mut self, value: &mut [Option<u32>], func: impl FnMut(())) {
+    pub fn rhs_closure_with_values(&mut self, value: &mut [Option<u32>]) {
         for (sym_id, maybe_sym_value) in value.iter().enumerate() {
             if maybe_sym_value.is_some() {
                 self.tmp_stack.push(Symbol::from(sym_id));
@@ -374,31 +387,25 @@ impl Cfg {
         //     }
         // }
         while let Some(work_sym) = self.tmp_stack.pop() {
+            let empty_occurences = Occurences::new();
             let occurences = self
                 .occurence_cache
                 .get(&work_sym)
-                .unwrap_or(&Occurences::new());
-            let rules = occurences
-                .rhs
-                .iter()
-                .map(|&rule_id| self.rules[rule_id].into());
+                .unwrap_or(&empty_occurences);
+            let rules = occurences.rhs.iter().map(|&rule_id| &self.rules[rule_id]);
             for rule in rules {
-                let maybe_work_value = rule.rhs.fold(Some(0), |acc, elem| {
-                    let elem_value = value[elem.usize()];
-                    if let (Some(a), Some(b)) = (acc, elem_value) {
-                        Some(a + b)
-                    } else {
-                        None
-                    }
-                });
+                let maybe_work_value = rule
+                    .rhs
+                    .iter()
+                    .try_fold(0, |acc, elem| value[elem.usize()].map(|val| acc + val));
                 if let Some(work_value) = maybe_work_value {
-                    if let Some(current_value) = value[derivation.rule_ref.lhs.usize()] {
+                    if let Some(current_value) = value[rule.lhs.usize()] {
                         if current_value <= work_value {
                             continue;
                         }
                     }
-                    value[derivation.rule_ref.lhs.usize()] = Some(work_value);
-                    self.work_stack.push(derivation.rule_ref.lhs);
+                    value[rule.lhs.usize()] = Some(work_value);
+                    self.tmp_stack.push(rule.lhs);
                 }
             }
         }
@@ -436,5 +443,13 @@ impl Occurences {
             lhs: MaybeSmallVec::new(),
             rhs: MaybeSmallVec::new(),
         }
+    }
+
+    pub fn lhs(&self) -> &[RuleIndex] {
+        &self.lhs[..]
+    }
+
+    pub fn rhs(&self) -> &[RuleIndex] {
+        &self.rhs[..]
     }
 }

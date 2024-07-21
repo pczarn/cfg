@@ -15,7 +15,6 @@
 pub mod cfg;
 pub mod precedenced_rule;
 pub mod remap_symbols;
-pub mod rhs_closure;
 pub mod rule_builder;
 pub mod rule_ref;
 pub mod symbol_set;

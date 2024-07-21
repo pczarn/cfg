@@ -159,9 +159,9 @@ impl<'a> PrecedencedRuleBuilder<'a> {
         self.current_lhs = self.grammar.next_sym();
 
         let history_id = self.grammar.add_history_node(RootHistoryNode::NoOp.into());
-        RuleBuilder::new(&mut self.grammar)
+        RuleBuilder::new(self.grammar)
             .rule(self.current_lhs)
-            .rhs_with_history(&[self.tighter_lhs], history_id);
+            .rhs_with_history([self.tighter_lhs], history_id);
         self
     }
 
@@ -180,6 +180,6 @@ impl<'a> PrecedencedRuleBuilder<'a> {
         // The associativity is not reset in the call to `rhs`.
         RuleBuilder::new(self.grammar)
             .rule(self.lhs)
-            .rhs_with_history(&[loosest_lhs], history_id)
+            .rhs_with_history([loosest_lhs], history_id)
     }
 }

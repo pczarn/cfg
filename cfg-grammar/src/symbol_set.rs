@@ -17,11 +17,23 @@ pub struct Iter<'a> {
     iter: iter::Enumerate<bit_vec::Iter<'a>>,
 }
 
+impl Default for SymbolBitSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SymbolBitSet {
     /// Constructs a `SymbolBitSet`.
     pub fn new() -> Self {
         SymbolBitSet {
             bit_vec: BitVec::new(),
+        }
+    }
+    /// Constructs a `SymbolBitSet`.
+    pub fn from_elem(grammar: &Cfg, elem: bool) -> Self {
+        SymbolBitSet {
+            bit_vec: BitVec::from_elem(grammar.num_syms(), elem),
         }
     }
 
@@ -87,6 +99,22 @@ impl SymbolBitSet {
         Iter {
             iter: self.bit_vec.iter().enumerate(),
         }
+    }
+
+    pub fn union(&mut self, other: &SymbolBitSet) {
+        self.bit_vec.or(&other.bit_vec);
+    }
+
+    pub fn len(&self) -> usize {
+        self.bit_vec.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.bit_vec.is_empty()
+    }
+
+    pub fn all(&self) -> bool {
+        self.bit_vec.iter().all(|b| b)
     }
 }
 

@@ -4,7 +4,7 @@ use std::ops::{Bound, RangeBounds};
 
 use crate::destination::SequenceDestination;
 use crate::{Separator, Sequence};
-use cfg_grammar::history::HistoryId;
+use cfg_history::HistoryId;
 use cfg_symbol::Symbol;
 
 /// Sequence rule builder.
