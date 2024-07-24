@@ -14,6 +14,12 @@ pub struct HistoryGraph {
     nodes: Vec<HistoryNode>,
 }
 
+impl Default for HistoryGraph {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HistoryGraph {
     pub fn new() -> Self {
         Self {

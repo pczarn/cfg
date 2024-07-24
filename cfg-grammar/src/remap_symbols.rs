@@ -78,6 +78,8 @@ impl<'a> Remap<'a> {
         for rule in added_rules {
             self.grammar.add_rule(rule);
         }
+        let new_roots: Vec<_> = self.grammar.roots().iter().copied().map(map).collect();
+        self.grammar.set_roots(&new_roots[..]);
     }
 
     /// Get the mapping.

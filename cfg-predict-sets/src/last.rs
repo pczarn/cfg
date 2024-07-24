@@ -1,5 +1,6 @@
 //! FIRST sets.
 
+use crate::cfg_sets_ext::CfgSetsExt;
 use cfg_grammar::Cfg;
 
 use super::FirstSets;
@@ -23,7 +24,7 @@ impl LastSets {
         let mut reversed_grammar = grammar.clone();
         reversed_grammar.reverse();
         let map = {
-            let first_sets = FirstSets::new(&reversed_grammar);
+            let first_sets = reversed_grammar.first_sets();
             // E0597: `reversed_grammar` does not live long enough
             //   label: borrowed value does not live long enough
             first_sets.map

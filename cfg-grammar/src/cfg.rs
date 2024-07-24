@@ -1,6 +1,6 @@
 use std::cmp::{self, Ordering};
 use std::collections::BTreeMap;
-use std::{iter, ops};
+use std::{iter, mem, ops};
 
 use rule_builder::RuleBuilder;
 #[cfg(feature = "smallvec")]
@@ -13,9 +13,9 @@ use cfg_history::{
 };
 
 #[cfg(not(feature = "smallvec"))]
-type MaybeSmallVec<T> = Vec<T>;
+type MaybeSmallVec<T, const N: usize = 0> = Vec<T>;
 #[cfg(feature = "smallvec")]
-type MaybeSmallVec<T> = SmallVec<[T; 6]>;
+type MaybeSmallVec<T, const N: usize = 6> = SmallVec<[T; N]>;
 
 /// Basic representation of context-free grammars.
 #[derive(Clone)]
@@ -26,6 +26,7 @@ pub struct Cfg {
     rules: Vec<CfgRule>,
     /// Start symbols.
     roots: MaybeSmallVec<Symbol>,
+    wrapped_roots: MaybeSmallVec<WrappedRoot, 2>,
     /// History container.
     history_graph: HistoryGraph,
     rhs_len_invariant: Option<usize>,
@@ -42,6 +43,13 @@ pub struct CfgRule {
     pub rhs: MaybeSmallVec<Symbol>,
     /// The rule's history.
     pub history_id: HistoryId,
+}
+
+#[derive(Clone, Copy)]
+pub struct WrappedRoot {
+    pub start_of_input: Symbol,
+    pub root: Symbol,
+    pub end_of_input: Symbol,
 }
 
 /// Two (maybe Small) `Vec`s of rule indices.
@@ -79,6 +87,7 @@ impl Cfg {
             sym_source,
             rules: vec![],
             roots: MaybeSmallVec::new(),
+            wrapped_roots: MaybeSmallVec::new(),
             history_graph,
             rhs_len_invariant: None,
             eliminate_nulling: false,
@@ -106,8 +115,12 @@ impl Cfg {
         self.roots = roots.iter().copied().collect();
     }
 
-    pub fn roots(&mut self) -> &[Symbol] {
+    pub fn roots(&self) -> &[Symbol] {
         &self.roots[..]
+    }
+
+    pub fn wrapped_roots(&self) -> &[WrappedRoot] {
+        &self.wrapped_roots[..]
     }
 
     pub fn has_roots(&self) -> bool {
@@ -417,31 +430,35 @@ impl Cfg {
     }
 
     pub fn wrap_input(&mut self) {
-        let mut new_syms = vec![];
-        let mut new_roots = vec![];
-        for &root in &self.roots {
+        self.wrapped_roots.clear();
+        let roots_len = self.roots.len();
+        let roots = mem::replace(&mut self.roots, MaybeSmallVec::with_capacity(roots_len));
+        for root in roots {
             let [new_root, start_of_input, end_of_input] = self.sym_source.sym();
-            new_syms.push([root, start_of_input, end_of_input]);
-            new_roots.push(new_root);
-        }
-        for ([root, start_of_input, end_of_input], new_root) in
-            new_syms.iter().copied().zip(new_roots.iter().copied())
-        {
             let history_id = self.add_history_node(RootHistoryNode::NoOp.into());
             self.add_rule(RuleRef {
                 lhs: new_root,
                 rhs: &[start_of_input, root, end_of_input],
                 history_id,
             });
+            self.wrapped_roots.push(WrappedRoot {
+                root,
+                start_of_input,
+                end_of_input,
+            });
+            self.roots.push(new_root);
         }
-        self.set_roots(&new_roots[..]);
     }
 
     pub fn is_empty(&self) -> bool {
-        let mut roots = self.roots.clone();
-        roots.sort();
-        self.rules()
-            .all(|rule| roots.binary_search(&rule.lhs).is_ok())
+        if self.wrapped_roots.is_empty() {
+            self.rules.is_empty()
+        } else {
+            let mut roots = self.roots.clone();
+            roots.sort();
+            self.rules()
+                .all(|rule| roots.binary_search(&rule.lhs).is_ok())
+        }
     }
 }
 

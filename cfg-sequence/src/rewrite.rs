@@ -130,7 +130,7 @@ impl<'a> SequencesToProductions<'a> {
     }
 
     fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
-        RuleBuilder::new(&mut self.destination)
+        RuleBuilder::new(self.destination)
             .rule(self.lhs.unwrap())
             .history(self.top.unwrap())
             .rhs(rhs);
@@ -149,8 +149,8 @@ impl<'a> SequencesToProductions<'a> {
         // TODO optimize reductions
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
-                let sym1 = self.recurse(&sequence.clone().separator(Proper(sep)));
-                let sym2 = self.recurse(&sequence.clone().separator(Trailing(sep)));
+                let sym1 = self.recurse(&sequence.separator(Proper(sep)));
+                let sym2 = self.recurse(&sequence.separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
                 self.rhs([sym1]);
                 self.rhs([sym2]);
@@ -186,8 +186,8 @@ impl<'a> SequencesToProductions<'a> {
                 self.rhs([rhs]);
             }
             (_, 1, Some(2)) => {
-                let sym1 = self.recurse(&sequence.clone().range(1..=1));
-                let sym2 = self.recurse(&sequence.clone().range(2..=2));
+                let sym1 = self.recurse(&sequence.range(1..=1));
+                let sym2 = self.recurse(&sequence.range(2..=2));
                 // seq ::= sym1 | sym2
                 self.rhs([sym1]);
                 self.rhs([sym2]);
@@ -196,9 +196,9 @@ impl<'a> SequencesToProductions<'a> {
                 // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
                 let (seq1, block, seq2) = (
-                    sequence.clone().range(1..=pow2),
-                    sequence.clone().range(pow2..=pow2),
-                    sequence.clone().range(1..=end - pow2),
+                    sequence.range(1..=pow2),
+                    sequence.range(pow2..=pow2),
+                    sequence.range(1..=end - pow2),
                 );
                 let rhs1 = self.recurse(&seq1);
                 let block = self.recurse(&block.separator(separator.prefix_separator()));
@@ -219,16 +219,14 @@ impl<'a> SequencesToProductions<'a> {
                     // A "block"
                     let pow2 = start.next_power_of_two() / 2;
                     (
-                        sequence.clone().range(pow2..=pow2),
-                        sequence.clone().range(start - pow2..=start - pow2),
+                        sequence.range(pow2..=pow2),
+                        sequence.range(start - pow2..=start - pow2),
                     )
                 } else {
                     // A "span"
                     (
-                        sequence.clone().range(start - 1..=start - 1),
-                        sequence
-                            .clone()
-                            .inclusive(1, end.map(|end| end - start + 1)),
+                        sequence.range(start - 1..=start - 1),
+                        sequence.inclusive(1, end.map(|end| end - start + 1)),
                     )
                 };
                 let (rhs1, rhs2) = (

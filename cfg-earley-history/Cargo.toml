@@ -1,6 +1,9 @@
 [package]
 name = "cfg-earley-history"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 [dependencies]
+cfg-symbol = { version = "0.0", path = "../cfg-symbol/" }
+cfg-history = { version = "0.0", path = "../cfg-history/" }
+cfg-grammar = { version = "0.0", path = "../cfg-grammar/" }

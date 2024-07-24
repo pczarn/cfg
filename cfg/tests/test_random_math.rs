@@ -1,4 +1,4 @@
-#![cfg(feature = "cfg-earley")]
+#![cfg(feature = "cfg-earley-history")]
 
 #[macro_use]
 mod grammars;

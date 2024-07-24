@@ -1,27 +1,29 @@
 //! FIRST sets.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use cfg_grammar::{Cfg, SymbolBitSet};
 use cfg_symbol::Symbol;
+
+use crate::sets::PerSymbolSetVal;
 
 use super::{PerSymbolSets, PredictSets};
 
 /// Collector of FIRST sets.
 pub struct FirstSets {
     pub(super) map: PerSymbolSets,
-    lookahead: Vec<Option<Symbol>>,
+    lookahead: PerSymbolSetVal,
     changed: bool,
     terminal_set: SymbolBitSet,
 }
 
-struct FirstSets2;
+// struct FirstSets;
 
-impl FirstSets2 {
-    fn new(grammar: &Cfg) -> Self {
-        FirstSets2
-    }
-}
+// impl FirstSets {
+//     fn new(grammar: &Cfg) -> Self {
+//         FirstSets2
+//     }
+// }
 
 impl FirstSets {
     /// Compute all FIRST sets of the grammar.
@@ -31,46 +33,43 @@ impl FirstSets {
     /// α is a nullable string of symbols.
     ///
     /// We compute the transitive closure of this relation.
-    fn new(grammar: &Cfg) -> Self {
-        let mut terminal_set = SymbolBitSet::new();
-        terminal_set.terminal(grammar);
+    pub(crate) fn new(grammar: &Cfg) -> Self {
         let mut this = FirstSets {
             map: BTreeMap::new(),
-            lookahead: vec![],
+            lookahead: PerSymbolSetVal::new(),
             changed: true,
-            terminal_set,
+            terminal_set: grammar.terminal_set(),
         };
 
-        this.collect(grammar);
+        this.collect_from(grammar);
         this
     }
 
     /// Calculates a FIRST set for a string of symbols.
-    pub fn first_set_for_string(&self, string: &[Symbol]) -> BTreeSet<Option<Symbol>> {
-        let mut result = BTreeSet::new();
+    pub fn first_set_for_string(&self, string: &[Symbol]) -> PerSymbolSetVal {
+        let mut result = vec![];
         for &sym in string {
-            let result_cardinality = result.len();
             if self.terminal_set[sym] {
-                result.insert(Some(sym));
+                result.push(sym);
+                break;
             } else {
-                let first_set = self.map.get(&sym).unwrap();
-                for &maybe_terminal in first_set {
-                    if maybe_terminal.is_some() {
-                        result.insert(maybe_terminal);
-                    }
+                let first_set = self
+                    .map
+                    .get(&sym)
+                    .expect("FIRST set not found in PerSymbolSets");
+                result = first_set.list.clone();
+                if !result.is_empty() {
+                    break;
                 }
             }
-            if result_cardinality != result.len() {
-                break;
-            }
         }
-        if result.is_empty() {
-            result.insert(None);
+        PerSymbolSetVal {
+            has_none: result.is_empty(),
+            list: result,
         }
-        result
     }
 
-    fn collect(&mut self, grammar: &Cfg) {
+    fn collect_from(&mut self, grammar: &Cfg) {
         while self.changed {
             self.changed = false;
             for rule in grammar.rules() {
@@ -82,11 +81,13 @@ impl FirstSets {
 
     fn process_rule(&mut self, lhs: Symbol, rhs: &[Symbol]) -> bool {
         self.first_set_collect(rhs);
-        let first_set = self.map.entry(lhs).or_insert_with(BTreeSet::new);
-        let prev_cardinality = first_set.len();
-        first_set.extend(self.lookahead.iter().cloned());
-        self.lookahead.clear();
-        prev_cardinality != first_set.len()
+        let first_set = self.map.entry(lhs).or_insert_with(PerSymbolSetVal::new);
+        let prev_cardinality = first_set.list.len() + first_set.has_none as usize;
+        first_set.list.extend(self.lookahead.list.iter().cloned());
+        first_set.has_none |= self.lookahead.has_none;
+        self.lookahead.list.clear();
+        self.lookahead.has_none = false;
+        prev_cardinality != first_set.list.len() + first_set.has_none as usize
     }
 
     /// Compute a FIRST set.
@@ -94,7 +95,7 @@ impl FirstSets {
         for &sym in rhs {
             let mut nullable = false;
             if self.terminal_set[sym] {
-                self.lookahead.push(Some(sym));
+                self.lookahead.list.push(sym);
             } else {
                 match self.map.get(&sym) {
                     None => {
@@ -104,13 +105,10 @@ impl FirstSets {
                         // no productions. Either way, the resulting first set
                         // should be empty.
                     }
-                    Some(set) => {
-                        for &maybe_terminal in set {
-                            if maybe_terminal.is_some() {
-                                self.lookahead.push(maybe_terminal);
-                            } else {
-                                nullable = true;
-                            }
+                    Some(&PerSymbolSetVal { has_none, ref list }) => {
+                        self.lookahead.list.extend(list.iter().copied());
+                        if has_none {
+                            nullable = true;
                         }
                     }
                 }
@@ -120,7 +118,7 @@ impl FirstSets {
                 return;
             }
         }
-        self.lookahead.push(None);
+        self.lookahead.has_none = true;
     }
 }
 
@@ -128,15 +126,5 @@ impl PredictSets for FirstSets {
     /// Returns a reference to FIRST sets.
     fn predict_sets(&self) -> &PerSymbolSets {
         &self.map
-    }
-}
-
-trait CfgSetsExt {
-    fn first_sets(&self) -> FirstSets;
-}
-
-impl Cfg {
-    fn first_sets(&self) -> FirstSets2 {
-        FirstSets2::new(self)
     }
 }

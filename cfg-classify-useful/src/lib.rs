@@ -10,8 +10,7 @@ use cfg_symbol::Symbol;
 
 /// Contains the information about usefulness of the grammar's rules.
 /// Useful rules are both reachable and productive.
-pub struct Usefulness<'a> {
-    grammar: &'a mut Cfg,
+pub struct Usefulness {
     reachability: ReachabilityMatrix,
     reachable_syms: SymbolBitSet,
     productivity: SymbolBitSet,
@@ -20,7 +19,7 @@ pub struct Usefulness<'a> {
 /// A reference to a useless rule, together with the reason for its uselessness.
 #[derive(Copy, Clone, Debug)]
 pub struct UsefulnessForRule<'a> {
-    rule_ref: RuleRef<'a>,
+    rule: RuleRef<'a>,
     usefulness: RuleUsefulness,
 }
 
@@ -34,7 +33,7 @@ pub struct RuleUsefulness {
 
 impl<'a> UsefulnessForRule<'a> {
     pub fn rule(&self) -> RuleRef {
-        self.rule_ref
+        self.rule
     }
 
     pub fn usefulness(&self) -> RuleUsefulness {
@@ -57,10 +56,10 @@ fn productive_syms(grammar: &mut Cfg) -> SymbolBitSet {
     productive_syms
 }
 
-impl<'a> Usefulness<'a> {
+impl Usefulness {
     /// Analyzes usefulness of the grammar's rules. In particular, it checks for reachable
     /// and productive symbols.
-    pub fn new(grammar: &'a mut Cfg) -> Self {
+    pub fn new(grammar: &mut Cfg) -> Self {
         let mut productivity = productive_syms(grammar);
         let reachability = grammar.reachability_matrix();
         let mut unused_syms = SymbolBitSet::new();
@@ -76,7 +75,6 @@ impl<'a> Usefulness<'a> {
         );
 
         Usefulness {
-            grammar,
             productivity,
             reachability,
             reachable_syms,
@@ -90,13 +88,12 @@ impl<'a> Usefulness<'a> {
     }
 
     /// Sets symbol reachability. Takes an array of reachable symbols.
-    pub fn reachable(mut self, syms: impl AsRef<[Symbol]>) -> Self {
+    pub fn reachable(&mut self, syms: impl AsRef<[Symbol]>) {
         for &sym in syms.as_ref() {
             for sym in self.reachability.iter_row_syms(sym) {
                 self.reachable_syms.set(sym, true);
             }
         }
-        self
     }
 
     /// Checks whether all rules in the grammar are useful.
@@ -114,11 +111,11 @@ impl<'a> Usefulness<'a> {
         self.reachable_syms.all()
     }
 
-    pub fn rule_usefulness<'r>(&self, rule_ref: RuleRef<'r>) -> UsefulnessForRule<'r> {
-        let productive = rule_ref.rhs.iter().all(|&sym| self.productivity[sym]);
-        let reachable = self.reachable_syms[rule_ref.lhs];
+    pub fn usefulness<'r>(&self, rule: RuleRef<'r>) -> UsefulnessForRule<'r> {
+        let productive = rule.rhs.iter().all(|&sym| self.productivity[sym]);
+        let reachable = self.reachable_syms[rule.lhs];
         UsefulnessForRule {
-            rule_ref,
+            rule,
             usefulness: RuleUsefulness {
                 productive,
                 reachable,
@@ -126,19 +123,30 @@ impl<'a> Usefulness<'a> {
         }
     }
 
-    /// Returns an iterator over the grammar's useless rules.
-    pub fn useless_rules<'s: 'a>(&'s self) -> impl Iterator<Item = UsefulnessForRule<'a>> + 's {
-        self.grammar
-            .rules()
-            .map(|rule_ref| self.rule_usefulness(rule_ref))
-            .filter(|useless_rule_usefulness| useless_rule_usefulness.usefulness().is_useless())
+    fn uselessness_if_useless<'r>(&self, rule: RuleRef<'r>) -> Option<UsefulnessForRule<'r>> {
+        let usefulness = self.usefulness(rule);
+        if usefulness.usefulness.is_useless() {
+            Some(usefulness)
+        } else {
+            None
+        }
     }
-}
 
-// Watch out: Normal type bounds conflict with HRTB.
-impl<'a> Usefulness<'a> {
+    /// Returns an iterator over the grammar's useless rules.
+    pub fn useless_rules<'a, 'g>(
+        &'a self,
+        grammar: &'g Cfg,
+    ) -> impl Iterator<Item = UsefulnessForRule<'g>> + 'a
+    where
+        'g: 'a,
+    {
+        grammar
+            .rules()
+            .filter_map(|rule| self.uselessness_if_useless(rule))
+    }
+
     /// Removes useless rules. The language represented by the grammar doesn't change.
-    pub fn remove_useless_rules(&mut self) {
+    pub fn remove_useless_rules(&self, grammar: &mut Cfg) {
         if !self.all_useful() {
             let productivity = &self.productivity;
             let reachable_syms = &self.reachable_syms;
@@ -147,7 +155,42 @@ impl<'a> Usefulness<'a> {
                 let reachable = reachable_syms[rule.lhs];
                 productive && reachable
             };
-            self.grammar.retain(rule_is_useful);
+            grammar.retain(rule_is_useful);
         }
+    }
+}
+
+pub trait CfgClassifyUsefulExt {
+    fn make_proper(&mut self) -> bool;
+    fn usefulness(&mut self) -> Usefulness;
+    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> Usefulness;
+}
+
+impl CfgClassifyUsefulExt for Cfg {
+    fn usefulness(&mut self) -> Usefulness {
+        let mut usefulness = Usefulness::new(self);
+        let roots = self.roots();
+        usefulness.reachable(roots);
+        usefulness
+    }
+
+    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> Usefulness {
+        let mut usefulness = Usefulness::new(self);
+        usefulness.reachable(roots);
+        usefulness
+    }
+
+    fn make_proper(&mut self) -> bool {
+        let usefulness = self.usefulness();
+        let contains_useless_rules = !usefulness.all_useful();
+        if contains_useless_rules {
+            // for useless in usefulness.useless_rules() {
+            //     let rhs: Vec<_> = useless.rule.rhs().iter().map(|t| tok.get(t.usize())).collect();
+            //     println!("lhs:{:?} rhs:{:?} unreachable:{} unproductive:{}", tok.get(useless.rule.lhs().usize()), rhs, useless.unreachable, useless.unproductive);
+            // }
+            // println!("warning: grammar has useless rules");
+            usefulness.remove_useless_rules(self);
+        }
+        !contains_useless_rules
     }
 }

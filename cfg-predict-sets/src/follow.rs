@@ -1,10 +1,10 @@
 //! FOLLOW sets.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
-use cfg_symbol::Symbol;
+use cfg_grammar::Cfg;
 
-use cfg_grammar::SymbolBitSet;
+use crate::sets::PerSymbolSetVal;
 
 use super::{PerSymbolSets, PredictSets};
 
@@ -17,29 +17,38 @@ pub struct FollowSets {
 impl FollowSets {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
-    pub fn new(grammar: &Cfg, start_sym: Symbol, first_sets: &PerSymbolSets) -> Self {
+    pub(crate) fn new(grammar: &Cfg, first_sets: &PerSymbolSets) -> Self {
         let mut this = FollowSets {
             map: BTreeMap::new(),
         };
 
+        let mut roots = grammar.roots().to_vec();
+        roots.sort();
         for rule in grammar.rules() {
-            let follow_set = this.map.entry(rule.lhs).or_insert_with(BTreeSet::new);
-            if rule.lhs == start_sym {
-                follow_set.insert(None);
+            let follow_set = this
+                .map
+                .entry(rule.lhs)
+                .or_insert_with(PerSymbolSetVal::new);
+            if roots.binary_search(&rule.lhs).is_ok() {
+                follow_set.has_none = true;
             }
         }
 
         let mut changed = true;
         while changed {
             changed = false;
-            let terminal_set = SymbolBitSet::terminal_set(grammar);
+            let terminal_set = grammar.terminal_set();
             for rule in grammar.rules() {
-                let mut follow_set = this.map.get(&rule.lhs).unwrap().clone();
+                let mut follow_set = this
+                    .map
+                    .get(&rule.lhs)
+                    .cloned()
+                    .expect("FOLLOW set not found");
 
                 for &sym in rule.rhs.iter().rev() {
-                    if terminal_set.has_sym(sym) {
+                    if terminal_set[sym] {
                         follow_set.clear();
-                        follow_set.insert(Some(sym));
+                        follow_set.push(sym);
                     } else {
                         let followed = this.map.get_mut(&sym).unwrap();
                         let prev_cardinality = followed.len();
@@ -47,7 +56,7 @@ impl FollowSets {
                         changed |= prev_cardinality != followed.len();
 
                         let first_set = first_sets.get(&sym).unwrap();
-                        if !first_set.contains(&None) {
+                        if !first_set.has_none {
                             follow_set.clear();
                         }
                         follow_set.extend(first_set.iter().cloned());
