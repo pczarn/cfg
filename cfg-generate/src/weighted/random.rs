@@ -156,7 +156,7 @@ impl Random for Cfg {
                 }
                 if let Some(back) = backtracking.get_mut(&string.len()) {
                     for state in back.iter_mut() {
-                        if string.ends_with(&state.forbidden[..]) {
+                        if string.ends_with(state.forbidden) {
                             *rng = state.rng.clone();
                             string.truncate(string.len() - state.forbidden.len());
                             result.truncate(state.result_len);
@@ -176,7 +176,7 @@ impl Random for Cfg {
                 // debug!("NEGATIVE: forbidden {:?} at {:?}", forbidden, string.len());
                 backtracking
                     .entry(string.len() + forbidden.len())
-                    .or_insert(vec![])
+                    .or_default()
                     .push(BacktrackState {
                         forbidden: &forbidden[..],
                         rng: rng.clone(),

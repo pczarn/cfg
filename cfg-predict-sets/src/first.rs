@@ -2,8 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use cfg_grammar::symbol::symbol_set::SymbolBitSet;
-use cfg_grammar::RuleContainer;
+use cfg_grammar::{Cfg, SymbolBitSet};
 use cfg_symbol::Symbol;
 
 use super::{PerSymbolSets, PredictSets};
@@ -16,6 +15,14 @@ pub struct FirstSets {
     terminal_set: SymbolBitSet,
 }
 
+struct FirstSets2;
+
+impl FirstSets2 {
+    fn new(grammar: &Cfg) -> Self {
+        FirstSets2
+    }
+}
+
 impl FirstSets {
     /// Compute all FIRST sets of the grammar.
     ///
@@ -24,12 +31,14 @@ impl FirstSets {
     /// α is a nullable string of symbols.
     ///
     /// We compute the transitive closure of this relation.
-    pub fn new(grammar: &Cfg) -> Self {
+    fn new(grammar: &Cfg) -> Self {
+        let mut terminal_set = SymbolBitSet::new();
+        terminal_set.terminal(grammar);
         let mut this = FirstSets {
             map: BTreeMap::new(),
             lookahead: vec![],
             changed: true,
-            terminal_set: SymbolBitSet::terminal_set(grammar),
+            terminal_set,
         };
 
         this.collect(grammar);
@@ -41,7 +50,7 @@ impl FirstSets {
         let mut result = BTreeSet::new();
         for &sym in string {
             let result_cardinality = result.len();
-            if self.terminal_set.has_sym(sym) {
+            if self.terminal_set[sym] {
                 result.insert(Some(sym));
             } else {
                 let first_set = self.map.get(&sym).unwrap();
@@ -65,13 +74,13 @@ impl FirstSets {
         while self.changed {
             self.changed = false;
             for rule in grammar.rules() {
-                let set_changed = self.rule(rule.lhs, rule.rhs);
+                let set_changed = self.process_rule(rule.lhs, rule.rhs);
                 self.changed |= set_changed;
             }
         }
     }
 
-    fn rule(&mut self, lhs: Symbol, rhs: &[Symbol]) -> bool {
+    fn process_rule(&mut self, lhs: Symbol, rhs: &[Symbol]) -> bool {
         self.first_set_collect(rhs);
         let first_set = self.map.entry(lhs).or_insert_with(BTreeSet::new);
         let prev_cardinality = first_set.len();
@@ -84,7 +93,7 @@ impl FirstSets {
     fn first_set_collect(&mut self, rhs: &[Symbol]) {
         for &sym in rhs {
             let mut nullable = false;
-            if self.terminal_set.has_sym(sym) {
+            if self.terminal_set[sym] {
                 self.lookahead.push(Some(sym));
             } else {
                 match self.map.get(&sym) {
@@ -119,5 +128,15 @@ impl PredictSets for FirstSets {
     /// Returns a reference to FIRST sets.
     fn predict_sets(&self) -> &PerSymbolSets {
         &self.map
+    }
+}
+
+trait CfgSetsExt {
+    fn first_sets(&self) -> FirstSets;
+}
+
+impl Cfg {
+    fn first_sets(&self) -> FirstSets2 {
+        FirstSets2::new(self)
     }
 }

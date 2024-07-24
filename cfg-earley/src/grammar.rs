@@ -1,8 +1,8 @@
 use std::ops::{Deref, DerefMut};
 
-use cfg_grammar::history::node::RootHistoryNode;
-use cfg_grammar::rule::builder::RuleBuilder;
-use cfg_grammar::{Cfg, RuleContainer};
+use cfg_grammar::rule_builder::RuleBuilder;
+use cfg_grammar::Cfg;
+use cfg_history::RootHistoryNode;
 use cfg_sequence::builder::SequenceRuleBuilder;
 use cfg_sequence::rewrite::SequencesToProductions;
 use cfg_symbol::Symbol;
@@ -168,19 +168,6 @@ impl DerefMut for BinarizedGrammar {
 }
 
 impl BinarizedGrammar {
-    pub fn wrap_start(&mut self) {
-        let start = self.start();
-        let [new_start, eof] = self.sym();
-        let history_id = self.add_history_node(RootHistoryNode::NoOp.into());
-        self.add_rule(RuleRef {
-            lhs: new_start,
-            rhs: &[start, eof],
-            history_id,
-        });
-        self.set_start(new_start);
-        self.has_wrapped_start = true;
-    }
-
     pub fn original_start(&self) -> Option<Symbol> {
         if !self.has_wrapped_start {
             return None;
@@ -231,56 +218,6 @@ impl BinarizedGrammar {
             has_wrapped_start: self.has_wrapped_start,
         };
         (self, nulling_grammar)
-    }
-
-    pub fn remap_symbols(mut self: BinarizedGrammar) -> (BinarizedGrammar, Mapping) {
-        let num_syms = self.sym_source().num_syms();
-        // `order` describes relation `A < B`.
-        let mut order = BitMatrix::new(num_syms, num_syms);
-        for rule in self.rules() {
-            if rule.rhs.len() == 1 {
-                let left = rule.lhs.usize();
-                let right = rule.rhs[0].usize();
-                match left.cmp(&right) {
-                    Ordering::Less => {
-                        order.set(left, right, true);
-                    }
-                    Ordering::Greater => {
-                        order.set(right, left, true);
-                    }
-                    Ordering::Equal => {}
-                }
-            }
-        }
-        // the order above is not transitive.
-        // We modify it so that if `A < B` and `B < C` then `A < C`
-        order.transitive_closure();
-        let mut maps = {
-            let mut remap = Remap::new(&mut *self);
-            remap.remove_unused_symbols();
-            remap.reorder_symbols(|left, right| {
-                let (left, right) = (left.usize(), right.usize());
-                if order[(left, right)] {
-                    Ordering::Less
-                } else if order[(right, left)] {
-                    Ordering::Greater
-                } else {
-                    Ordering::Equal
-                }
-            });
-            remap.get_mapping()
-        };
-        let start = self.start();
-        if let Some(internal_start) = maps.to_internal[start.usize()] {
-            self.set_start(internal_start);
-        } else {
-            // The trivial grammar is a unique edge case -- the start symbol was removed.
-            let internal_start = Symbol::from(maps.to_external.len());
-            maps.to_internal[start.usize()] = Some(internal_start);
-            maps.to_external.push(start);
-            self.set_start(internal_start);
-        }
-        (self, maps)
     }
 
     pub fn is_empty(&self) -> bool {

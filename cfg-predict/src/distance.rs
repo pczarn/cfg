@@ -1,7 +1,7 @@
 //! Calculation of minimum distance from one part of the grammar to another.
 
-use cfg_grammar::history::node::LinkedHistoryNode;
 use cfg_grammar::rhs_closure::RhsClosure;
+use cfg_history::LinkedHistoryNode;
 // use cfg_grammar::rule::GrammarRule;
 use cfg_grammar::symbol::symbol_set::SymbolBitSet;
 use cfg_grammar::*;

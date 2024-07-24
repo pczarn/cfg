@@ -78,6 +78,7 @@ impl Cfg {
         Cfg {
             sym_source,
             rules: vec![],
+            roots: MaybeSmallVec::new(),
             history_graph,
             rhs_len_invariant: None,
             eliminate_nulling: false,
@@ -101,12 +102,16 @@ impl Cfg {
         self.sym_source().num_syms()
     }
 
-    pub fn set_start(&mut self, start: Symbol) {
-        self.roots = MaybeSmallVec::from_slice(&[symbol]);
+    pub fn set_roots(&mut self, roots: &[Symbol]) {
+        self.roots = roots.iter().copied().collect();
     }
 
-    pub fn set_roots(&mut self, roots: &[Symbol]) {
-        self.roots
+    pub fn roots(&mut self) -> &[Symbol] {
+        &self.roots[..]
+    }
+
+    pub fn has_roots(&self) -> bool {
+        !self.roots.is_empty()
     }
 
     /// Modifies this grammar to its weak equivalent.
@@ -409,6 +414,34 @@ impl Cfg {
                 }
             }
         }
+    }
+
+    pub fn wrap_input(&mut self) {
+        let mut new_syms = vec![];
+        let mut new_roots = vec![];
+        for &root in &self.roots {
+            let [new_root, start_of_input, end_of_input] = self.sym_source.sym();
+            new_syms.push([root, start_of_input, end_of_input]);
+            new_roots.push(new_root);
+        }
+        for ([root, start_of_input, end_of_input], new_root) in
+            new_syms.iter().copied().zip(new_roots.iter().copied())
+        {
+            let history_id = self.add_history_node(RootHistoryNode::NoOp.into());
+            self.add_rule(RuleRef {
+                lhs: new_root,
+                rhs: &[start_of_input, root, end_of_input],
+                history_id,
+            });
+        }
+        self.set_roots(&new_roots[..]);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        let mut roots = self.roots.clone();
+        roots.sort();
+        self.rules()
+            .all(|rule| roots.binary_search(&rule.lhs).is_ok())
     }
 }
 

@@ -30,10 +30,7 @@ impl<W: Weight> WeightedRhsByLhs<W> {
     }
 
     pub fn add_weight(&mut self, weight: W, lhs: Symbol, rhs: &[Symbol]) {
-        let weighted_rhs_list = self
-            .weights
-            .entry(lhs)
-            .or_insert(WeightedRhsList::default());
+        let weighted_rhs_list = self.weights.entry(lhs).or_default();
         weighted_rhs_list.rhs_list.push(WeightedRhs {
             weight: weighted_rhs_list.total_weight,
             rhs: rhs.to_vec(),

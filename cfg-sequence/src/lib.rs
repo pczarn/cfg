@@ -82,9 +82,9 @@ impl Separator {
     }
 }
 
-impl Into<Option<Symbol>> for Separator {
-    fn into(self) -> Option<Symbol> {
-        match self {
+impl From<Separator> for Option<Symbol> {
+    fn from(val: Separator) -> Option<Symbol> {
+        match val {
             Trailing(sep) => Some(sep),
             _ => None,
         }

@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }

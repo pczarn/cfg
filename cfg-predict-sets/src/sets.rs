@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use cfg_symbol::Symbol;
 
+#[derive(Ord, PartialOrd, Eq, PartialEq)]
 struct PerSymbolSetKey {
     sym: Symbol,
     idx: usize,

@@ -1,7 +1,7 @@
 //! Analysis of rule usefulness.
 
-use bit_vec::BitVec;
-use cfg_symbol_bit_matrix::SymbolBitMatrix;
+use cfg_symbol_bit_matrix::CfgSymbolBitMatrixExt;
+use cfg_symbol_bit_matrix::ReachabilityMatrix;
 
 use cfg_grammar::Cfg;
 use cfg_grammar::RuleRef;
@@ -12,15 +12,9 @@ use cfg_symbol::Symbol;
 /// Useful rules are both reachable and productive.
 pub struct Usefulness<'a> {
     grammar: &'a mut Cfg,
-    reachability: SymbolBitMatrix,
+    reachability: ReachabilityMatrix,
     reachable_syms: SymbolBitSet,
     productivity: SymbolBitSet,
-}
-
-/// An iterator over the grammar's useless rules.
-pub struct UselessRules<'a, I> {
-    usefulness: &'a Usefulness<'a>,
-    rules: I,
 }
 
 /// A reference to a useless rule, together with the reason for its uselessness.
@@ -31,11 +25,11 @@ pub struct UsefulnessForRule<'a> {
 }
 
 #[derive(Copy, Clone, Debug)]
-struct RuleUsefulness {
+pub struct RuleUsefulness {
     /// Indicates whether the rule is unreachable.
-    reachable: bool,
+    pub reachable: bool,
     /// Indicates whether the rule is unproductive.
-    productive: bool,
+    pub productive: bool,
 }
 
 impl<'a> UsefulnessForRule<'a> {
@@ -68,7 +62,7 @@ impl<'a> Usefulness<'a> {
     /// and productive symbols.
     pub fn new(grammar: &'a mut Cfg) -> Self {
         let mut productivity = productive_syms(grammar);
-        let reachability = SymbolBitMatrix::reachability_matrix(grammar);
+        let reachability = grammar.reachability_matrix();
         let mut unused_syms = SymbolBitSet::new();
         unused_syms.used(grammar);
         let mut reachable_syms = SymbolBitSet::from_elem(grammar, false);

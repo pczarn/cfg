@@ -4,8 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use cfg_symbol::Symbol;
 
-use cfg_grammar::symbol::symbol_set::SymbolBitSet;
-use cfg_grammar::RuleContainer;
+use cfg_grammar::SymbolBitSet;
 
 use super::{PerSymbolSets, PredictSets};
 
@@ -18,10 +17,7 @@ pub struct FollowSets {
 impl FollowSets {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
-    pub fn new<'a, G>(grammar: &'a G, start_sym: Symbol, first_sets: &PerSymbolSets) -> Self
-    where
-        G: RuleContainer,
-    {
+    pub fn new(grammar: &Cfg, start_sym: Symbol, first_sets: &PerSymbolSets) -> Self {
         let mut this = FollowSets {
             map: BTreeMap::new(),
         };

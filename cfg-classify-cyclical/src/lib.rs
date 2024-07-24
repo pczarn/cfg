@@ -1,31 +1,24 @@
 //! Cycle detection and elimination.
 
+use std::borrow::{Borrow, BorrowMut};
 use std::collections::BTreeMap;
 
 use cfg_grammar::{Cfg, CfgRule, RuleRef, SymbolBitSet};
-use cfg_symbol::Symbol;
-use cfg_symbol_bit_matrix::SymbolBitMatrix;
+use cfg_symbol_bit_matrix::{CfgSymbolBitMatrixExt, UnitDerivationMatrix};
 
 /// Provides information about cycles among unit derivations in the grammar. There are two ways of
 /// pruning cycles.
-pub struct Cycles<'a> {
-    grammar: &'a mut Cfg,
-    unit_derivation: SymbolBitMatrix,
+pub struct Cycles<G: Borrow<Cfg>> {
+    grammar: G,
+    unit_derivation: UnitDerivationMatrix,
     cycle_free: Option<bool>,
 }
 
-/// An iterator over the grammar's useless rules.
-pub struct CycleParticipants<'a, I> {
-    rules: I,
-    cycles: &'a Cycles<'a>,
-}
-
-impl<'a> Cycles<'a> {
+impl<G: Borrow<Cfg>> Cycles<G> {
     /// Analyzes the grammar's cycles.
-    pub fn new(grammar: &mut Cfg) -> Self {
-        let unit_derivation = SymbolBitMatrix::unit_derivation_matrix(grammar);
+    pub fn new(grammar: G) -> Self {
         Cycles {
-            unit_derivation,
+            unit_derivation: grammar.borrow().unit_derivation_matrix(),
             cycle_free: None,
             grammar,
         }
@@ -34,13 +27,14 @@ impl<'a> Cycles<'a> {
     /// Checks whether the grammar is cycle-free.
     pub fn cycle_free(&mut self) -> bool {
         *self.cycle_free.get_or_insert_with(|| {
-            (0..self.grammar.num_syms()).all(|i| !self.unit_derivation[(i.into(), i.into())])
+            (0..self.grammar.borrow().num_syms())
+                .all(|i| !self.unit_derivation[(i.into(), i.into())])
         })
     }
 
     /// Iterates over rules that participate in a cycle.
     pub fn classify(&self) -> impl Iterator<Item = (RuleRef, bool)> + '_ {
-        self.grammar.rules().map(move |rule| {
+        self.grammar.borrow().rules().map(move |rule| {
             (
                 rule,
                 rule.rhs.len() == 1 && self.unit_derivation[(rule.rhs[0], rule.lhs)],
@@ -58,12 +52,14 @@ impl<'a> Cycles<'a> {
             }
         })
     }
+}
 
+impl<G: BorrowMut<Cfg>> Cycles<G> {
     /// Removes all rules that participate in a cycle. Doesn't preserve the language represented
     /// by the grammar.
     pub fn remove_cycles(&mut self) {
         if !self.cycle_free() {
-            self.grammar.retain(|rule| {
+            self.grammar.borrow_mut().retain(|rule| {
                 !(rule.rhs.len() == 1 && self.unit_derivation[(rule.rhs[0], rule.lhs)])
             });
         }
@@ -73,19 +69,23 @@ impl<'a> Cycles<'a> {
     /// by the grammar.
     pub fn rewrite_cycles(&mut self) {
         let mut translation = BTreeMap::new();
-        let mut row = SymbolBitSet::from_elem(self.grammar, false);
+        let mut row = SymbolBitSet::from_elem(self.grammar.borrow(), false);
         if !self.cycle_free() {
             let unit_derivation = &self.unit_derivation;
-            self.grammar.retain(|rule| {
+            self.grammar.borrow_mut().retain(|rule| {
                 // We have `A ::= B`.
-                let lhs = rule.lhs.into();
-                if rule.rhs.len() == 1 && unit_derivation[(rule.rhs[0].into(), lhs)] {
+                if rule.rhs.len() == 1 && unit_derivation[(rule.rhs[0], rule.lhs)] {
                     // `B` derives `A`.
                     if !translation.contains_key(&rule.lhs) {
                         // Start rewrite. Check which symbols participate in this cycle.
                         // Get the union of `n`th row and column.
-                        for (i, lhs_derives) in unit_derivation.iter_row(lhs.into()).enumerate() {
-                            row.set(i.into(), lhs_derives && unit_derivation[(i.into(), lhs)])
+                        for (i, lhs_derives) in
+                            unit_derivation.iter_row(rule.lhs.into()).enumerate()
+                        {
+                            row.set(
+                                i.into(),
+                                lhs_derives && unit_derivation[(i.into(), rule.lhs)],
+                            )
                         }
                         for sym in row.iter() {
                             translation.insert(sym, Some(rule.lhs));
@@ -100,7 +100,7 @@ impl<'a> Cycles<'a> {
             // Rewrite symbols using the `translation` map, potentially leaving
             // some symbols unused.
             let mut rewritten_rules = vec![];
-            self.grammar.retain(|mut rule| {
+            self.grammar.borrow_mut().retain(|mut rule| {
                 let mut changed = false;
                 if let Some(&Some(new_lhs)) = translation.get(&rule.lhs) {
                     rule.lhs = new_lhs;
@@ -116,14 +116,14 @@ impl<'a> Cycles<'a> {
                 if changed {
                     rewritten_rules.push(CfgRule {
                         lhs: rule.lhs,
-                        rhs,
+                        rhs: rhs.into(),
                         history_id: rule.history_id,
                     });
                 }
                 !changed
             });
             for rule in rewritten_rules {
-                self.grammar.add_rule(rule.as_rule_ref());
+                self.grammar.borrow_mut().add_rule(rule);
             }
         }
     }

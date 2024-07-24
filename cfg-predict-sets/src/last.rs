@@ -1,6 +1,6 @@
 //! FIRST sets.
 
-use cfg_grammar::RuleContainer;
+use cfg_grammar::Cfg;
 
 use super::FirstSets;
 use super::PerSymbolSets;
@@ -19,11 +19,9 @@ impl LastSets {
     /// β is a nullable string of symbols.
     ///
     /// We compute the transitive closure of this relation.
-    pub fn new<G>(grammar: &G) -> Self
-    where
-        G: RuleContainer + Default,
-    {
-        let reversed_grammar = grammar.reverse();
+    pub fn new(grammar: &Cfg) -> Self {
+        let mut reversed_grammar = grammar.clone();
+        reversed_grammar.reverse();
         let map = {
             let first_sets = FirstSets::new(&reversed_grammar);
             // E0597: `reversed_grammar` does not live long enough

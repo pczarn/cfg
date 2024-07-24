@@ -144,3 +144,11 @@ impl ops::Index<Symbol> for SymbolBitSet {
         }
     }
 }
+
+impl Cfg {
+    pub fn terminal_set(&self) -> SymbolBitSet {
+        let mut set = SymbolBitSet::new();
+        set.terminal(self);
+        set
+    }
+}
