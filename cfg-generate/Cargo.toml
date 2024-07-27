@@ -14,6 +14,7 @@ license = "Apache-2.0 OR MIT"
 [dependencies]
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/", optional = true }
+cfg-history = { version = "0.0.1", path = "../cfg-history/", optional = true }
 
 # generation
 rand = { version = "0.8", optional = true, features = ["small_rng"] }

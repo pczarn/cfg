@@ -2,9 +2,10 @@
 
 mod support;
 
+use cfg::classify::Usefulness;
 use cfg::precedenced_rule::Associativity::*;
-use cfg::{Cfg, RuleContainer};
-use cfg_classify::useful::Usefulness;
+use cfg::Cfg;
+use cfg_classify::CfgClassifyUsefulExt;
 
 #[test]
 fn test_simple_precedence() {
@@ -45,6 +46,8 @@ fn test_simple_precedence() {
         .rhs([var, eq, top])
         .finalize();
 
+    cfg.set_roots(&[start]);
+
     let mut equivalent: Cfg = Cfg::new();
     let [start, top, num, var] = equivalent.sym();
     let [l_paren, r_paren, exp, mul, div, plus, minus, eq] = equivalent.sym();
@@ -78,7 +81,7 @@ fn test_simple_precedence() {
         .rhs([g0]);
 
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+    assert!(cfg.usefulness().all_useful());
 }
 
 #[test]
@@ -97,6 +100,8 @@ fn test_ternary_quaternary() {
         .associativity(Right)
         .rhs([top, quaternary_op, top, sep, top, sep, top])
         .finalize();
+
+    cfg.set_roots(&[start]);
 
     let mut equivalent: Cfg = Cfg::new();
     let [start, top, num] = equivalent.sym();
@@ -117,5 +122,5 @@ fn test_ternary_quaternary() {
         .rhs([g0]);
 
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+    assert!(cfg.usefulness().all_useful());
 }

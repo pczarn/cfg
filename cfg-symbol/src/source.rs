@@ -27,7 +27,7 @@ impl SymbolSource {
     /// Generates a new unique symbol.
     pub fn next_sym(&mut self) -> Symbol {
         let ret = self.next_id.into();
-        self.next_id = self.next_id + 1;
+        self.next_id += 1;
         debug_assert_ne!(self.next_id, NULL_ID, "ran out of Symbol space?");
         ret
     }
