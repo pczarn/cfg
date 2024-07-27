@@ -12,19 +12,24 @@
 #![cfg_attr(test, deny(warnings))]
 #![cfg_attr(test, allow(missing_docs))]
 
+#[cfg(feature = "smallvec")]
+use smallvec::SmallVec;
+
 pub mod cfg;
+mod occurence_map;
 pub mod precedenced_rule;
-pub mod remap_symbols;
 pub mod rule_builder;
-pub mod rule_ref;
-pub mod symbol_set;
+pub mod symbol_bit_set;
 
 pub use crate::cfg::*;
-pub use crate::remap_symbols::Remap;
-pub use crate::rule_ref::RuleRef;
-pub use crate::symbol_set::SymbolBitSet;
+pub use crate::symbol_bit_set::SymbolBitSet;
 
-pub(crate) mod local_prelude {
+#[cfg(not(feature = "smallvec"))]
+type MaybeSmallVec<T, const N: usize = 0> = Vec<T>;
+#[cfg(feature = "smallvec")]
+type MaybeSmallVec<T, const N: usize = 8> = SmallVec<[T; N]>;
+
+mod local_prelude {
     pub use crate::precedenced_rule::PrecedencedRuleBuilder;
     pub use crate::*;
     pub use cfg_history::HistoryId;

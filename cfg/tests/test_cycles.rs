@@ -2,8 +2,8 @@
 
 mod support;
 
-use cfg::classify::cyclical::Cycles;
-use cfg::{Cfg, RuleContainer};
+use cfg::classify::Cycles;
+use cfg::Cfg;
 
 #[test]
 fn test_remove_cycles() {
@@ -28,7 +28,10 @@ fn test_remove_cycles() {
     equivalent.rule(start).rhs([a]);
     {
         let mut cycles = Cycles::new(&mut cfg);
-        let lhss: Vec<_> = cycles.cycle_participants().map(|rule| rule.lhs).collect();
+        let lhss: Vec<_> = cycles
+            .cycle_participants(true)
+            .map(|rule| rule.lhs)
+            .collect();
         assert_eq!(lhss, &[a, b, c, d]);
         cycles.remove_cycles();
     };
@@ -82,7 +85,10 @@ fn test_cycle_branch() {
     equivalent.rule(start).rhs([a]).rule(a).rhs([d]);
     {
         let mut cycles = Cycles::new(&mut cfg);
-        let lhss: Vec<_> = cycles.cycle_participants().map(|rule| rule.lhs).collect();
+        let lhss: Vec<_> = cycles
+            .cycle_participants(true)
+            .map(|rule| rule.lhs)
+            .collect();
         assert_eq!(lhss, &[a, b, c]);
         cycles.rewrite_cycles();
     };

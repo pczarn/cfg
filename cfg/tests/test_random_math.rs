@@ -21,12 +21,12 @@ fn test_precedenced_arith() {
     use rand::rngs::SmallRng;
     use rand::SeedableRng;
 
-    let (grammar, start, sym_map, _) = precedenced_arith::weighted_grammar();
-    let binarized = grammar.binarize();
+    let (mut grammar, start, sym_map, _) = precedenced_arith::weighted_grammar();
+    grammar.limit_rhs_len(Some(2));
 
     let mut rng = SmallRng::seed_from_u64(42);
     let to_char = |s, _: &mut _| sym_map.get(&s).cloned();
-    let string = binarized
+    let string = grammar
         .random(start, Some(1_000_000), &mut rng, &[], to_char)
         .map(|(_syms, chars)| chars.into_iter().collect());
     // let string = syms.map(|sym_list| {
@@ -47,8 +47,8 @@ fn test_precedenced_arith_with_negative_lookahead() {
     use rand::rngs::SmallRng;
     use rand::SeedableRng;
 
-    let (grammar, start, sym_map, neg) = precedenced_arith::weighted_grammar();
-    let binarized = grammar.binarize();
+    let (mut grammar, start, sym_map, neg) = precedenced_arith::weighted_grammar();
+    grammar.limit_rhs_len(Some(2));
 
     let mut rng = SmallRng::seed_from_u64(42);
     let neg = NegativeRule {
@@ -56,7 +56,7 @@ fn test_precedenced_arith_with_negative_lookahead() {
         chars: "0",
     };
     let to_char = |sym, _: &mut _| sym_map.get(&sym).cloned();
-    let string = binarized
+    let string = grammar
         .random(start, Some(1_000_000), &mut rng, &[neg], to_char)
         .map(|(_syms, chars)| chars.into_iter().collect());
     // let string = syms.map(|sym_list| {

@@ -24,12 +24,13 @@ impl Default for SymbolBitSet {
 }
 
 impl SymbolBitSet {
-    /// Constructs a `SymbolBitSet`.
+    /// Constructs an empty `SymbolBitSet`.
     pub fn new() -> Self {
         SymbolBitSet {
             bit_vec: BitVec::new(),
         }
     }
+
     /// Constructs a `SymbolBitSet`.
     pub fn from_elem(grammar: &Cfg, elem: bool) -> Self {
         SymbolBitSet {
@@ -38,13 +39,14 @@ impl SymbolBitSet {
     }
 
     fn initialize(&mut self, symbol_source: &SymbolSource) {
-        todo!("{:?}", symbol_source)
+        self.bit_vec
+            .extend(iter::repeat(false).take(symbol_source.num_syms()));
     }
 
     pub fn used(&mut self, grammar: &Cfg) {
         for rule in grammar.rules() {
             self.set(rule.lhs, true);
-            for &sym in rule.rhs {
+            for &sym in &rule.rhs[..] {
                 self.set(sym, true);
             }
         }
@@ -149,6 +151,12 @@ impl Cfg {
     pub fn terminal_set(&self) -> SymbolBitSet {
         let mut set = SymbolBitSet::new();
         set.terminal(self);
+        set
+    }
+
+    pub fn nulling_set(&self) -> SymbolBitSet {
+        let mut set = SymbolBitSet::new();
+        set.nulling(self);
         set
     }
 }

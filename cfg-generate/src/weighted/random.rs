@@ -7,7 +7,7 @@ use cfg_symbol::Symbol;
 // use log::debug;
 use rpds::List;
 
-use cfg_grammar::symbol_set::SymbolBitSet;
+use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use rand::rngs::ThreadRng;
 use rand::{thread_rng, Rng};
 
@@ -203,7 +203,7 @@ fn test_simplest_random_generation() {
     let mut grammar = Cfg::new();
     let [lhs, rhs] = grammar.sym();
     grammar.rule(lhs).rhs([rhs]);
-    grammar.allow_rule_rhs_len(Some(2));
+    grammar.limit_rhs_len(Some(2));
     assert_eq!(grammar.num_syms(), 2);
     assert_eq!(grammar.rules().count(), 1);
 

@@ -3,7 +3,7 @@
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::BTreeMap;
 
-use cfg_grammar::{Cfg, CfgRule, RuleRef, SymbolBitSet};
+use cfg_grammar::{Cfg, CfgRule, SymbolBitSet};
 use cfg_symbol_bit_matrix::{CfgSymbolBitMatrixExt, UnitDerivationMatrix};
 
 /// Provides information about cycles among unit derivations in the grammar. There are two ways of
@@ -33,7 +33,7 @@ impl<G: Borrow<Cfg>> Cycles<G> {
     }
 
     /// Iterates over rules that participate in a cycle.
-    pub fn classify(&self) -> impl Iterator<Item = (RuleRef, bool)> + '_ {
+    pub fn classify(&self) -> impl Iterator<Item = (&CfgRule, bool)> + '_ {
         self.grammar.borrow().rules().map(move |rule| {
             (
                 rule,
@@ -43,7 +43,7 @@ impl<G: Borrow<Cfg>> Cycles<G> {
     }
 
     /// Iterates over rules that participate in a cycle.
-    pub fn cycle_participants(&self, get_cyclical: bool) -> impl Iterator<Item = RuleRef> + '_ {
+    pub fn cycle_participants(&self, get_cyclical: bool) -> impl Iterator<Item = &CfgRule> + '_ {
         self.classify().filter_map(move |(rule, is_cyclical)| {
             if is_cyclical ^ !get_cyclical {
                 Some(rule)
@@ -100,13 +100,14 @@ impl<G: BorrowMut<Cfg>> Cycles<G> {
             // Rewrite symbols using the `translation` map, potentially leaving
             // some symbols unused.
             let mut rewritten_rules = vec![];
-            self.grammar.borrow_mut().retain(|mut rule| {
+            self.grammar.borrow_mut().retain(|rule| {
+                let mut new_rule = rule.clone();
                 let mut changed = false;
                 if let Some(&Some(new_lhs)) = translation.get(&rule.lhs) {
-                    rule.lhs = new_lhs;
+                    new_rule.lhs = new_lhs;
                     changed = true;
                 }
-                let mut rhs = rule.rhs.to_vec();
+                let mut rhs = new_rule.rhs.to_vec();
                 for sym in &mut rhs {
                     if let Some(&Some(new_sym)) = translation.get(sym) {
                         *sym = new_sym;
@@ -115,9 +116,9 @@ impl<G: BorrowMut<Cfg>> Cycles<G> {
                 }
                 if changed {
                     rewritten_rules.push(CfgRule {
-                        lhs: rule.lhs,
+                        lhs: new_rule.lhs,
                         rhs: rhs.into(),
-                        history_id: rule.history_id,
+                        history_id: new_rule.history_id,
                     });
                 }
                 !changed

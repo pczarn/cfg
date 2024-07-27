@@ -88,7 +88,7 @@ impl<'a> MinimalDistance<'a> {
             changed = false;
             for (idx, rule) in self.grammar.rules().enumerate() {
                 if let Some(distance) = self.completion_distances[rule.lhs.usize()] {
-                    let (_, changed_now) = self.update_rule_distances(distance, rule.rhs, idx);
+                    let (_, changed_now) = self.update_rule_distances(distance, &rule.rhs[..], idx);
                     changed |= changed_now;
                 }
             }

@@ -58,7 +58,7 @@ impl Weighted for Cfg {
                 }
                 history_id = prev;
             }
-            weighted.add_weight(result.unwrap_or(1.0), rule.lhs, rule.rhs);
+            weighted.add_weight(result.unwrap_or(1.0), rule.lhs, &rule.rhs[..]);
         }
         weighted
     }

@@ -5,9 +5,9 @@ use std::iter;
 use std::mem;
 use std::ops;
 
+use cfg_grammar::{Cfg, CfgRule};
 use cfg_symbol::intern::{Intern, Mapping};
-
-use crate::local_prelude::*;
+use cfg_symbol::Symbol;
 
 /// Remaps symbols and removes unused symbols.
 pub struct Remap<'a> {

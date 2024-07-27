@@ -57,7 +57,7 @@ impl FirstSets {
                     .map
                     .get(&sym)
                     .expect("FIRST set not found in PerSymbolSets");
-                result = first_set.list.clone();
+                result.clone_from(&first_set.list);
                 if !result.is_empty() {
                     break;
                 }
@@ -73,7 +73,7 @@ impl FirstSets {
         while self.changed {
             self.changed = false;
             for rule in grammar.rules() {
-                let set_changed = self.process_rule(rule.lhs, rule.rhs);
+                let set_changed = self.process_rule(rule.lhs, &rule.rhs[..]);
                 self.changed |= set_changed;
             }
         }

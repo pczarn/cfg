@@ -1,6 +1,6 @@
 //! Precedenced rules are built with the builder pattern.
 
-use std::convert::AsRef;
+use std::{convert::AsRef, rc::Rc};
 
 use crate::local_prelude::*;
 use crate::rule_builder::RuleBuilder;
@@ -49,9 +49,7 @@ impl<'a> PrecedencedRuleBuilder<'a> {
             rules_with_group_assoc: vec![],
         }
     }
-}
 
-impl<'a> PrecedencedRuleBuilder<'a> {
     /// Starts building a new precedenced rule. The differences in precedence among rules only
     /// matter within a particular precedenced rule.
     pub fn precedenced_rule(self, lhs: Symbol) -> PrecedencedRuleBuilder<'a> {
@@ -131,9 +129,9 @@ impl<'a> PrecedencedRuleBuilder<'a> {
                     *sym = self.tighter_lhs;
                 }
             };
-            self.grammar.add_rule(RuleRef {
+            self.grammar.add_rule(CfgRule {
                 lhs: self.current_lhs,
-                rhs: &syms[..],
+                rhs: syms.into(),
                 history_id: history_assign_precedence,
             });
         }
@@ -168,13 +166,13 @@ impl<'a> PrecedencedRuleBuilder<'a> {
     /// This internal method must be called to finalize the precedenced rule construction.
     pub fn finalize(mut self) -> RuleBuilder<'a> {
         let loosest_lhs = self.current_lhs;
-        for mut rule in self.rules_with_group_assoc.drain(..) {
-            for sym in &mut rule.rhs {
-                if *sym == self.lhs {
-                    *sym = loosest_lhs;
-                }
-            }
-            self.grammar.add_rule(rule);
+        for rule in self.rules_with_group_assoc.drain(..) {
+            let rhs: Rc<[Symbol]> = rule
+                .rhs
+                .iter()
+                .map(|&sym| if sym == self.lhs { loosest_lhs } else { sym })
+                .collect();
+            self.grammar.add_rule(CfgRule { rhs, ..rule });
         }
         let history_id = self.grammar.add_history_node(RootHistoryNode::NoOp.into());
         // The associativity is not reset in the call to `rhs`.

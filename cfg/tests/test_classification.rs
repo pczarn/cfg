@@ -3,9 +3,9 @@
 use std::rc::Rc;
 
 #[cfg(feature = "ll")]
-use cfg::classify::ll::{LlNonterminalClass, LlParseTable};
-use cfg::classify::lr::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
-use cfg::{Cfg, RuleContainer};
+use cfg::classify::{LlNonterminalClass, LlParseTable};
+use cfg::classify::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
+use cfg::Cfg;
 
 use std::collections::BTreeMap;
 
@@ -27,7 +27,7 @@ fn test_ll_classification() {
         .rule(a)
         .rhs([]);
 
-    let classification = LlParseTable::new(&cfg, start).classify();
+    let classification = LlParseTable::new(&cfg).classify();
     let classes = classification.classes();
 
     let mut map = BTreeMap::new();
@@ -54,7 +54,7 @@ fn test_ll_transitive_classification() {
         .rhs([x, y])
         .rhs([x]);
 
-    let classification = LlParseTable::new(&cfg, start).classify();
+    let classification = LlParseTable::new(&cfg).classify();
     let classes = classification.classes();
 
     let mut map = BTreeMap::new();

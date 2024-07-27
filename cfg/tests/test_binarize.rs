@@ -1,11 +1,10 @@
 #![cfg(feature = "cfg-classify")]
 
+use cfg::classify::CfgClassifyUsefulExt;
+use cfg::Cfg;
 use test_case::test_case;
 
 mod support;
-
-use cfg::classify::useful::Usefulness;
-use cfg::{BinarizedCfg, Cfg, RuleContainer};
 
 #[test]
 fn test_binarize() {
@@ -24,7 +23,8 @@ fn test_binarize() {
         .rule(a)
         .rhs([]);
 
-    cfg.limit_rule_length(1..=2);
+    cfg.set_roots(&[start]);
+    cfg.binarize_and_eliminate_nulling_rules();
 
     {
         let mut equivalent = Cfg::new();
@@ -49,7 +49,7 @@ fn test_binarize() {
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
     };
 
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+    assert!(cfg.usefulness().all_useful());
 }
 
 #[test_case(3)]
@@ -70,8 +70,10 @@ fn test_binarize_very_long_rule(num_syms: usize) {
     long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
     cfg.rule(start).rhs(long_rhs);
 
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
-    cfg.binarize();
+    cfg.set_roots(&[start]);
+
+    assert!(cfg.usefulness().all_useful());
+    cfg.limit_rhs_len(Some(2));
     assert_eq!(cfg.rules().count(), RULE_COUNT - 1);
 
     let mut equivalent = Cfg::new();

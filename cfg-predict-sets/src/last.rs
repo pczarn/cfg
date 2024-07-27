@@ -1,11 +1,10 @@
 //! FIRST sets.
 
-use crate::cfg_sets_ext::CfgSetsExt;
 use cfg_grammar::Cfg;
 
-use super::FirstSets;
-use super::PerSymbolSets;
-use super::PredictSets;
+use crate::cfg_sets_ext::CfgSetsExt;
+use crate::PerSymbolSets;
+use crate::PredictSets;
 
 /// FIRST sets.
 pub struct LastSets {

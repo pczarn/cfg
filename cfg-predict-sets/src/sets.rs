@@ -30,6 +30,10 @@ impl PerSymbolSetVal {
         self.list.clear();
         self.has_none = false;
     }
+
+    pub fn has_none(&self) -> bool {
+        self.has_none
+    }
 }
 
 impl Deref for PerSymbolSetVal {

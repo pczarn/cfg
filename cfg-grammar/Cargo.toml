@@ -15,7 +15,7 @@ license = "MIT/Apache-2.0"
 name = "cfg_grammar"
 
 [dependencies]
-bit-vec = "0.7"
+bit-vec = "0.8"
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-history = { version = "0.0.1", path = "../cfg-history/" }
 smallvec = { version = "1.13", features = ["const_generics"], optional = true }

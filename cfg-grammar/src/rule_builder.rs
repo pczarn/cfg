@@ -77,8 +77,8 @@ impl<'a> RuleBuilder<'a> {
         S: AsRef<[Symbol]>,
     {
         let lhs = self.lhs.unwrap();
-        let rhs = syms.as_ref();
-        self.grammar.add_rule(RuleRef {
+        let rhs = syms.as_ref().into();
+        self.grammar.add_rule(CfgRule {
             lhs,
             rhs,
             history_id,

@@ -1,10 +1,10 @@
 //! Analysis of rule usefulness.
 
+use cfg_grammar::CfgRule;
 use cfg_symbol_bit_matrix::CfgSymbolBitMatrixExt;
 use cfg_symbol_bit_matrix::ReachabilityMatrix;
 
 use cfg_grammar::Cfg;
-use cfg_grammar::RuleRef;
 use cfg_grammar::SymbolBitSet;
 use cfg_symbol::Symbol;
 
@@ -19,7 +19,7 @@ pub struct Usefulness {
 /// A reference to a useless rule, together with the reason for its uselessness.
 #[derive(Copy, Clone, Debug)]
 pub struct UsefulnessForRule<'a> {
-    rule: RuleRef<'a>,
+    rule: &'a CfgRule,
     usefulness: RuleUsefulness,
 }
 
@@ -32,7 +32,7 @@ pub struct RuleUsefulness {
 }
 
 impl<'a> UsefulnessForRule<'a> {
-    pub fn rule(&self) -> RuleRef {
+    pub fn rule(&self) -> &CfgRule {
         self.rule
     }
 
@@ -52,7 +52,7 @@ fn productive_syms(grammar: &mut Cfg) -> SymbolBitSet {
     let mut productive_syms = SymbolBitSet::new();
     productive_syms.terminal(grammar);
     productive_syms.nulling(grammar);
-    grammar.rhs_closure(&mut productive_syms);
+    grammar.rhs_closure_for_all(&mut productive_syms);
     productive_syms
 }
 
@@ -111,7 +111,7 @@ impl Usefulness {
         self.reachable_syms.all()
     }
 
-    pub fn usefulness<'r>(&self, rule: RuleRef<'r>) -> UsefulnessForRule<'r> {
+    pub fn usefulness<'r>(&self, rule: &'r CfgRule) -> UsefulnessForRule<'r> {
         let productive = rule.rhs.iter().all(|&sym| self.productivity[sym]);
         let reachable = self.reachable_syms[rule.lhs];
         UsefulnessForRule {
@@ -123,7 +123,7 @@ impl Usefulness {
         }
     }
 
-    fn uselessness_if_useless<'r>(&self, rule: RuleRef<'r>) -> Option<UsefulnessForRule<'r>> {
+    fn uselessness_if_useless<'r>(&self, rule: &'r CfgRule) -> Option<UsefulnessForRule<'r>> {
         let usefulness = self.usefulness(rule);
         if usefulness.usefulness.is_useless() {
             Some(usefulness)
@@ -150,7 +150,7 @@ impl Usefulness {
         if !self.all_useful() {
             let productivity = &self.productivity;
             let reachable_syms = &self.reachable_syms;
-            let rule_is_useful = |rule: RuleRef| {
+            let rule_is_useful = |rule: &CfgRule| {
                 let productive = rule.rhs.iter().all(|&sym| productivity[sym]);
                 let reachable = reachable_syms[rule.lhs];
                 productive && reachable

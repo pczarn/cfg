@@ -1,10 +1,11 @@
-use std::cmp::{self, Ordering};
+use std::cell::RefCell;
+use std::cmp;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 use std::{iter, mem, ops};
 
+use occurence_map::OccurenceMap;
 use rule_builder::RuleBuilder;
-#[cfg(feature = "smallvec")]
-use smallvec::SmallVec;
 
 use crate::local_prelude::*;
 use cfg_history::{
@@ -12,12 +13,7 @@ use cfg_history::{
     HistoryNodeEliminateNulling, LinkedHistoryNode, RootHistoryNode,
 };
 
-#[cfg(not(feature = "smallvec"))]
-type MaybeSmallVec<T, const N: usize = 0> = Vec<T>;
-#[cfg(feature = "smallvec")]
-type MaybeSmallVec<T, const N: usize = 6> = SmallVec<[T; N]>;
-
-/// Basic representation of context-free grammars.
+/// Representation of context-free grammars.
 #[derive(Clone)]
 pub struct Cfg {
     /// The symbol source.
@@ -31,16 +27,16 @@ pub struct Cfg {
     history_graph: HistoryGraph,
     rhs_len_invariant: Option<usize>,
     eliminate_nulling: bool,
-    occurence_cache: BTreeMap<Symbol, Occurences>,
-    tmp_stack: Vec<Symbol>,
+    tmp_stack: RefCell<Vec<Symbol>>,
 }
 
-/// Typical grammar rule representation.
+/// Your standard grammar rule representation.
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct CfgRule {
+    /// The rule's left-hand side symbol.
     pub lhs: Symbol,
-    /// The rule's right-hand side.
-    pub rhs: MaybeSmallVec<Symbol>,
+    /// The rule's right-hand side symbols.
+    pub rhs: Rc<[Symbol]>,
     /// The rule's history.
     pub history_id: HistoryId,
 }
@@ -52,14 +48,11 @@ pub struct WrappedRoot {
     pub end_of_input: Symbol,
 }
 
-/// Two (maybe Small) `Vec`s of rule indices.
-#[derive(Clone)]
-pub struct Occurences {
-    lhs: MaybeSmallVec<RuleIndex>,
-    rhs: MaybeSmallVec<RuleIndex>,
+#[derive(Eq, PartialEq, Clone, Copy)]
+pub enum RhsPropertyMode {
+    All,
+    Any,
 }
-
-type RuleIndex = usize;
 
 impl Default for Cfg {
     fn default() -> Self {
@@ -91,8 +84,7 @@ impl Cfg {
             history_graph,
             rhs_len_invariant: None,
             eliminate_nulling: false,
-            occurence_cache: BTreeMap::new(),
-            tmp_stack: vec![],
+            tmp_stack: RefCell::new(vec![]),
         }
     }
 
@@ -111,8 +103,8 @@ impl Cfg {
         self.sym_source().num_syms()
     }
 
-    pub fn set_roots(&mut self, roots: &[Symbol]) {
-        self.roots = roots.iter().copied().collect();
+    pub fn set_roots(&mut self, roots: impl AsRef<[Symbol]>) {
+        self.roots = roots.as_ref().iter().copied().collect();
     }
 
     pub fn roots(&self) -> &[Symbol] {
@@ -131,13 +123,14 @@ impl Cfg {
     ///
     /// # Invariants
     ///
-    /// `n` symbols until another call to this method
-    /// or [`fn binarize_and_eliminate_nulling_rules`].
+    /// All rule RHS' have at most `n` symbols at all times until another
+    /// call to this method or a call to [`fn binarize_and_eliminate_nulling_rules`].
     ///
     /// [`fn binarize_and_eliminate_nulling_rules`]: Self::binarize_and_eliminate_nulling_rules
-    pub fn allow_rule_rhs_len(&mut self, limit: Option<usize>) {
+    pub fn limit_rhs_len(&mut self, limit: Option<usize>) {
         self.rhs_len_invariant = limit;
-        todo!()
+        let mut container = mem::take(&mut self.rules);
+        container.retain(|rule| self.maybe_process_rule(rule));
     }
 
     pub fn rule_rhs_len_allowed_range(&self) -> ops::Range<usize> {
@@ -150,11 +143,8 @@ impl Cfg {
     }
 
     /// Sorts the rule array in place, using the argument to compare elements.
-    pub fn sort_by<F>(&mut self, mut compare: F)
-    where
-        F: FnMut(RuleRef, RuleRef) -> Ordering,
-    {
-        self.rules.sort_by(|a, b| compare(a.into(), b.into()));
+    pub fn sort_by<F>(&mut self, compare: impl FnMut(&CfgRule, &CfgRule) -> cmp::Ordering) {
+        self.rules.sort_by(compare);
     }
 
     /// Removes consecutive duplicate rules.
@@ -163,30 +153,60 @@ impl Cfg {
     }
 
     pub fn extend(&mut self, other: &Cfg) {
-        self.rules.extend(other.rules.iter().cloned());
-        todo!()
+        let mut map = BTreeMap::new();
+        let mut work_stack: Vec<_> = other.rules().map(|rule| rule.history_id).collect();
+        let new_nodes_start = self.history_graph.len();
+        while let Some(others_history_id) = work_stack.pop() {
+            map.entry(others_history_id).or_insert_with(|| {
+                let node = other.history_graph[others_history_id.get()].clone();
+                if let HistoryNode::Linked { prev, .. } = node {
+                    work_stack.push(prev);
+                }
+                self.add_history_node(node)
+            });
+        }
+        for node in &mut self.history_graph[new_nodes_start..] {
+            match node {
+                &mut HistoryNode::Linked { ref mut prev, .. } => {
+                    *prev = map.get(prev).copied().expect("history ID not found");
+                }
+                HistoryNode::Root(..) => {}
+            }
+        }
+        self.rules
+            .extend(other.rules.iter().cloned().map(|mut cfg_rule| {
+                cfg_rule.history_id = map
+                    .get(&cfg_rule.history_id)
+                    .copied()
+                    .expect("history ID not found");
+                cfg_rule
+            }));
     }
 
-    /// Ensures the grammar is binarized and eliminates all rules of the form `A ::= epsilon`.
-    /// Returns the eliminated parts of the grammar as a nulling subgrammar.
+    /// Ensures the grammar is binarized and eliminates all nulling rules, which have the
+    /// form `A ::= epsilon`. Returns the eliminated parts of the grammar as a nulling subgrammar.
     ///
-    /// In other words, this splits off the set of nulling rules.
+    /// In other words, this method splits off the nulling parts of the grammar.
     ///
     /// The language represented by the grammar is preserved, except for the possible lack of
     /// the empty string. Unproductive rules aren't preserved.
     ///
+    /// # Invariants
     ///
+    /// All rule RHS' have at least 1 symbol and at most 2 symbols at all times until
+    /// another call to this method or a call to [`fn limit_rhs_len`].
+    ///
+    /// [`fn limit_rhs_len`]: Self::limit_rhs_len
     pub fn binarize_and_eliminate_nulling_rules(&mut self) -> Cfg {
-        self.allow_rule_rhs_len(Some(2));
+        self.limit_rhs_len(Some(2));
 
         let mut result = Cfg::with_sym_source_and_history_graph(
             self.sym_source.clone(),
             self.history_graph.clone(),
         );
 
-        let mut nullable = SymbolBitSet::new();
-        nullable.nulling(&*self);
-        self.rhs_closure(&mut nullable);
+        let mut nullable = self.nulling_set();
+        self.rhs_closure_for_all(&mut nullable);
         if nullable.iter().count() == 0 {
             return result;
         }
@@ -233,7 +253,7 @@ impl Cfg {
         // TODO check if correct
         productive.productive(&*self); // true
         productive.productive(&result); // false
-        self.rhs_closure(&mut productive);
+        self.rhs_closure_for_all(&mut productive);
         self.rules.retain(|rule| {
             // Retain the rule only if it's productive. We have to, in order to remove rules
             // that were made unproductive as a result of `A ::= epsilon` rule elimination.
@@ -244,11 +264,11 @@ impl Cfg {
         result
     }
 
-    pub fn rules<'a>(&'a self) -> impl Iterator<Item = RuleRef<'a>>
+    pub fn rules<'a>(&'a self) -> impl Iterator<Item = &CfgRule>
     where
         Self: 'a,
     {
-        self.rules.iter().map(|rule| rule.into())
+        self.rules.iter()
     }
 
     pub fn history_graph(&self) -> &HistoryGraph {
@@ -263,66 +283,70 @@ impl Cfg {
         &mut self.sym_source
     }
 
-    pub fn retain<F>(&mut self, mut f: F)
-    where
-        F: FnMut(RuleRef) -> bool,
-    {
-        self.rules.retain(|rule| f(rule.into()));
+    pub fn retain(&mut self, f: impl FnMut(&CfgRule) -> bool) {
+        self.rules.retain(f);
     }
 
-    pub fn add_rule<R: Into<CfgRule>>(&mut self, rule: R) {
-        let rule = rule.into();
+    fn maybe_process_rule(&mut self, rule: &CfgRule) -> bool {
         if self.rule_rhs_len_allowed_range().contains(&rule.rhs.len()) {
-            self.rules.push(rule);
-        } else {
-            // Rewrite to a set of binarized rules.
-            // From `LHS ⸬= A B C … X Y Z` to:
-            // ____________________
-            // | LHS ⸬= S0  Z
-            // | S0  ⸬= S1  Y
-            // | S1  ⸬= S2  X
-            // | …
-            // | Sm  ⸬= Sn  C
-            // | Sn  ⸬= A   B
-            let mut rhs_iter = rule.rhs.iter().cloned();
-            let sym_range = cmp::max(rule.rhs.len(), 2) - 2;
-            let left_iter = self
-                .sym_source
-                .generate()
-                .take(sym_range)
-                .chain(rhs_iter.next());
-            let right_iter = rhs_iter.rev().map(Some).chain(iter::once(None));
+            return true;
+        }
 
-            let mut next_lhs = rule.lhs;
-            let history_graph = &mut self.history_graph;
-            let make_rule = |(depth, (left, right)): (usize, _)| {
-                let lhs = next_lhs;
-                next_lhs = left;
-                CfgRule::new(
-                    lhs,
-                    if let Some(right) = right {
-                        vec![left, right]
-                    } else {
-                        vec![left]
-                    },
-                    history_graph.add_history_node(
-                        HistoryNodeBinarize {
-                            prev: rule.history_id,
-                            depth: depth as u32,
-                        }
-                        .into(),
-                    ),
-                )
-            };
-            self.rules
-                .extend(left_iter.zip(right_iter).enumerate().map(make_rule));
+        // Rewrite to a set of binarized rules.
+        // From `LHS ⸬= A B C … X Y Z` to:
+        // ____________________
+        // | LHS ⸬= S0  Z
+        // | S0  ⸬= S1  Y
+        // | S1  ⸬= S2  X
+        // | …
+        // | Sm  ⸬= Sn  C
+        // | Sn  ⸬= A   B
+        let mut rhs_iter = rule.rhs.iter().cloned();
+        let gen_sym_count =
+            rule.rhs.len().saturating_sub(1) / (self.rule_rhs_len_allowed_range().end - 1);
+        let left_iter = self
+            .sym_source
+            .generate()
+            .take(gen_sym_count)
+            .chain(rhs_iter.next());
+        let right_iter = rhs_iter.rev().map(Some).chain(iter::once(None));
+
+        let mut next_lhs = rule.lhs;
+        let history_graph = &mut self.history_graph;
+        let make_rule = |(depth, (left, right)): (usize, _)| {
+            let lhs = next_lhs;
+            next_lhs = left;
+            CfgRule::new(
+                lhs,
+                if let Some(right) = right {
+                    vec![left, right]
+                } else {
+                    vec![left]
+                },
+                history_graph.add_history_node(
+                    HistoryNodeBinarize {
+                        prev: rule.history_id,
+                        depth: depth as u32,
+                    }
+                    .into(),
+                ),
+            )
+        };
+        self.rules
+            .extend(left_iter.zip(right_iter).enumerate().map(make_rule));
+        false
+    }
+
+    pub fn add_rule(&mut self, rule: CfgRule) {
+        if self.maybe_process_rule(&rule) {
+            self.rules.push(rule);
         }
     }
 
     /// Reverses the grammar.
     pub fn reverse(&mut self) {
         for rule in &mut self.rules {
-            rule.rhs.reverse();
+            rule.rhs = rule.rhs.iter().copied().rev().collect();
         }
     }
 
@@ -366,51 +390,53 @@ impl Cfg {
         PrecedencedRuleBuilder::new(self, lhs)
     }
 
-    pub fn rhs_closure(&mut self, property: &mut SymbolBitSet) {
-        self.tmp_stack.clear();
-        self.tmp_stack.extend(property.iter());
+    pub fn rhs_closure_for_all(&self, property: &mut SymbolBitSet) {
+        self.rhs_closure(property, RhsPropertyMode::All)
+    }
 
-        while let Some(work_sym) = self.tmp_stack.pop() {
-            if let Some(occurences) = self.occurence_cache.get(&work_sym) {
-                for &rule_id in &occurences.rhs {
-                    let rule = &self.rules[rule_id];
-                    if !property[rule.lhs] && rule.rhs.iter().any(|sym| property[*sym]) {
-                        property.set(rule.lhs, true);
-                        self.tmp_stack.push(rule.lhs);
-                    }
+    pub fn rhs_closure_for_any(&self, property: &mut SymbolBitSet) {
+        self.rhs_closure(property, RhsPropertyMode::Any)
+    }
+
+    pub fn rhs_closure(&self, property: &mut SymbolBitSet, property_mode: RhsPropertyMode) {
+        let mut tmp_stack = self.tmp_stack.borrow_mut();
+        tmp_stack.extend(property.iter());
+
+        let occurence_map = OccurenceMap::from_rules(self.rules());
+
+        while let Some(work_sym) = tmp_stack.pop() {
+            for &rule_id in occurence_map.get(work_sym).rhs() {
+                let rule = &self.rules[rule_id];
+                let mut rhs_iter = rule.rhs.iter();
+                let get_property = |&sym: &Symbol| property[sym];
+                let rhs_satifies_property = match property_mode {
+                    RhsPropertyMode::All => rhs_iter.any(get_property),
+                    RhsPropertyMode::Any => rhs_iter.all(get_property),
+                };
+                if !property[rule.lhs] && rhs_satifies_property {
+                    property.set(rule.lhs, true);
+                    tmp_stack.push(rule.lhs);
                 }
             }
         }
     }
 
     pub fn rhs_closure_with_values(&mut self, value: &mut [Option<u32>]) {
+        let mut tmp_stack = self.tmp_stack.borrow_mut();
         for (sym_id, maybe_sym_value) in value.iter().enumerate() {
             if maybe_sym_value.is_some() {
-                self.tmp_stack.push(Symbol::from(sym_id));
+                tmp_stack.push(Symbol::from(sym_id));
             }
         }
 
-        // while let Some(work_sym) = self.tmp_stack.pop() {
-        //     for rule_id in self
-        //         .occurence_cache
-        //         .get(&work_sym)
-        //         .unwrap_or(&Occurences::new())
-        //         .rhs
-        //     {
-        //         let rule = &self.rules[rule_id];
-        //         if !property[rule.lhs] && rule.rhs.iter().any(|sym| property[sym]) {
-        //             property.set(rule.lhs, true);
-        //             self.tmp_stack.push(rule.lhs);
-        //         }
-        //     }
-        // }
-        while let Some(work_sym) = self.tmp_stack.pop() {
-            let empty_occurences = Occurences::new();
-            let occurences = self
-                .occurence_cache
-                .get(&work_sym)
-                .unwrap_or(&empty_occurences);
-            let rules = occurences.rhs.iter().map(|&rule_id| &self.rules[rule_id]);
+        let occurence_map = OccurenceMap::from_rules(self.rules());
+
+        while let Some(work_sym) = tmp_stack.pop() {
+            let rules = occurence_map
+                .get(work_sym)
+                .rhs()
+                .iter()
+                .map(|&rule_id| &self.rules[rule_id]);
             for rule in rules {
                 let maybe_work_value = rule
                     .rhs
@@ -423,7 +449,7 @@ impl Cfg {
                         }
                     }
                     value[rule.lhs.usize()] = Some(work_value);
-                    self.tmp_stack.push(rule.lhs);
+                    tmp_stack.push(rule.lhs);
                 }
             }
         }
@@ -436,9 +462,9 @@ impl Cfg {
         for root in roots {
             let [new_root, start_of_input, end_of_input] = self.sym_source.sym();
             let history_id = self.add_history_node(RootHistoryNode::NoOp.into());
-            self.add_rule(RuleRef {
+            self.add_rule(CfgRule {
                 lhs: new_root,
-                rhs: &[start_of_input, root, end_of_input],
+                rhs: [start_of_input, root, end_of_input].into(),
                 history_id,
             });
             self.wrapped_roots.push(WrappedRoot {
@@ -464,42 +490,11 @@ impl Cfg {
 
 impl CfgRule {
     /// Creates a new rule.
-    pub fn new(lhs: Symbol, rhs: Vec<Symbol>, history_id: HistoryId) -> Self {
+    pub fn new(lhs: Symbol, rhs: impl AsRef<[Symbol]>, history_id: HistoryId) -> Self {
         CfgRule {
             lhs,
-            #[cfg(not(feature = "smallvec"))]
-            rhs,
-            #[cfg(feature = "smallvec")]
-            rhs: SmallVec::from_vec(rhs),
+            rhs: rhs.as_ref().into(),
             history_id,
         }
-    }
-
-    // pub fn from_rhs_slice(lhs: Symbol, rhs: &[Symbol], history_id: HistoryId) -> Self {
-    //     CfgRule {
-    //         lhs,
-    //         #[cfg(not(feature = "smallvec"))]
-    //         rhs: rhs.to_vec(),
-    //         #[cfg(feature = "smallvec")]
-    //         rhs: SmallVec::from_slice(rhs),
-    //         history_id,
-    //     }
-    // }
-}
-
-impl Occurences {
-    fn new() -> Self {
-        Occurences {
-            lhs: MaybeSmallVec::new(),
-            rhs: MaybeSmallVec::new(),
-        }
-    }
-
-    pub fn lhs(&self) -> &[RuleIndex] {
-        &self.lhs[..]
-    }
-
-    pub fn rhs(&self) -> &[RuleIndex] {
-        &self.rhs[..]
     }
 }
