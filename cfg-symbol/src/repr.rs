@@ -18,6 +18,7 @@ pub const NULL_ID: SymbolRepr = !0;
 
 /// A common grammar symbol type.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
 pub struct Symbol(NonZeroU32);
 
 impl Default for Symbol {
