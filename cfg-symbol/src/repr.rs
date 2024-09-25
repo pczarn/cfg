@@ -8,6 +8,7 @@ pub const NULL_ID: SymbolRepr = u32::MAX;
 
 /// A common grammar symbol type.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+// miniserde impls are further below
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Symbol {
     n: NonZeroU32,
