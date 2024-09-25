@@ -33,7 +33,7 @@ impl FirstSets {
     /// α is a nullable string of symbols.
     ///
     /// We compute the transitive closure of this relation.
-    pub(crate) fn new(grammar: &Cfg) -> Self {
+    pub fn new(grammar: &Cfg) -> Self {
         let mut this = FirstSets {
             map: BTreeMap::new(),
             lookahead: PerSymbolSetVal::new(),
@@ -82,12 +82,14 @@ impl FirstSets {
     fn process_rule(&mut self, lhs: Symbol, rhs: &[Symbol]) -> bool {
         self.first_set_collect(rhs);
         let first_set = self.map.entry(lhs).or_insert_with(PerSymbolSetVal::new);
-        let prev_cardinality = first_set.list.len() + first_set.has_none as usize;
+        let prev_cardinality = first_set.len();
         first_set.list.extend(self.lookahead.list.iter().cloned());
+        first_set.list.sort_unstable();
+        first_set.list.dedup();
         first_set.has_none |= self.lookahead.has_none;
         self.lookahead.list.clear();
         self.lookahead.has_none = false;
-        prev_cardinality != first_set.list.len() + first_set.has_none as usize
+        prev_cardinality != first_set.len()
     }
 
     /// Compute a FIRST set.
@@ -96,6 +98,8 @@ impl FirstSets {
             let mut nullable = false;
             if self.terminal_set[sym] {
                 self.lookahead.list.push(sym);
+                self.lookahead.list.sort_unstable();
+                self.lookahead.list.dedup();
             } else {
                 match self.map.get(&sym) {
                     None => {
@@ -107,6 +111,8 @@ impl FirstSets {
                     }
                     Some(&PerSymbolSetVal { has_none, ref list }) => {
                         self.lookahead.list.extend(list.iter().copied());
+                        self.lookahead.list.sort_unstable();
+                        self.lookahead.list.dedup();
                         if has_none {
                             nullable = true;
                         }

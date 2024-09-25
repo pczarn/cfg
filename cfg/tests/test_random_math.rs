@@ -36,7 +36,7 @@ fn test_precedenced_arith() {
     //         .collect::<String>()
     // });
     // let string = chars.into_iter().collect();
-    let expected = Ok("(5/0*1/6948/92*3614-90)-8*8-(7/615)+3/1".to_string());
+    let expected = Ok("(1/17352*87/8/762*(8)-7*7*43)-5/2-8877383*3+0*(824*7)".to_string());
     assert_eq!(string, expected);
 }
 
@@ -65,7 +65,7 @@ fn test_precedenced_arith_with_negative_lookahead() {
     //         .map(|s| sym_map.get(&s).cloned().unwrap_or('X'))
     //         .collect::<String>()
     // });
-    let expected = Ok("(5/3*(8-2)/3614/990*(98)-(7/615))-3/1-7+((4179*683)/1)".to_string());
+    let expected = Ok("(1/17352*87/8/762*(8)-7*7*43)-5/2-8877383*3+15*(24)".to_string());
     assert_eq!(string, expected);
 }
 

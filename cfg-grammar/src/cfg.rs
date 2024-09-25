@@ -275,7 +275,7 @@ impl Cfg {
         result
     }
 
-    pub fn rules<'a>(&'a self) -> impl Iterator<Item = &CfgRule>
+    pub fn rules<'a>(&'a self) -> impl Iterator<Item = &'a CfgRule>
     where
         Self: 'a,
     {

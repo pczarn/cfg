@@ -5,10 +5,10 @@ use std::{
 
 use cfg_symbol::Symbol;
 
-#[derive(Ord, PartialOrd, Eq, PartialEq, Clone)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Debug)]
 pub struct PerSymbolSetVal {
-    pub(crate) has_none: bool,
-    pub(crate) list: Vec<Symbol>,
+    pub has_none: bool,
+    pub list: Vec<Symbol>,
 }
 
 /// The representation of FIRST and FOLLOW sets.
@@ -33,6 +33,10 @@ impl PerSymbolSetVal {
 
     pub fn has_none(&self) -> bool {
         self.has_none
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.list.len() + self.has_none as usize
     }
 }
 

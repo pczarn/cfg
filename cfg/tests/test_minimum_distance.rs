@@ -1,10 +1,10 @@
-#![cfg(feature = "cfg-predict")]
+#![cfg(feature = "cfg-predict-distance")]
 
 use std::num::NonZeroUsize;
 
-use cfg::history::node::LinkedHistoryNode;
-use cfg::predict::MinimalDistance;
-use cfg::{Cfg, RuleContainer};
+use cfg::history::LinkedHistoryNode;
+use cfg::predict_distance::MinimalDistance;
+use cfg::Cfg;
 
 fn empty() -> LinkedHistoryNode {
     LinkedHistoryNode::Distances { events: vec![] }

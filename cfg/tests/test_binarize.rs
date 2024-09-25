@@ -46,7 +46,10 @@ fn test_binarize() {
             .rhs([y])
             .rule(a)
             .rhs([]);
-        support::assert_eq_rules(equivalent.rules(), cfg.rules());
+
+        equivalent.set_roots([start]);
+
+        support::assert_eq(&equivalent, &cfg);
     };
 
     assert!(cfg.usefulness().all_useful());
@@ -92,5 +95,8 @@ fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
     equivalent
         .rule(start)
         .rhs(long_rhs.into_iter().collect::<Vec<_>>());
-    support::assert_eq_rules(equivalent.rules(), cfg.rules());
+
+    equivalent.set_roots([start]);
+
+    support::assert_eq(&equivalent, &cfg);
 }

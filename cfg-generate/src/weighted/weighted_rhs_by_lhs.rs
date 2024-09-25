@@ -65,7 +65,6 @@ impl Weighted for Cfg {
 }
 
 impl<W: Weight> WeightedRhsByLhs<W> {
-    #[cfg(feature = "rand")]
     pub fn pick_rhs<R>(&self, lhs: Symbol, rng: &mut R) -> &[Symbol]
     where
         R: GenRange,

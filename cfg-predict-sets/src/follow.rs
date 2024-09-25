@@ -53,6 +53,8 @@ impl FollowSets {
                         let followed = this.map.get_mut(&sym).unwrap();
                         let prev_cardinality = followed.len();
                         followed.extend(follow_set.iter().cloned());
+                        followed.sort_unstable();
+                        followed.dedup();
                         changed |= prev_cardinality != followed.len();
 
                         let first_set = first_sets.get(&sym).unwrap();

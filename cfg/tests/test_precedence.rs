@@ -2,7 +2,6 @@
 
 mod support;
 
-use cfg::classify::Usefulness;
 use cfg::precedenced_rule::Associativity::*;
 use cfg::Cfg;
 use cfg_classify::CfgClassifyUsefulExt;
