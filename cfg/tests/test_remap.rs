@@ -24,6 +24,8 @@ fn test_remap_unused_symbols() {
         .rule(a)
         .rhs([]);
 
+    cfg.set_roots([start]);
+
     cfg.remove_unused_symbols();
 
     {

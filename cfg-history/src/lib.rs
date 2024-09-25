@@ -9,7 +9,7 @@ use self::BinarizedRhsRange::*;
 
 pub type HistoryId = NonZeroUsize;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HistoryGraph {
     nodes: Vec<HistoryNode>,
 }
@@ -55,7 +55,7 @@ impl ::std::ops::DerefMut for HistoryGraph {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum HistoryNode {
     Linked {
         prev: HistoryId,
@@ -64,13 +64,14 @@ pub enum HistoryNode {
     Root(RootHistoryNode),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum LinkedHistoryNode {
     Rhs {
         rhs: Vec<Symbol>,
     },
     Binarize {
-        depth: u32,
+        height: u32,
+        is_top: bool,
     },
     EliminateNulling {
         rhs0: Symbol,
@@ -93,7 +94,7 @@ pub enum LinkedHistoryNode {
     },
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum RootHistoryNode {
     NoOp,
     Rule { lhs: Symbol },
@@ -114,7 +115,8 @@ pub struct HistoryNodeRhs {
 #[derive(Clone, Copy)]
 pub struct HistoryNodeBinarize {
     pub prev: HistoryId,
-    pub depth: u32,
+    pub height: u32,
+    pub is_top: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -158,7 +160,7 @@ impl From<HistoryNodeBinarize> for HistoryNode {
     fn from(value: HistoryNodeBinarize) -> Self {
         HistoryNode::Linked {
             prev: value.prev,
-            node: LinkedHistoryNode::Binarize { depth: value.depth },
+            node: LinkedHistoryNode::Binarize { height: value.height, is_top: value.is_top },
         }
     }
 }
@@ -212,7 +214,7 @@ impl From<HistoryNodeRewriteSequence> for HistoryNode {
 }
 
 /// Used to inform which symbols on a rule'Symbol RHS are nullable, and will be eliminated.
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum BinarizedRhsRange {
     /// The first of two symbols.
     Left,

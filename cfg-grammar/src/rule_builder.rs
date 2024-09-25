@@ -40,10 +40,7 @@ impl<'a> RuleBuilder<'a> {
 
     /// Adds a rule alternative to the grammar. If history wasn't provided, the rule has the
     /// `Default` history.
-    pub fn rhs<S>(mut self, syms: S) -> Self
-    where
-        S: AsRef<[Symbol]>,
-    {
+    pub fn rhs(mut self, syms: impl AsRef<[Symbol]>) -> Self {
         let new_history = match self.history.take() {
             Some(history) => self.grammar.add_history_node(
                 HistoryNodeRhs {
@@ -72,10 +69,7 @@ impl<'a> RuleBuilder<'a> {
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_history<S>(self, syms: S, history_id: HistoryId) -> Self
-    where
-        S: AsRef<[Symbol]>,
-    {
+    pub fn rhs_with_history(self, syms: impl AsRef<[Symbol]>, history_id: HistoryId) -> Self {
         let lhs = self.lhs.unwrap();
         let rhs = syms.as_ref().into();
         self.grammar.add_rule(CfgRule {
@@ -87,10 +81,7 @@ impl<'a> RuleBuilder<'a> {
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_linked_history<S>(self, syms: S, linked_history: LinkedHistoryNode) -> Self
-    where
-        S: AsRef<[Symbol]>,
-    {
+    pub fn rhs_with_linked_history(self, syms: impl AsRef<[Symbol]>, linked_history: LinkedHistoryNode) -> Self {
         let history_id = self.grammar.add_multiple_history_nodes(
             RootHistoryNode::Rule {
                 lhs: self.lhs.unwrap(),

@@ -20,10 +20,14 @@ fn test_sequence() {
         .inclusive(1, Some(1))
         .rhs(elem);
 
+    cfg.set_roots([start]);
+
     let mut equivalent: Cfg = Cfg::new();
     let [start, elem, sep, g0] = equivalent.sym();
 
     equivalent.rule(start).rhs([g0, sep]).rule(g0).rhs([elem]);
+
+    equivalent.set_roots([start]);
 
     support::assert_eq(&equivalent, &cfg);
     assert!(cfg.usefulness().all_useful());

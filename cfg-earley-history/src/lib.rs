@@ -75,7 +75,7 @@ fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
 fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
     match linked_node {
         LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
-        &LinkedHistoryNode::Binarize { depth, .. } => prev_history.binarize(depth),
+        &LinkedHistoryNode::Binarize { height, is_top, .. } => prev_history.binarize(height, is_top),
         &LinkedHistoryNode::EliminateNulling {
             which, rhs0, rhs1, ..
         } => prev_history.eliminate_nulling(rhs0, rhs1, which),
@@ -165,13 +165,13 @@ impl History {
         self.dots[n]
     }
 
-    fn binarize(&self, depth: u32) -> Self {
+    fn binarize(&self, height: u32, is_top: bool) -> Self {
         let none = RuleDot::none();
         let dots = if self.dots.is_empty() {
             [none; 3]
         } else {
             let dot_len = self.dots.len();
-            if depth == 0 {
+            if is_top {
                 if dot_len == 2 {
                     [self.dots[0], none, self.dots[1]]
                 } else if dot_len >= 3 {
@@ -180,11 +180,11 @@ impl History {
                     [self.dots[0], none, none]
                 }
             } else {
-                [none, self.dots[dot_len - 2 - depth as usize], none]
+                [none, self.dots[dot_len - 2 - height as usize], none]
             }
         };
 
-        let origin = if depth == 0 { self.origin } else { None };
+        let origin = if is_top { self.origin } else { None };
 
         History {
             origin,

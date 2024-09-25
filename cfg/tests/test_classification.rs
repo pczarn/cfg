@@ -81,7 +81,7 @@ fn test_lr0() {
         .rhs([x])
         .rhs([y])
         .rule(a)
-        .rhs([]);
+        .rhs([]);;
 
     let lr0_fsm = Lr0FsmBuilder::new(&mut cfg).make_lr0_fsm(start);
 

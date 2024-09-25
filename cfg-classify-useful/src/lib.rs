@@ -63,7 +63,7 @@ impl Usefulness {
         let mut productivity = productive_syms(grammar);
         let reachability = grammar.reachability_matrix();
         let mut unused_syms = SymbolBitSet::new();
-        unused_syms.used(grammar);
+        unused_syms.unused(grammar);
         let mut reachable_syms = SymbolBitSet::from_elem(grammar, false);
 
         productivity.union(&unused_syms);
@@ -90,8 +90,8 @@ impl Usefulness {
     /// Sets symbol reachability. Takes an array of reachable symbols.
     pub fn reachable(&mut self, syms: impl AsRef<[Symbol]>) {
         for &sym in syms.as_ref() {
-            for sym in self.reachability.iter_row_syms(sym) {
-                self.reachable_syms.set(sym, true);
+            for derived in self.reachability.iter_row_syms(sym) {
+                self.reachable_syms.set(derived, true);
             }
         }
     }

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::cmp;
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use std::{iter, mem, ops};
+use std::{mem, ops};
 
 use occurence_map::OccurenceMap;
 use rule_builder::RuleBuilder;
@@ -14,7 +14,7 @@ use cfg_history::{
 };
 
 /// Representation of context-free grammars.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Cfg {
     /// The symbol source.
     sym_source: SymbolSource,
@@ -41,7 +41,7 @@ pub struct CfgRule {
     pub history_id: HistoryId,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct WrappedRoot {
     pub start_of_input: Symbol,
     pub root: Symbol,
@@ -131,6 +131,7 @@ impl Cfg {
         self.rhs_len_invariant = limit;
         let mut container = mem::take(&mut self.rules);
         container.retain(|rule| self.maybe_process_rule(rule));
+        self.rules.extend(container);
     }
 
     pub fn rule_rhs_len_allowed_range(&self) -> ops::Range<usize> {
@@ -213,14 +214,14 @@ impl Cfg {
 
         let mut rewritten_work = Cfg::new();
         for rule in self.rules() {
-            let is_nullable = |sym: Symbol| nullable[sym];
+            let is_nullable = |sym: &Symbol| nullable[*sym];
             let maybe_which = match (
-                is_nullable(rule.rhs[0]),
-                rule.rhs.get(1).cloned().map(is_nullable),
+                rule.rhs.get(0).map(is_nullable),
+                rule.rhs.get(1).map(is_nullable),
             ) {
-                (true, Some(true)) | (true, None) => Some(All),
-                (true, Some(false)) => Some(Left),
-                (false, Some(true)) => Some(Right),
+                (Some(true), Some(true)) | (Some(true), None) => Some(All),
+                (Some(true), Some(false)) => Some(Left),
+                (Some(false), Some(true)) => Some(Right),
                 _ => None,
             };
             if let Some(which) = maybe_which {
@@ -234,6 +235,16 @@ impl Cfg {
                     .into(),
                 );
                 if which == All {
+                    if rule.rhs.len() == 2 {
+                        rewritten_work
+                            .rule(rule.lhs)
+                            .rhs(&rule.rhs[0..1])
+                            .history(history_id);
+                        rewritten_work
+                            .rule(rule.lhs)
+                            .rhs(&rule.rhs[1..2])
+                            .history(history_id);
+                    }
                     result
                         .rule(rule.lhs)
                         .rhs(&rule.rhs[which.as_range()])
@@ -301,39 +312,43 @@ impl Cfg {
         // | …
         // | Sm  ⸬= Sn  C
         // | Sn  ⸬= A   B
-        let mut rhs_iter = rule.rhs.iter().cloned();
-        let gen_sym_count =
-            rule.rhs.len().saturating_sub(1) / (self.rule_rhs_len_allowed_range().end - 1);
-        let left_iter = self
-            .sym_source
-            .generate()
-            .take(gen_sym_count)
-            .chain(rhs_iter.next());
-        let right_iter = rhs_iter.rev().map(Some).chain(iter::once(None));
+        let mut rhs_rev = rule.rhs.to_vec();
+        rhs_rev.reverse();
+        let mut tail = Vec::new();
+        let mut i: u32 = 0;
+        while !rhs_rev.is_empty() {
+            let tail_idx = rhs_rev.len().saturating_sub(self.rule_rhs_len_allowed_range().end);
+            tail.extend(rhs_rev.drain(tail_idx..));
+            tail.reverse();
+            let lhs;
+            if rhs_rev.is_empty() {
+                lhs = rule.lhs;
+            } else {
+                lhs = self.next_sym();
+                rhs_rev.push(lhs);
+            }
+            let history_id;
+            if i == 0 && rhs_rev.is_empty() {
+                history_id = rule.history_id;
+            } else {
+                let history_node_binarize = HistoryNodeBinarize {
+                    prev: rule.history_id,
+                    height: i,
+                    is_top: rhs_rev.is_empty(),
+                };
+                history_id = self.history_graph.add_history_node(history_node_binarize.into());
+            }
+            self.rules.push(
+                CfgRule::new(
+                    lhs,
+                    &tail[..],
+                    history_id
+                )
+            );
+            tail.clear();
+            i += 1;
+        }
 
-        let mut next_lhs = rule.lhs;
-        let history_graph = &mut self.history_graph;
-        let make_rule = |(depth, (left, right)): (usize, _)| {
-            let lhs = next_lhs;
-            next_lhs = left;
-            CfgRule::new(
-                lhs,
-                if let Some(right) = right {
-                    vec![left, right]
-                } else {
-                    vec![left]
-                },
-                history_graph.add_history_node(
-                    HistoryNodeBinarize {
-                        prev: rule.history_id,
-                        depth: depth as u32,
-                    }
-                    .into(),
-                ),
-            )
-        };
-        self.rules
-            .extend(left_iter.zip(right_iter).enumerate().map(make_rule));
         false
     }
 
@@ -410,8 +425,8 @@ impl Cfg {
                 let mut rhs_iter = rule.rhs.iter();
                 let get_property = |&sym: &Symbol| property[sym];
                 let rhs_satifies_property = match property_mode {
-                    RhsPropertyMode::All => rhs_iter.any(get_property),
-                    RhsPropertyMode::Any => rhs_iter.all(get_property),
+                    RhsPropertyMode::All => rhs_iter.all(get_property),
+                    RhsPropertyMode::Any => rhs_iter.any(get_property),
                 };
                 if !property[rule.lhs] && rhs_satifies_property {
                     property.set(rule.lhs, true);

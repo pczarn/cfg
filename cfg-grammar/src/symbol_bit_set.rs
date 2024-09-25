@@ -38,12 +38,20 @@ impl SymbolBitSet {
         }
     }
 
-    fn initialize(&mut self, symbol_source: &SymbolSource) {
+    pub fn reset(&mut self, symbol_source: &SymbolSource) {
+        self.bit_vec = BitVec::new();
         self.bit_vec
             .extend(iter::repeat(false).take(symbol_source.num_syms()));
     }
 
+    pub fn set_all(&mut self, symbol_source: &SymbolSource) {
+        self.bit_vec = BitVec::new();
+        self.bit_vec
+            .extend(iter::repeat(true).take(symbol_source.num_syms()));
+    }
+
     pub fn used(&mut self, grammar: &Cfg) {
+        self.reset(grammar.sym_source());
         for rule in grammar.rules() {
             self.set(rule.lhs, true);
             for &sym in &rule.rhs[..] {
@@ -52,12 +60,26 @@ impl SymbolBitSet {
         }
     }
 
+    pub fn unused(&mut self, grammar: &Cfg) {
+        self.set_all(grammar.sym_source());
+        for rule in grammar.rules() {
+            self.set(rule.lhs, false);
+            for &sym in &rule.rhs[..] {
+                self.set(sym, false);
+            }
+        }
+    }
+
+    pub fn negate(&mut self) {
+        self.bit_vec.negate();
+    }
+
     /// Gathers information about whether symbols are terminal or nonterminal.
     /// Constructs a set of terminal symbols.
     ///
     /// Constructs a data structure in O(n) time.
     pub fn terminal(&mut self, grammar: &Cfg) {
-        self.initialize(grammar.sym_source());
+        self.set_all(grammar.sym_source());
         for rule in grammar.rules() {
             self.set(rule.lhs, false);
         }
@@ -68,7 +90,9 @@ impl SymbolBitSet {
     ///
     /// Constructs a data structure in O(n) time.
     pub fn nulling(&mut self, grammar: &Cfg) {
-        self.initialize(grammar.sym_source());
+        if self.is_empty() {
+            self.reset(grammar.sym_source());
+        }
         for rule in grammar.rules() {
             if rule.rhs.is_empty() {
                 self.set(rule.lhs, true);
@@ -81,7 +105,9 @@ impl SymbolBitSet {
     ///
     /// Constructs a data structure in O(n) time.
     pub fn productive(&mut self, grammar: &Cfg) {
-        self.initialize(grammar.sym_source());
+        if self.is_empty() {
+            self.reset(grammar.sym_source());
+        }
         for rule in grammar.rules() {
             self.set(rule.lhs, true);
         }
@@ -156,6 +182,7 @@ impl Cfg {
 
     pub fn nulling_set(&self) -> SymbolBitSet {
         let mut set = SymbolBitSet::new();
+        set.reset(self.sym_source());
         set.nulling(self);
         set
     }
