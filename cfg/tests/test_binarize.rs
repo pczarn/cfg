@@ -47,26 +47,6 @@ fn test_binarize() {
             .rule(a)
             .rhs([]);
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
-
-        // left:
-        //     [
-        //         (Symbol { n: 1 }, [Symbol { n: 4 }]),
-        //         (Symbol { n: 1 }, [Symbol { n: 7 }]),
-        //         (Symbol { n: 1 }, [Symbol { n: 7 }, Symbol { n: 3 }]), (Symbol { n: 2 }, []), (Symbol { n: 3 }, [Symbol { n: 2 }, Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 4 }]), (Symbol { n: 4 }, [Symbol { n: 5 }]), (Symbol { n: 4 }, [Symbol { n: 6 }]), (Symbol { n: 7 }, [Symbol { n: 5 }])]
-        // right: [
-        //     (Symbol { n: 1 }, [Symbol { n: 4 }]),
-        //     (Symbol { n: 1 }, [Symbol { n: 7 }, Symbol { n: 3 }]),
-        //     (Symbol { n: 2 }, []), (Symbol { n: 3 }, [Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 2 }, Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 2 }, Symbol { n: 4 }]), (Symbol { n: 4 }, [Symbol { n: 5 }]), (Symbol { n: 4 }, [Symbol { n: 6 }]), (Symbol { n: 7 }, [Symbol { n: 2 }]), (Symbol { n: 7 }, [Symbol { n: 2 }, Symbol { n: 5 }])]
-
-
-
-        // left: [
-        //     (Symbol { n: 1 }, [Symbol { n: 4 }]),
-        //     (Symbol { n: 1 }, [Symbol { n: 7 }]),
-        //     (Symbol { n: 1 }, [Symbol { n: 7 }, Symbol { n: 3 }]),
-        //     (Symbol { n: 2 }, []),
-        //     (Symbol { n: 3 }, [Symbol { n: 2 }, Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 4 }]), (Symbol { n: 4 }, [Symbol { n: 5 }]), (Symbol { n: 4 }, [Symbol { n: 6 }]), (Symbol { n: 7 }, [Symbol { n: 5 }])]
-        // right: [(Symbol { n: 1 }, [Symbol { n: 3 }]), (Symbol { n: 1 }, [Symbol { n: 4 }]), (Symbol { n: 1 }, [Symbol { n: 7 }]), (Symbol { n: 1 }, [Symbol { n: 7 }, Symbol { n: 3 }]), (Symbol { n: 2 }, []), (Symbol { n: 3 }, [Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 2 }, Symbol { n: 2 }]), (Symbol { n: 3 }, [Symbol { n: 2 }, Symbol { n: 4 }]), (Symbol { n: 4 }, [Symbol { n: 5 }]), (Symbol { n: 4 }, [Symbol { n: 6 }]), (Symbol { n: 7 }, [Symbol { n: 2 }]), (Symbol { n: 7 }, [Symbol { n: 2 }, Symbol { n: 5 }])] 
     };
 
     assert!(cfg.usefulness().all_useful());
@@ -109,6 +89,8 @@ fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
         equivalent.rule(new_sym).rhs(rhs);
         long_rhs.push_front(new_sym);
     }
-    equivalent.rule(start).rhs(long_rhs.into_iter().collect::<Vec<_>>());
+    equivalent
+        .rule(start)
+        .rhs(long_rhs.into_iter().collect::<Vec<_>>());
     support::assert_eq_rules(equivalent.rules(), cfg.rules());
 }

@@ -75,7 +75,9 @@ fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
 fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
     match linked_node {
         LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
-        &LinkedHistoryNode::Binarize { height, is_top, .. } => prev_history.binarize(height, is_top),
+        &LinkedHistoryNode::Binarize { height, is_top, .. } => {
+            prev_history.binarize(height, is_top)
+        }
         &LinkedHistoryNode::EliminateNulling {
             which, rhs0, rhs1, ..
         } => prev_history.eliminate_nulling(rhs0, rhs1, which),

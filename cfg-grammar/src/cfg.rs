@@ -317,7 +317,9 @@ impl Cfg {
         let mut tail = Vec::new();
         let mut i: u32 = 0;
         while !rhs_rev.is_empty() {
-            let tail_idx = rhs_rev.len().saturating_sub(self.rule_rhs_len_allowed_range().end);
+            let tail_idx = rhs_rev
+                .len()
+                .saturating_sub(self.rule_rhs_len_allowed_range().end);
             tail.extend(rhs_rev.drain(tail_idx..));
             tail.reverse();
             let lhs;
@@ -336,15 +338,11 @@ impl Cfg {
                     height: i,
                     is_top: rhs_rev.is_empty(),
                 };
-                history_id = self.history_graph.add_history_node(history_node_binarize.into());
+                history_id = self
+                    .history_graph
+                    .add_history_node(history_node_binarize.into());
             }
-            self.rules.push(
-                CfgRule::new(
-                    lhs,
-                    &tail[..],
-                    history_id
-                )
-            );
+            self.rules.push(CfgRule::new(lhs, &tail[..], history_id));
             tail.clear();
             i += 1;
         }

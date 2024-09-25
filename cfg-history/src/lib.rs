@@ -160,7 +160,10 @@ impl From<HistoryNodeBinarize> for HistoryNode {
     fn from(value: HistoryNodeBinarize) -> Self {
         HistoryNode::Linked {
             prev: value.prev,
-            node: LinkedHistoryNode::Binarize { height: value.height, is_top: value.is_top },
+            node: LinkedHistoryNode::Binarize {
+                height: value.height,
+                is_top: value.is_top,
+            },
         }
     }
 }

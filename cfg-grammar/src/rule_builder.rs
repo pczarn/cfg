@@ -81,7 +81,11 @@ impl<'a> RuleBuilder<'a> {
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_linked_history(self, syms: impl AsRef<[Symbol]>, linked_history: LinkedHistoryNode) -> Self {
+    pub fn rhs_with_linked_history(
+        self,
+        syms: impl AsRef<[Symbol]>,
+        linked_history: LinkedHistoryNode,
+    ) -> Self {
         let history_id = self.grammar.add_multiple_history_nodes(
             RootHistoryNode::Rule {
                 lhs: self.lhs.unwrap(),
