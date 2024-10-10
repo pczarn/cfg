@@ -25,7 +25,7 @@ enum SymKind {
 
 #[derive(Clone, Default, Debug)]
 pub struct History {
-    pub dots: Rc<Vec<RuleDot>>,
+    pub dots: Rc<[RuleDot]>,
     pub origin: ExternalOrigin,
     pub nullable: NullingEliminated,
     pub weight: Option<f64>,

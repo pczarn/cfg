@@ -4,7 +4,7 @@ mod support;
 
 use cfg::precedenced_rule::Associativity::*;
 use cfg::Cfg;
-use cfg_classify::CfgClassifyUsefulExt;
+use cfg_classify::CfgClassifyExt;
 
 #[test]
 fn test_simple_precedence() {

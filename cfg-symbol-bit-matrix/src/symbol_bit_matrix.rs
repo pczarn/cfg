@@ -138,11 +138,17 @@ impl From<SymbolBitMatrix> for BitMatrix {
     }
 }
 
+impl ReachabilityMatrix {
+    pub fn reflexive(mut self) -> Self {
+        self.reflexive_closure();
+        self
+    }
+}
+
 impl DirectDerivationMatrix {
     /// Returns the derivation matrix.
     pub fn reachability(mut self) -> ReachabilityMatrix {
         self.transitive_closure();
-        self.reflexive_closure();
         ReachabilityMatrix(self.into())
     }
 }
@@ -165,7 +171,6 @@ impl CfgSymbolBitMatrixExt for Cfg {
         let mut derivation = self.empty_matrix();
 
         for rule in self.rules() {
-            derivation.set(rule.lhs, rule.lhs, true);
             for &sym in rule.rhs.iter() {
                 derivation.set(rule.lhs, sym, true);
             }

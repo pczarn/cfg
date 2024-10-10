@@ -16,7 +16,9 @@ members = [
     "cfg-classify-linear",
     "cfg-classify-cyclical",
     "cfg-classify-regular",
+    "cfg-classify-recursive",
     "cfg-earley-history",
+    "cfg-examples",
 ]
 
 resolver = "2"

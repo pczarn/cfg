@@ -1,7 +1,7 @@
 use std::cell::RefCell;
-use std::cmp;
 use std::collections::BTreeMap;
 use std::rc::Rc;
+use std::{cmp, fmt};
 use std::{mem, ops};
 
 use occurence_map::OccurenceMap;
@@ -39,6 +39,19 @@ pub struct CfgRule {
     pub rhs: Rc<[Symbol]>,
     /// The rule's history.
     pub history_id: HistoryId,
+}
+
+/// Your standard grammar rule representation.
+#[derive(Clone)]
+pub struct NamedCfgRule {
+    /// The rule's left-hand side symbol.
+    pub lhs: Symbol,
+    /// The rule's right-hand side symbols.
+    pub rhs: Rc<[Symbol]>,
+    /// The rule's history.
+    pub history_id: HistoryId,
+    /// Collection of symbol names.
+    pub names: &'static [&'static str],
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -96,6 +109,14 @@ impl Cfg {
     /// Generates a new unique symbol.
     pub fn next_sym(&mut self) -> Symbol {
         self.sym_source_mut().next_sym()
+    }
+
+    pub fn sym_at<const N: usize>(at: usize) -> [Symbol; N] {
+        let mut sym_source = SymbolSource::new();
+        for _ in 0..at {
+            sym_source.next_sym();
+        }
+        sym_source.sym()
     }
 
     /// Returns the number of symbols in use.
@@ -509,5 +530,52 @@ impl CfgRule {
             rhs: rhs.as_ref().into(),
             history_id,
         }
+    }
+
+    pub fn named(&self, names: &'static [&'static str]) -> NamedCfgRule {
+        NamedCfgRule {
+            lhs: self.lhs,
+            rhs: self.rhs.clone(),
+            history_id: self.history_id,
+            names,
+        }
+    }
+}
+
+impl NamedCfgRule {
+    pub fn new(names: &'static [&'static str], history_id: HistoryId) -> Self {
+        NamedCfgRule {
+            lhs: Symbol::from(0u32),
+            rhs: (1 .. names.len() as u32).map(|id| Symbol::from(id)).collect::<Vec<_>>().into(),
+            history_id,
+            names,
+        }
+    }
+}
+
+impl Eq for NamedCfgRule {
+    fn assert_receiver_is_total_eq(&self) {
+    }
+}
+
+impl PartialEq for NamedCfgRule {
+    fn eq(&self, other: &Self) -> bool {
+        self.names[self.lhs.usize()] == other.names[other.lhs.usize()] && self.rhs.len() == other.rhs.len() && self.rhs.iter().zip(other.rhs.iter()).all(|(sym_a, sym_b)| self.names[sym_a.usize()] == other.names[sym_b.usize()]) && self.history_id == other.history_id
+    }
+}
+
+impl fmt::Debug for NamedCfgRule {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let lhs = self.names[self.lhs.usize()].to_string();
+        let rhs = self
+            .rhs
+            .iter()
+            .map(|sym| self.names[sym.usize()].to_string())
+            .collect::<Vec<_>>();
+        f.debug_struct("NamedCfgRule")
+            .field("lhs", &lhs)
+            .field("rhs", &rhs)
+            .field("history_id", &self.history_id)
+            .finish()
     }
 }

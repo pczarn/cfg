@@ -37,9 +37,11 @@ impl<'a> MinimalDistance<'a> {
 
     /// Calculates minimal distance from one parts of the grammar to others.
     /// Returns distances in order respective to the order of rule iteration.
-    pub fn minimal_distances(&mut self) -> &[(HistoryId, Vec<Option<u32>>)] {
+    pub fn minimal_distances(&mut self, dots: &[(usize, usize)]) -> &[(HistoryId, Vec<Option<u32>>)] {
+        let mut dots = dots.to_vec();
+        dots.sort_unstable();
         self.minimal_sentence_lengths();
-        self.immediate_minimal_distances();
+        self.immediate_minimal_distances(&dots[..]);
         self.transitive_minimal_distances();
         self.distances()
     }
@@ -62,19 +64,15 @@ impl<'a> MinimalDistance<'a> {
             .rhs_closure_with_values(&mut self.min_of);
     }
 
-    fn immediate_minimal_distances(&mut self) {
+    fn immediate_minimal_distances(&mut self, dots: &[(usize, usize)]) {
         // Calculates distances within rules.
         for (idx, rule) in self.grammar.rules().enumerate() {
-            let mut history = &self.grammar.history_graph()[rule.history_id.get()];
-            let mut positions = &[][..];
-            while let &HistoryNode::Linked { prev, ref node } = history {
-                if let LinkedHistoryNode::Distances { events } = node {
-                    positions = &events[..];
-                }
-                history = &self.grammar.history_graph()[prev.get()];
-            }
-            for &position in positions {
-                let (min, _) = self.update_rule_distances(0, &rule.rhs[..position as usize], idx);
+            let dot_idx = match dots.binary_search(&(idx, 0)) {
+                Ok(pos) | Err(pos) => pos
+            };
+            let found_dots = dots[dot_idx..].iter().take_while(|&&(rule_id, _)| rule_id == idx);
+            for &(_, dot_pos) in found_dots {
+                let (min, _) = self.update_rule_distances(0, &rule.rhs[..dot_pos], idx);
                 set_min(&mut self.prediction_distances[rule.lhs.usize()], min);
             }
         }

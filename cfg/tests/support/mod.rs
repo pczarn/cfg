@@ -2,11 +2,10 @@
 
 use cfg::{Cfg, CfgRule};
 
-pub fn assert_eq_rules<'a, 'b, I, J>(i: I, j: J)
-where
-    I: Iterator<Item = &'a CfgRule>,
-    J: Iterator<Item = &'b CfgRule>,
-{
+pub fn assert_eq_rules<'a, 'b>(
+    i: impl Iterator<Item = &'a CfgRule>,
+    j: impl Iterator<Item = &'b CfgRule>,
+) {
     let mut rules_i = i
         .map(|rule| (rule.lhs, rule.rhs.to_vec()))
         .collect::<Vec<_>>();

@@ -48,7 +48,7 @@ impl RuleUsefulness {
 }
 
 /// Returns the set of productive symbols.
-fn productive_syms(grammar: &mut Cfg) -> SymbolBitSet {
+fn productive_syms(grammar: &Cfg) -> SymbolBitSet {
     let mut productive_syms = SymbolBitSet::new();
     productive_syms.terminal(grammar);
     productive_syms.nulling(grammar);
@@ -59,9 +59,9 @@ fn productive_syms(grammar: &mut Cfg) -> SymbolBitSet {
 impl Usefulness {
     /// Analyzes usefulness of the grammar's rules. In particular, it checks for reachable
     /// and productive symbols.
-    pub fn new(grammar: &mut Cfg) -> Self {
+    pub fn new(grammar: &Cfg) -> Self {
         let mut productivity = productive_syms(grammar);
-        let reachability = grammar.reachability_matrix();
+        let reachability: ReachabilityMatrix = grammar.reachability_matrix().reflexive();
         let mut unused_syms = SymbolBitSet::new();
         unused_syms.unused(grammar);
         let mut reachable_syms = SymbolBitSet::from_elem(grammar, false);
@@ -157,40 +157,5 @@ impl Usefulness {
             };
             grammar.retain(rule_is_useful);
         }
-    }
-}
-
-pub trait CfgClassifyUsefulExt {
-    fn make_proper(&mut self) -> bool;
-    fn usefulness(&mut self) -> Usefulness;
-    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> Usefulness;
-}
-
-impl CfgClassifyUsefulExt for Cfg {
-    fn usefulness(&mut self) -> Usefulness {
-        let mut usefulness = Usefulness::new(self);
-        let roots = self.roots();
-        usefulness.reachable(roots);
-        usefulness
-    }
-
-    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> Usefulness {
-        let mut usefulness = Usefulness::new(self);
-        usefulness.reachable(roots);
-        usefulness
-    }
-
-    fn make_proper(&mut self) -> bool {
-        let usefulness = self.usefulness();
-        let contains_useless_rules = !usefulness.all_useful();
-        if contains_useless_rules {
-            // for useless in usefulness.useless_rules() {
-            //     let rhs: Vec<_> = useless.rule.rhs().iter().map(|t| tok.get(t.usize())).collect();
-            //     println!("lhs:{:?} rhs:{:?} unreachable:{} unproductive:{}", tok.get(useless.rule.lhs().usize()), rhs, useless.unreachable, useless.unproductive);
-            // }
-            // println!("warning: grammar has useless rules");
-            usefulness.remove_useless_rules(self);
-        }
-        !contains_useless_rules
     }
 }

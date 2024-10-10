@@ -1,18 +1,20 @@
 #![cfg(feature = "cfg-classify")]
 
+use std::num::NonZeroUsize;
 use std::rc::Rc;
 
 #[cfg(feature = "ll")]
 use cfg::classify::{LlNonterminalClass, LlParseTable};
 use cfg::classify::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
-use cfg::Cfg;
+use cfg::{Cfg, CfgRule};
+use cfg_classify::CfgClassifyExt;
 
 use std::collections::BTreeMap;
 
 #[cfg(feature = "ll")]
 #[test]
 fn test_ll_classification() {
-    let mut cfg: Cfg = Cfg::new();
+    let mut cfg = Cfg::new();
     let [start, a, x, b, c, y] = cfg.sym();
 
     cfg.rule(start)
@@ -177,4 +179,27 @@ fn test_lr0() {
     let nodes = vec![node_0, node_1, node_2];
 
     assert_eq!(nodes, lr0_fsm);
+}
+
+#[test]
+fn test_recursive() {
+    let mut cfg = Cfg::new();
+
+    let [start, foo, bar] = cfg.sym();
+
+    cfg.rule(start).rhs([foo, foo]);
+
+    cfg.rule(foo).rhs([bar]).rhs([foo, bar]);
+
+    let rec_rule = CfgRule { lhs: 1u32.into(), rhs: vec![1u32.into(), 2u32.into()].into(), history_id: NonZeroUsize::new(6).unwrap() };
+
+    let expected_recursive_rules: Vec<&CfgRule> = vec![
+        &rec_rule
+    ];
+
+    let recursion = cfg.recursion();
+
+    let actual_recursive_rules = recursion.recursive_rules().collect::<Vec<_>>();
+
+    assert_eq!(actual_recursive_rules, expected_recursive_rules);
 }

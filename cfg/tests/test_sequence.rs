@@ -4,7 +4,7 @@ mod support;
 
 use cfg::sequence::Separator::*;
 use cfg::Cfg;
-use cfg_classify::CfgClassifyUsefulExt;
+use cfg_classify::CfgClassifyExt;
 use cfg_sequence::destination::SequenceDestination;
 use cfg_sequence::rewrite::SequencesToProductions;
 

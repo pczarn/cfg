@@ -2,7 +2,7 @@
 
 use std::collections::VecDeque;
 
-use cfg::classify::CfgClassifyUsefulExt;
+use cfg::classify::CfgClassifyExt;
 use cfg::{Cfg, Symbol};
 use test_case::test_case;
 

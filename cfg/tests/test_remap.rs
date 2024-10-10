@@ -2,7 +2,7 @@
 
 mod support;
 
-use cfg::classify::CfgClassifyUsefulExt;
+use cfg::classify::CfgClassifyExt;
 use cfg::symbol_bit_matrix::CfgSymbolBitMatrixExt;
 use cfg::symbol_bit_matrix::Remap;
 use cfg::Cfg;
