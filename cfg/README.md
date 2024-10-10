@@ -153,7 +153,8 @@ grammar.precedenced_rule(expr)
 
 ## Using a custom grammar representation
 
-Your grammar type has to implement the `RuleContainer` trait.
+We've removed the option to plug in your custom grammar type through traits. You should find
+it easy to fork the library and make your own types.
 
 ## License
 

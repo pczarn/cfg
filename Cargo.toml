@@ -1,8 +1,24 @@
 [workspace]
 
 members = [
-    "cfg", "cfg-classify", "cfg-earley", "cfg-generate", "cfg-predict", "cfg-sequence",
+    "cfg",
     "cfg-symbol",
+    "cfg-classify",
+    "cfg-classify-useful",
+    "cfg-symbol-bit-matrix",
+    "cfg-generate",
+    "cfg-predict-distance",
+    "cfg-predict-sets",
+    "cfg-sequence",
+    "cfg-history",
+    "cfg-classify-ll",
+    "cfg-classify-lr",
+    "cfg-classify-linear",
+    "cfg-classify-cyclical",
+    "cfg-classify-regular",
+    "cfg-classify-recursive",
+    "cfg-earley-history",
+    "cfg-examples",
 ]
 
 resolver = "2"

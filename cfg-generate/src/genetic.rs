@@ -32,17 +32,16 @@ struct RuleDescription {
 
 impl PartialOrd for RuleDescription {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let ordering = (&self.rule_kind, &self.rhs).cmp(&(&other.rule_kind, &other.rhs));
-        let ordering = ordering
-            .then(self.amount.start.cmp(&other.amount.start))
-            .then(self.amount.end.cmp(&other.amount.end));
-        Some(ordering)
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for RuleDescription {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        let ordering = (&self.rule_kind, &self.rhs).cmp(&(&other.rule_kind, &other.rhs));
+        ordering
+            .then(self.amount.start.cmp(&other.amount.start))
+            .then(self.amount.end.cmp(&other.amount.end))
     }
 }
 
@@ -72,7 +71,7 @@ enum Rhs {
         rhs1: Symbol,
         rhs1_is_transparent: bool,
     },
-    AnyRhs,
+    Any,
 }
 
 #[derive(Clone, Copy)]
@@ -134,7 +133,7 @@ impl Rhs {
                 rhs1,
                 rhs1_is_transparent,
             },
-            &AnyRhs => AnyRhs,
+            Any => Any,
         }
     }
 }
@@ -154,7 +153,7 @@ fn test_zero_mutation() {
     rule_descriptions.insert(RuleDescription {
         amount: 10..20,
         rule_kind: ContextFree,
-        rhs: AnyRhs,
+        rhs: Any,
     });
     let target = Target::new(10, rule_descriptions.clone());
     let mutation = Mutation {
@@ -163,6 +162,6 @@ fn test_zero_mutation() {
     };
     target.population.mutate(mutation);
     for description in &target.population.rule_descriptions {
-        assert!(rule_descriptions.contains(&description));
+        assert!(rule_descriptions.contains(description));
     }
 }

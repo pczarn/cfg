@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use cfg_grammar::history::node::LinkedHistoryNode;
-use cfg_grammar::{BinarizedCfg, Cfg, HistoryNode, RuleContainer};
+use cfg_grammar::Cfg;
+use cfg_history::{HistoryNode, LinkedHistoryNode};
 use cfg_symbol::Symbol;
 
 use super::random::GenRange;
@@ -30,10 +30,7 @@ impl<W: Weight> WeightedRhsByLhs<W> {
     }
 
     pub fn add_weight(&mut self, weight: W, lhs: Symbol, rhs: &[Symbol]) {
-        let weighted_rhs_list = self
-            .weights
-            .entry(lhs)
-            .or_insert(WeightedRhsList::default());
+        let weighted_rhs_list = self.weights.entry(lhs).or_default();
         weighted_rhs_list.rhs_list.push(WeightedRhs {
             weight: weighted_rhs_list.total_weight,
             rhs: rhs.to_vec(),
@@ -61,35 +58,13 @@ impl Weighted for Cfg {
                 }
                 history_id = prev;
             }
-            weighted.add_weight(result.unwrap_or(1.0), rule.lhs, rule.rhs);
-        }
-        weighted
-    }
-}
-
-impl Weighted for BinarizedCfg {
-    fn weighted(&self) -> WeightedRhsByLhs<f64> {
-        let mut weighted = WeightedRhsByLhs::new();
-        for rule in self.rules() {
-            let mut history_id = rule.history_id;
-            let mut result = None;
-            while let &HistoryNode::Linked { prev, ref node } =
-                &self.history_graph()[history_id.get()]
-            {
-                if let &LinkedHistoryNode::Weight { weight } = node {
-                    result = Some(weight);
-                    break;
-                }
-                history_id = prev;
-            }
-            weighted.add_weight(result.unwrap_or(1.0), rule.lhs, rule.rhs);
+            weighted.add_weight(result.unwrap_or(1.0), rule.lhs, &rule.rhs[..]);
         }
         weighted
     }
 }
 
 impl<W: Weight> WeightedRhsByLhs<W> {
-    #[cfg(feature = "rand")]
     pub fn pick_rhs<R>(&self, lhs: Symbol, rng: &mut R) -> &[Symbol]
     where
         R: GenRange,

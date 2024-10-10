@@ -14,3 +14,8 @@ license = "Apache-2.0 OR MIT"
 [dependencies]
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+cfg-history = { version = "0.0.1", path = "../cfg-history/" }
+
+[features]
+serde = ["cfg-symbol/serde"]
+miniserde = ["cfg-symbol/miniserde"]

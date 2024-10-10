@@ -2,8 +2,11 @@
 
 use crate::*;
 
-#[cfg(feature = "serialize")]
-use miniserde::{Deserialize, Serialize};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "miniserde")]
+use miniserde::{Deserialize as MiniDeserialize, Serialize as MiniSerialize};
 
 /// Populates maps with new symbols.
 pub struct Intern {
@@ -13,7 +16,8 @@ pub struct Intern {
 
 /// Contains maps for translation between internal and external symbols.
 #[derive(Clone, Default, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "miniserde", derive(MiniSerialize, MiniDeserialize))]
 pub struct Mapping {
     /// An array of internal symbols, indexed by external symbol ID.
     pub to_internal: Vec<Option<Symbol>>,

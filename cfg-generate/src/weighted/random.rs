@@ -2,12 +2,12 @@
 
 use std::collections::BTreeMap;
 
-use cfg_grammar::BinarizedCfg;
+use cfg_grammar::Cfg;
 use cfg_symbol::Symbol;
 // use log::debug;
 use rpds::List;
 
-use cfg_grammar::symbol::set::SymbolBitSet;
+use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use rand::rngs::ThreadRng;
 use rand::{thread_rng, Rng};
 
@@ -110,7 +110,7 @@ struct BacktrackState<'a, R> {
     prev_work: List<Symbol>,
 }
 
-impl Random for BinarizedCfg {
+impl Random for Cfg {
     fn random<R: GenRange + Clone, F: Fn(Symbol, &mut R) -> Option<char>>(
         &self,
         start: Symbol,
@@ -128,7 +128,8 @@ impl Random for BinarizedCfg {
         work.push_front_mut(start);
         let mut result = vec![];
         let mut string = vec![];
-        let terminal_set = SymbolBitSet::terminal_set(self);
+        let mut terminal_set = SymbolBitSet::new();
+        terminal_set.terminal(self);
         let negative: BTreeMap<Symbol, Vec<char>> = negative_rules
             .iter()
             .map(|neg| (neg.sym, neg.chars.chars().collect()))
@@ -139,7 +140,7 @@ impl Random for BinarizedCfg {
         while let Some(&sym) = work.first() {
             work.drop_first_mut();
             // debug!("WORK: pop {:?}", sym);
-            if terminal_set.has_sym(sym) {
+            if terminal_set[sym] {
                 result.push(sym);
                 if let Some(ch) = to_char(sym, rng) {
                     string.push(ch);
@@ -155,7 +156,7 @@ impl Random for BinarizedCfg {
                 }
                 if let Some(back) = backtracking.get_mut(&string.len()) {
                     for state in back.iter_mut() {
-                        if string.ends_with(&state.forbidden[..]) {
+                        if string.ends_with(state.forbidden) {
                             *rng = state.rng.clone();
                             string.truncate(string.len() - state.forbidden.len());
                             result.truncate(state.result_len);
@@ -175,7 +176,7 @@ impl Random for BinarizedCfg {
                 // debug!("NEGATIVE: forbidden {:?} at {:?}", forbidden, string.len());
                 backtracking
                     .entry(string.len() + forbidden.len())
-                    .or_insert(vec![])
+                    .or_default()
                     .push(BacktrackState {
                         forbidden: &forbidden[..],
                         rng: rng.clone(),
@@ -197,16 +198,16 @@ impl Random for BinarizedCfg {
 
 #[test]
 fn test_simplest_random_generation() {
-    use cfg_grammar::{Cfg, RuleContainer};
+    use cfg_grammar::Cfg;
 
     let mut grammar = Cfg::new();
     let [lhs, rhs] = grammar.sym();
     grammar.rule(lhs).rhs([rhs]);
-    let binarized = grammar.binarize();
-    assert_eq!(binarized.num_syms(), 2);
-    assert_eq!(binarized.rules().count(), 1);
+    grammar.limit_rhs_len(Some(2));
+    assert_eq!(grammar.num_syms(), 2);
+    assert_eq!(grammar.rules().count(), 1);
 
     let to_char = |sym, _: &mut _| if sym == rhs { Some('X') } else { None };
-    let string = binarized.with_thread_rng(lhs, Some(1), &[], to_char);
+    let string = grammar.with_thread_rng(lhs, Some(1), &[], to_char);
     assert_eq!(string, Ok((vec![rhs], vec!['X'])));
 }

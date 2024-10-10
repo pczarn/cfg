@@ -1,9 +1,12 @@
 #![cfg(feature = "cfg-classify")]
 
-mod support;
+use std::collections::VecDeque;
 
-use cfg::classify::useful::Usefulness;
-use cfg::{BinarizedCfg, Cfg, RuleContainer};
+use cfg::classify::CfgClassifyExt;
+use cfg::{Cfg, Symbol};
+use test_case::test_case;
+
+mod support;
 
 #[test]
 fn test_binarize() {
@@ -22,12 +25,12 @@ fn test_binarize() {
         .rule(a)
         .rhs([]);
 
-    let mut cfg = cfg.binarize();
+    cfg.set_roots(&[start]);
+    cfg.limit_rhs_len(Some(2));
 
     {
-        let mut equivalent = BinarizedCfg::new();
-        let [start, a, b, c, x, y, g0] = equivalent.sym();
-
+        let mut equivalent = Cfg::new();
+        let [start, _a, b, c, x, y, g0] = equivalent.sym();
         equivalent
             .rule(start)
             .rhs([g0, b])
@@ -43,68 +46,57 @@ fn test_binarize() {
             .rhs([y])
             .rule(a)
             .rhs([]);
-        support::assert_eq_rules(equivalent.rules(), cfg.rules());
+
+        equivalent.set_roots([start]);
+
+        support::assert_eq(&equivalent, &cfg);
     };
 
-    let nulling = cfg.eliminate_nulling_rules();
-
-    {
-        let mut equivalent = BinarizedCfg::new();
-        let [start, _a, b, c, x, y, g0] = equivalent.sym();
-        equivalent
-            .rule(start)
-            .rhs([g0, b])
-            .rhs([c])
-            .rule(c)
-            .rhs([x])
-            .rhs([y])
-            .rule(start)
-            .rhs([g0])
-            .rule(g0)
-            .rhs([x])
-            .rule(b)
-            .rhs([c]);
-        support::assert_eq_rules(equivalent.rules(), cfg.rules());
-    };
-
-    {
-        let mut equivalent_nulling = BinarizedCfg::new();
-        let [_, a, b] = equivalent_nulling.sym();
-        equivalent_nulling.rule(a).rhs([]).rule(b).rhs([a, a]);
-        support::assert_eq_rules(equivalent_nulling.rules(), nulling.rules());
-    };
-
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+    assert!(cfg.usefulness().all_useful());
 }
 
-#[test]
-fn test_binarize_very_long_rule() {
-    const RULE_COUNT: usize = 10_000;
-
+#[test_case(3, 10)]
+#[test_case(100, 10_000)]
+#[test_case(1000, 10_000)]
+#[test_case(423, 10_000)]
+fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
     let mut cfg: Cfg = Cfg::new();
     let start = cfg.next_sym();
 
     let mut long_rhs = cfg
         .sym_source_mut()
         .generate()
-        .take(100)
+        .take(num_syms)
         .collect::<Vec<_>>();
-    long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
+    long_rhs = long_rhs.iter().cloned().cycle().take(rhs_len).collect();
     cfg.rule(start).rhs(long_rhs);
 
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
-    let cfg = cfg.binarize();
-    assert_eq!(cfg.rules().count(), RULE_COUNT - 1);
+    cfg.set_roots(&[start]);
 
-    let mut equivalent = BinarizedCfg::new();
+    assert!(cfg.usefulness().all_useful());
+    cfg.limit_rhs_len(Some(2));
+    assert_eq!(cfg.rules().count(), rhs_len - 1);
+
+    let mut equivalent = Cfg::new();
     let start = equivalent.next_sym();
 
-    let mut long_rhs = equivalent
+    let mut long_rhs: VecDeque<Symbol> = equivalent
         .sym_source_mut()
         .generate()
-        .take(100)
-        .collect::<Vec<_>>();
-    long_rhs = long_rhs.iter().cloned().cycle().take(RULE_COUNT).collect();
-    equivalent.rule(start).rhs(long_rhs);
-    support::assert_eq_rules(equivalent.rules(), cfg.rules());
+        .take(num_syms)
+        .collect();
+    long_rhs = long_rhs.iter().cloned().cycle().take(rhs_len).collect();
+    while long_rhs.len() > 2 {
+        let new_sym = equivalent.next_sym();
+        let rhs = [long_rhs.pop_front().unwrap(), long_rhs.pop_front().unwrap()];
+        equivalent.rule(new_sym).rhs(rhs);
+        long_rhs.push_front(new_sym);
+    }
+    equivalent
+        .rule(start)
+        .rhs(long_rhs.into_iter().collect::<Vec<_>>());
+
+    equivalent.set_roots([start]);
+
+    support::assert_eq(&equivalent, &cfg);
 }
