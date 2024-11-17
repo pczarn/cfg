@@ -546,7 +546,10 @@ impl NamedCfgRule {
     pub fn new(names: &'static [&'static str], history_id: HistoryId) -> Self {
         NamedCfgRule {
             lhs: Symbol::from(0u32),
-            rhs: (1 .. names.len() as u32).map(|id| Symbol::from(id)).collect::<Vec<_>>().into(),
+            rhs: (1..names.len() as u32)
+                .map(|id| Symbol::from(id))
+                .collect::<Vec<_>>()
+                .into(),
             history_id,
             names,
         }
@@ -554,13 +557,19 @@ impl NamedCfgRule {
 }
 
 impl Eq for NamedCfgRule {
-    fn assert_receiver_is_total_eq(&self) {
-    }
+    fn assert_receiver_is_total_eq(&self) {}
 }
 
 impl PartialEq for NamedCfgRule {
     fn eq(&self, other: &Self) -> bool {
-        self.names[self.lhs.usize()] == other.names[other.lhs.usize()] && self.rhs.len() == other.rhs.len() && self.rhs.iter().zip(other.rhs.iter()).all(|(sym_a, sym_b)| self.names[sym_a.usize()] == other.names[sym_b.usize()]) && self.history_id == other.history_id
+        self.names[self.lhs.usize()] == other.names[other.lhs.usize()]
+            && self.rhs.len() == other.rhs.len()
+            && self
+                .rhs
+                .iter()
+                .zip(other.rhs.iter())
+                .all(|(sym_a, sym_b)| self.names[sym_a.usize()] == other.names[sym_b.usize()])
+            && self.history_id == other.history_id
     }
 }
 

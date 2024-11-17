@@ -74,7 +74,11 @@ impl<'a> MinimalDistance<'a> {
 
     /// Calculates minimal distance from one parts of the grammar to others.
     /// Returns distances in order respective to the order of rule iteration.
-    pub fn minimal_distances(&mut self, dots: &[(usize, usize)], direction: DistanceDirection) -> &[(HistoryId, Vec<Option<u32>>)] {
+    pub fn minimal_distances(
+        &mut self,
+        dots: &[(usize, usize)],
+        direction: DistanceDirection,
+    ) -> &[(HistoryId, Vec<Option<u32>>)] {
         let mut dots = dots.to_vec();
         dots.sort_unstable();
         self.minimal_sentence_lengths();
@@ -101,7 +105,11 @@ impl<'a> MinimalDistance<'a> {
             .rhs_closure_with_values(&mut self.min_length);
     }
 
-    fn immediate_minimal_distances(&mut self, dots: &[(usize, usize)], direction: DistanceDirection) {
+    fn immediate_minimal_distances(
+        &mut self,
+        dots: &[(usize, usize)],
+        direction: DistanceDirection,
+    ) {
         // Calculates distances within rules.
         for (idx, rule) in self.grammar.rules().enumerate() {
             for (_rule_idx, dot_pos) in binary_search_span(dots, idx) {
@@ -111,7 +119,13 @@ impl<'a> MinimalDistance<'a> {
         }
     }
 
-    fn immediate_process_dot(&mut self, rule_idx: usize, rule: &CfgRule, dot_pos: usize, direction: DistanceDirection) {
+    fn immediate_process_dot(
+        &mut self,
+        rule_idx: usize,
+        rule: &CfgRule,
+        dot_pos: usize,
+        direction: DistanceDirection,
+    ) {
         if direction.includes_forward() {
             let (min, _) = self.update_rule_distances(0, &rule.rhs[..dot_pos], rule_idx, false);
             set_min(&mut self.forward_distances.before[rule.lhs.usize()], min);
@@ -130,11 +144,13 @@ impl<'a> MinimalDistance<'a> {
             changed = false;
             for (idx, rule) in self.grammar.rules().enumerate() {
                 if let Some(distance) = self.forward_distances.after[rule.lhs.usize()] {
-                    let (_, changed_now) = self.update_rule_distances(distance, &rule.rhs[..], idx, false);
+                    let (_, changed_now) =
+                        self.update_rule_distances(distance, &rule.rhs[..], idx, false);
                     changed |= changed_now;
                 }
                 if let Some(distance) = self.backward_distances.after[rule.lhs.usize()] {
-                    let (_, changed_now) = self.update_rule_distances(distance, &rule.rhs[..], idx, true);
+                    let (_, changed_now) =
+                        self.update_rule_distances(distance, &rule.rhs[..], idx, true);
                     changed |= changed_now;
                 }
             }
@@ -142,7 +158,13 @@ impl<'a> MinimalDistance<'a> {
     }
 
     // Update distances in a rule.
-    fn update_rule_distances(&mut self, mut cur: u32, rhs: &[Symbol], idx: usize, reverse: bool) -> (u32, bool) {
+    fn update_rule_distances(
+        &mut self,
+        mut cur: u32,
+        rhs: &[Symbol],
+        idx: usize,
+        reverse: bool,
+    ) -> (u32, bool) {
         let last = if reverse {
             for (dot, &sym) in rhs.iter().enumerate() {
                 set_min(&mut self.distances[idx].1[dot], cur);
@@ -161,9 +183,22 @@ impl<'a> MinimalDistance<'a> {
     }
 
     fn update_sym_distance(&mut self, mut cur: u32, sym: Symbol, reverse: bool) -> u32 {
-        set_min(if reverse { &mut self.backward_distances.after[sym.usize()] } else { &mut self.forward_distances.after[sym.usize()] }, cur);
+        set_min(
+            if reverse {
+                &mut self.backward_distances.after[sym.usize()]
+            } else {
+                &mut self.forward_distances.after[sym.usize()]
+            },
+            cur,
+        );
         cur += self.min_length[sym.usize()].unwrap();
-        if let Some(sym_predicted) = if reverse { &self.backward_distances } else { &self.forward_distances }.before [sym.usize()] {
+        if let Some(sym_predicted) = if reverse {
+            &self.backward_distances
+        } else {
+            &self.forward_distances
+        }
+        .before[sym.usize()]
+        {
             cur.min(sym_predicted)
         } else {
             cur
@@ -186,9 +221,15 @@ fn set_min(current: &mut Option<u32>, new: u32) -> bool {
     }
 }
 
-fn binary_search_span(dots: &[(usize, usize)], idx: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
+fn binary_search_span(
+    dots: &[(usize, usize)],
+    idx: usize,
+) -> impl Iterator<Item = (usize, usize)> + '_ {
     let dot_idx = match dots.binary_search(&(idx, 0)) {
-        Ok(pos) | Err(pos) => pos
+        Ok(pos) | Err(pos) => pos,
     };
-    dots[dot_idx..].iter().copied().take_while(move |&(rule_id, _)| rule_id == idx)
+    dots[dot_idx..]
+        .iter()
+        .copied()
+        .take_while(move |&(rule_id, _)| rule_id == idx)
 }

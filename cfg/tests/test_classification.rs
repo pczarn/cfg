@@ -192,15 +192,17 @@ fn test_recursive() {
 
     cfg.rule(foo).rhs([bar]).rhs([foo, bar]);
 
-    let rec_rule = CfgRule { lhs: 1u32.into(), rhs: vec![1u32.into(), 2u32.into()].into(), history_id: NonZeroUsize::new(6).unwrap() };
+    let rec_rule = CfgRule {
+        lhs: 1u32.into(),
+        rhs: vec![1u32.into(), 2u32.into()].into(),
+        history_id: NonZeroUsize::new(6).unwrap(),
+    };
 
-    let expected_recursive_rules: Vec<RecursiveRule> = vec![
-        RecursiveRule {
-            rule: &rec_rule,
-            recursion: cfg_classify::RecursionKind::Left,
-            distances: None,
-        }
-    ];
+    let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
+        rule: &rec_rule,
+        recursion: cfg_classify::RecursionKind::Left,
+        distances: None,
+    }];
 
     let recursion = cfg.recursion();
 
@@ -219,15 +221,17 @@ fn test_recursive_right_rec() {
 
     cfg.rule(foo).rhs([bar]).rhs([bar, bar, buzz, foo]);
 
-    let rec_rule = CfgRule { lhs: 1u32.into(), rhs: vec![2u32.into(), 2u32.into(), 3u32.into(), 1u32.into()].into(), history_id: NonZeroUsize::new(6).unwrap() };
+    let rec_rule = CfgRule {
+        lhs: 1u32.into(),
+        rhs: vec![2u32.into(), 2u32.into(), 3u32.into(), 1u32.into()].into(),
+        history_id: NonZeroUsize::new(6).unwrap(),
+    };
 
-    let expected_recursive_rules: Vec<RecursiveRule> = vec![
-        RecursiveRule {
-            rule: &rec_rule,
-            recursion: cfg_classify::RecursionKind::Right,
-            distances: None,
-        }
-    ];
+    let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
+        rule: &rec_rule,
+        recursion: cfg_classify::RecursionKind::Right,
+        distances: None,
+    }];
 
     let recursion = cfg.recursion();
 

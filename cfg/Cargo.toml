@@ -15,7 +15,7 @@ license = "Apache-2.0 OR MIT"
 name = "cfg"
 
 [dependencies]
-bit-matrix = "0.8"
+bit-matrix = "0.8.1"
 bit-vec = "0.8"
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
