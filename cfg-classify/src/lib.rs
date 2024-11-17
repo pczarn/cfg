@@ -15,7 +15,8 @@ pub use cfg_classify_cyclical::*;
 pub use cfg_classify_ll::*;
 #[cfg(feature = "lr")]
 pub use cfg_classify_lr::*;
-use cfg_classify_recursive::Recursion;
+#[cfg(feature = "recursive")]
+pub use cfg_classify_recursive::*;
 #[cfg(feature = "useful")]
 pub use cfg_classify_useful::*;
 use cfg_grammar::Cfg;

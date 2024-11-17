@@ -16,7 +16,7 @@ fn test_minimum_distance() {
         .rule(c).rhs([x]).rhs([y]);
 
     let mut minimal_distance = MinimalDistance::new(&cfg);
-    let distances = minimal_distance.minimal_distances(&[(1, 3)]);
+    let distances = minimal_distance.minimal_distances(&[(1, 3)], cfg_predict_distance::DistanceDirection::Forward);
     // min(x) = min(y) = 1
     // min(b) = 0
     // min(a) = 0

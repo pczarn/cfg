@@ -9,6 +9,7 @@ pub struct Recursion<'a> {
     derivation: ReachabilityMatrix,
 }
 
+#[derive(Eq, PartialEq, Debug, Clone, Copy)]
 pub enum RecursionKind {
     Left,
     Right,
@@ -16,27 +17,22 @@ pub enum RecursionKind {
     All,
 }
 
-pub struct RecursiveRule {
-    pub rule: CfgRule,
+#[derive(Eq, PartialEq, Debug, Clone, Copy)]
+pub struct RecursiveRule<'a> {
+    pub rule: &'a CfgRule,
     pub recursion: RecursionKind,
+    pub distances: Option<(usize, usize)>,
 }
 
 pub struct RecursiveRules<'a, 'b, R: Iterator<Item = &'b CfgRule>> {
     rules: R,
     recursion: &'b Recursion<'a>,
-    filter: RecursionKind,
 }
 
-pub struct RecursiveRuleDistances<'a, 'b, R: Iterator<Item = (usize, &'b CfgRule)>> {
+pub struct RecursiveRulesWithDistances<'a, 'b, R: Iterator<Item = (usize, &'b CfgRule)>> {
     rules: R,
     recursion: &'b Recursion<'a>,
     minimal_distance: MinimalDistance<'a>,
-}
-
-pub struct CfgRuleWithDistance {
-    pub rule: CfgRule,
-    pub prediction_distance: usize,
-    pub completion_distance: usize,
 }
 
 impl<'a> Recursion<'a> {
@@ -50,7 +46,7 @@ impl<'a> Recursion<'a> {
         }
     }
 
-    pub fn minimal_distances<'b>(&'b self) -> RecursiveRuleDistances<'a, 'b, impl Iterator<Item = (usize, &'b CfgRule)>> {
+    pub fn minimal_distances<'b>(&'b self) -> RecursiveRulesWithDistances<'a, 'b, impl Iterator<Item = (usize, &'b CfgRule)>> {
         let mut minimal_distance = MinimalDistance::new(&self.grammar);
         let mut dots = vec![];
         for (idx, rule) in self.grammar.rules().enumerate() {
@@ -59,8 +55,8 @@ impl<'a> Recursion<'a> {
                 dots.push((idx, dot_pos));
             }
         }
-        minimal_distance.minimal_distances(&dots[..]);
-        RecursiveRuleDistances { rules: self.grammar.rules().enumerate(), recursion: self, minimal_distance }
+        minimal_distance.minimal_distances(&dots[..], cfg_predict_distance::DistanceDirection::Symmetric);
+        RecursiveRulesWithDistances { rules: self.grammar.rules().enumerate(), recursion: self, minimal_distance }
     }
 
     pub fn recursive_rules<'b>(
@@ -69,40 +65,63 @@ impl<'a> Recursion<'a> {
         RecursiveRules {
             rules: self.grammar.rules(),
             recursion: self,
-            filter: RecursionKind::All,
         }
     }
 }
 
 impl<'a, 'b, R: Iterator<Item = &'b CfgRule>> Iterator for RecursiveRules<'a, 'b, R> {
-    type Item = &'b CfgRule;
+    type Item = RecursiveRule<'b>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(rule) = self.rules.next() {
-            if rule.rhs.iter().any(|&rhs_sym| self.recursion.derivation[(rhs_sym, rule.lhs)]) {
-            // if self.recursion.derivation[(rule.lhs, rule.lhs)] {
-                return Some(rule);
+            if let Some(recursion) = rule_recursion(rule, &self.recursion.derivation) {
+                return Some(RecursiveRule {
+                    rule,
+                    recursion,
+                    distances: None,
+                });
             }
         }
         None
     }
 }
 
-impl<'a, 'b, R: Iterator<Item = (usize, &'b CfgRule)>> Iterator for RecursiveRuleDistances<'a, 'b, R> {
-    type Item = CfgRuleWithDistance;
+impl<'a, 'b, R: Iterator<Item = (usize, &'b CfgRule)>> Iterator for RecursiveRulesWithDistances<'a, 'b, R> {
+    type Item = RecursiveRule<'b>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((idx, rule)) = self.rules.next() {
-            if rule.rhs.iter().any(|&rhs_sym| self.recursion.derivation[(rhs_sym, rule.lhs)]) {
+            if let Some(recursion) = rule_recursion(rule, &self.recursion.derivation) {
             // if self.recursion.derivation[(rule.lhs, rule.lhs)] {
                 let rule_distances = &self.minimal_distance.distances()[idx].1[..];
-                return Some(CfgRuleWithDistance {
-                    rule: rule.clone(),
-                    prediction_distance: rule_distances[0].unwrap_or(u32::MAX) as usize,
-                    completion_distance: rule_distances[rule_distances.len() - 1].unwrap_or(u32::MAX) as usize,
+                return Some(RecursiveRule {
+                    rule,
+                    recursion,
+                    distances: Some((
+                        rule_distances[0].unwrap_or(u32::MAX) as usize,
+                        rule_distances[rule_distances.len() - 1].unwrap_or(u32::MAX) as usize,
+                    ))
                 });
             }
         }
         None
     }
+}
+
+fn rule_recursion(rule: &CfgRule, derivation: &ReachabilityMatrix) -> Option<RecursionKind> {
+    if rule.rhs.iter().all(|&rhs_sym| derivation[(rhs_sym, rule.lhs)]) {
+        // ?
+        // derivation[(rule.lhs, rule.lhs)]
+        return Some(RecursionKind::All);
+    }
+    if rule.rhs.iter().skip(1).take(rule.rhs.len().saturating_sub(2)).any(|&rhs_sym| derivation[(rhs_sym, rule.lhs)]) {
+        return Some(RecursionKind::Middle);
+    }
+    if rule.rhs.first().map(|&rhs_sym| derivation[(rhs_sym, rule.lhs)]) == Some(true) {
+        return Some(RecursionKind::Left);
+    }
+    if rule.rhs.last().map(|&rhs_sym| derivation[(rhs_sym, rule.lhs)]) == Some(true) {
+        return Some(RecursionKind::Right);
+    }
+    None
 }

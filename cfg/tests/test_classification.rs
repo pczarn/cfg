@@ -8,6 +8,7 @@ use cfg::classify::{LlNonterminalClass, LlParseTable};
 use cfg::classify::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
 use cfg::{Cfg, CfgRule};
 use cfg_classify::CfgClassifyExt;
+use cfg_classify::RecursiveRule;
 
 use std::collections::BTreeMap;
 
@@ -193,8 +194,39 @@ fn test_recursive() {
 
     let rec_rule = CfgRule { lhs: 1u32.into(), rhs: vec![1u32.into(), 2u32.into()].into(), history_id: NonZeroUsize::new(6).unwrap() };
 
-    let expected_recursive_rules: Vec<&CfgRule> = vec![
-        &rec_rule
+    let expected_recursive_rules: Vec<RecursiveRule> = vec![
+        RecursiveRule {
+            rule: &rec_rule,
+            recursion: cfg_classify::RecursionKind::Left,
+            distances: None,
+        }
+    ];
+
+    let recursion = cfg.recursion();
+
+    let actual_recursive_rules = recursion.recursive_rules().collect::<Vec<_>>();
+
+    assert_eq!(actual_recursive_rules, expected_recursive_rules);
+}
+
+#[test]
+fn test_recursive_right_rec() {
+    let mut cfg = Cfg::new();
+
+    let [start, foo, bar, buzz] = cfg.sym();
+
+    cfg.rule(start).rhs([foo, foo]);
+
+    cfg.rule(foo).rhs([bar]).rhs([bar, bar, buzz, foo]);
+
+    let rec_rule = CfgRule { lhs: 1u32.into(), rhs: vec![2u32.into(), 2u32.into(), 3u32.into(), 1u32.into()].into(), history_id: NonZeroUsize::new(6).unwrap() };
+
+    let expected_recursive_rules: Vec<RecursiveRule> = vec![
+        RecursiveRule {
+            rule: &rec_rule,
+            recursion: cfg_classify::RecursionKind::Right,
+            distances: None,
+        }
     ];
 
     let recursion = cfg.recursion();
