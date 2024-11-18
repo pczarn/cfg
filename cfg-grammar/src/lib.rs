@@ -34,5 +34,5 @@ mod local_prelude {
     pub use crate::*;
     pub use cfg_history::HistoryId;
     pub use cfg_symbol::source::SymbolSource;
-    pub use cfg_symbol::Symbol;
+    pub use cfg_symbol::{Symbol, Symbolic};
 }

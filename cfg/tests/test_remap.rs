@@ -6,6 +6,7 @@ use cfg::classify::CfgClassifyExt;
 use cfg::symbol_bit_matrix::CfgSymbolBitMatrixExt;
 use cfg::symbol_bit_matrix::Remap;
 use cfg::Cfg;
+use cfg::Symbolic;
 
 #[test]
 fn test_remap_unused_symbols() {

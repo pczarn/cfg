@@ -4,7 +4,8 @@ use std::ops::{self, Deref, DerefMut};
 use bit_matrix::BitMatrix;
 
 use cfg_grammar::Cfg;
-use cfg_symbol::{intern::Mapping, Symbol};
+use cfg_symbol::intern::Mapping;
+use cfg_symbol::{Symbol, Symbolic};
 
 use crate::Remap;
 

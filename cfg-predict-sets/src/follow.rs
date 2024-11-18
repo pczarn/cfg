@@ -17,7 +17,7 @@ pub struct FollowSets {
 impl FollowSets {
     /// Compute all FOLLOW sets of the grammar.
     /// Returns FollowSets.
-    pub(crate) fn new(grammar: &Cfg, first_sets: &PerSymbolSets) -> Self {
+    pub fn new(grammar: &Cfg, first_sets: &PerSymbolSets) -> Self {
         let mut this = FollowSets {
             map: BTreeMap::new(),
         };

@@ -5,5 +5,5 @@ pub mod intern;
 mod repr;
 pub mod source;
 
-pub use self::repr::Symbol;
+pub use self::repr::{Symbol, Symbol16, Symbol8, Symbolic};
 pub use self::source::SymbolSource;

@@ -7,7 +7,7 @@ use std::ops;
 
 use cfg_grammar::{Cfg, CfgRule};
 use cfg_symbol::intern::{Intern, Mapping};
-use cfg_symbol::Symbol;
+use cfg_symbol::{Symbol, Symbolic};
 
 /// Remaps symbols and removes unused symbols.
 pub struct Remap<'a> {
