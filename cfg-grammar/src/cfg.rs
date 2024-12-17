@@ -22,7 +22,7 @@ pub struct Cfg {
     rules: Vec<CfgRule>,
     /// Start symbols.
     roots: MaybeSmallVec<Symbol>,
-    wrapped_roots: MaybeSmallVec<WrappedRoot, 2>,
+    wrapped_roots: MaybeSmallVec<WrappedRoot>,
     /// History container.
     history_graph: HistoryGraph,
     rhs_len_invariant: Option<usize>,
@@ -57,8 +57,9 @@ pub struct NamedCfgRule {
 #[derive(Clone, Copy, Debug)]
 pub struct WrappedRoot {
     pub start_of_input: Symbol,
-    pub root: Symbol,
+    pub inner_root: Symbol,
     pub end_of_input: Symbol,
+    pub root: Symbol,
 }
 
 #[derive(Eq, PartialEq, Clone, Copy)]
@@ -165,7 +166,7 @@ impl Cfg {
     }
 
     /// Sorts the rule array in place, using the argument to compare elements.
-    pub fn sort_by<F>(&mut self, compare: impl FnMut(&CfgRule, &CfgRule) -> cmp::Ordering) {
+    pub fn sort_by(&mut self, compare: impl FnMut(&CfgRule, &CfgRule) -> cmp::Ordering) {
         self.rules.sort_by(compare);
     }
 
@@ -176,16 +177,20 @@ impl Cfg {
 
     pub fn extend(&mut self, other: &Cfg) {
         let mut map = BTreeMap::new();
-        let mut work_stack: Vec<_> = other.rules().map(|rule| rule.history_id).collect();
+        let mut work_stack: Vec<_> = other.rules().map(|rule| (rule.history_id, false)).collect();
         let new_nodes_start = self.history_graph.len();
-        while let Some(others_history_id) = work_stack.pop() {
-            map.entry(others_history_id).or_insert_with(|| {
-                let node = other.history_graph[others_history_id.get()].clone();
+        while let Some((others_history_id, finished)) = work_stack.pop() {
+            let node = other.history_graph[others_history_id.get()].clone();
+            if finished {
+                map.entry(others_history_id).or_insert_with(|| {
+                    self.add_history_node(node)
+                });
+            } else {
+                work_stack.push((others_history_id, true));
                 if let HistoryNode::Linked { prev, .. } = node {
-                    work_stack.push(prev);
+                    work_stack.push((prev, false));
                 }
-                self.add_history_node(node)
-            });
+            }
         }
         for node in &mut self.history_graph[new_nodes_start..] {
             match node {
@@ -284,7 +289,7 @@ impl Cfg {
         let mut productive = SymbolBitSet::new();
         // TODO check if correct
         productive.productive(&*self); // true
-        productive.productive(&result); // false
+        // productive.productive(&result); // false
         self.rhs_closure_for_all(&mut productive);
         self.rules.retain(|rule| {
             // Retain the rule only if it's productive. We have to, in order to remove rules
@@ -359,6 +364,7 @@ impl Cfg {
                     height: i,
                     is_top: rhs_rev.is_empty(),
                 };
+                println!("{:?}", rule.rhs);
                 history_id = self
                     .history_graph
                     .add_history_node(history_node_binarize.into());
@@ -493,20 +499,22 @@ impl Cfg {
         self.wrapped_roots.clear();
         let roots_len = self.roots.len();
         let roots = mem::replace(&mut self.roots, MaybeSmallVec::with_capacity(roots_len));
-        for root in roots {
-            let [new_root, start_of_input, end_of_input] = self.sym_source.sym();
-            let history_id = self.add_history_node(RootHistoryNode::NoOp.into());
+        for inner_root in roots {
+            let [root, start_of_input, end_of_input] = self.sym_source.sym();
+            let history_id = self.add_history_node(RootHistoryNode::Rule { lhs: root }.into());
+            let second_history_id = self.add_history_node(HistoryNode::Linked { prev: history_id, node: LinkedHistoryNode::Rhs { rhs: vec![start_of_input, inner_root, end_of_input] } });
             self.add_rule(CfgRule {
-                lhs: new_root,
-                rhs: [start_of_input, root, end_of_input].into(),
-                history_id,
+                lhs: root,
+                rhs: [start_of_input, inner_root, end_of_input].into(),
+                history_id: second_history_id,
             });
             self.wrapped_roots.push(WrappedRoot {
                 root,
                 start_of_input,
+                inner_root,
                 end_of_input,
             });
-            self.roots.push(new_root);
+            self.roots.push(root);
         }
     }
 

@@ -1,4 +1,5 @@
 use core::iter;
+#[cfg(not(feature = "smallvec"))]
 use std::rc::Rc;
 
 use cfg_symbol::Symbol;
@@ -6,6 +7,8 @@ use cfg_symbol::Symbol;
 use cfg_history::{
     BinarizedRhsRange, HistoryGraph, HistoryNode, LinkedHistoryNode, RootHistoryNode,
 };
+#[cfg(feature = "smallvec")]
+use smallvec::SmallVec;
 
 type Id = Symbol;
 
@@ -23,9 +26,14 @@ enum SymKind {
     Other,
 }
 
+#[cfg(feature = "smallvec")]
+type MaybeSmallVec<T> = SmallVec<[T; 4]>;
+#[cfg(not(feature = "smallvec"))]
+type MaybeSmallVec<T> = Rc<[T]>;
+
 #[derive(Clone, Default, Debug)]
 pub struct History {
-    pub dots: Rc<[RuleDot]>,
+    pub dots: MaybeSmallVec<RuleDot>,
     pub origin: ExternalOrigin,
     pub nullable: NullingEliminated,
     pub weight: Option<f64>,
@@ -65,8 +73,11 @@ fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
             prev,
             node: ref linked_node,
         } => {
-            let prev_history = prev_histories[prev.get()].clone();
-            process_linked(linked_node, prev_history)
+            if let Some(prev_history) = prev_histories.get(prev.get()).cloned() {
+                process_linked(linked_node, prev_history)
+            } else {
+                panic!("incorrect history link: {:?} @ {:?}", prev, linked_node);
+            }
         }
         HistoryNode::Root(root) => process_root(*root),
     }
@@ -105,9 +116,9 @@ fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) ->
 
 fn process_root(root_node: RootHistoryNode) -> History {
     match root_node {
-        RootHistoryNode::NoOp => History::new(0, 0),
-        RootHistoryNode::Rule { lhs: _ } => History::new(0, 0),
-        RootHistoryNode::Origin { origin } => History::new(origin as u32, 0),
+        RootHistoryNode::NoOp => History::new(0, 2),
+        RootHistoryNode::Rule { lhs: _ } => History::new(0, 2),
+        RootHistoryNode::Origin { origin } => History::new(origin as u32, 2),
     }
 }
 
@@ -149,8 +160,7 @@ impl History {
             origin: Some(id.into()),
             dots: (0..=len)
                 .map(|i| RuleDot::new(id, i))
-                .collect::<Vec<_>>()
-                .into(),
+                .collect(),
             ..History::default()
         }
     }
@@ -164,7 +174,7 @@ impl History {
     }
 
     pub fn dot(&self, n: usize) -> RuleDot {
-        self.dots[n]
+        self.dots.get(n).copied().unwrap_or(RuleDot::none())
     }
 
     fn binarize(&self, height: u32, is_top: bool) -> Self {
@@ -265,8 +275,7 @@ impl History {
                 to_left = to_right;
                 dot
             })
-            .collect::<Vec<_>>()
-            .into();
+            .collect();
         History {
             dots,
             ..History::default()

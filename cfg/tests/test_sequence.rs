@@ -5,15 +5,14 @@ mod support;
 use cfg::sequence::Separator::*;
 use cfg::Cfg;
 use cfg_classify::CfgClassifyExt;
-use cfg_sequence::destination::SequenceDestination;
-use cfg_sequence::rewrite::SequencesToProductions;
+use cfg_sequence::CfgSequenceExt;
 
 #[test]
 fn test_sequence() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem, sep] = cfg.sym();
 
-    SequencesToProductions::new(&mut cfg)
+    cfg
         .sequence(start)
         .separator(Trailing(sep))
         .inclusive(1, Some(1))
@@ -37,7 +36,7 @@ fn test_nulling_sequence() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem] = cfg.sym();
 
-    SequencesToProductions::new(&mut cfg)
+    cfg
         .sequence(start)
         .inclusive(0, Some(0))
         .rhs(elem);
@@ -58,7 +57,7 @@ fn test_sequence_1_4() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem, sep] = cfg.sym();
 
-    SequencesToProductions::new(&mut cfg)
+    cfg
         .sequence(start)
         .separator(Trailing(sep))
         .inclusive(1, Some(4))
@@ -95,7 +94,7 @@ fn test_sequence_combinations() {
         let mut cfg: Cfg = Cfg::new();
         let [start, elem] = cfg.sym();
 
-        SequencesToProductions::new(&mut cfg)
+        cfg
             .sequence(start)
             .inclusive(i, Some(99))
             .rhs(elem);

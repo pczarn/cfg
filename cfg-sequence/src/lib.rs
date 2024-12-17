@@ -3,6 +3,9 @@
 pub mod builder;
 pub mod destination;
 pub mod rewrite;
+mod ext;
+
+pub use crate::ext::CfgSequenceExt;
 
 use std::ops::{Bound, RangeBounds};
 
