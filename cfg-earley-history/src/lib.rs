@@ -5,7 +5,7 @@ use std::rc::Rc;
 use cfg_symbol::Symbol;
 
 use cfg_history::{
-    BinarizedRhsRange, HistoryGraph, HistoryNode, LinkedHistoryNode, RootHistoryNode,
+    BinarizedRhsRange, HistoryGraph, HistoryId, HistoryNode, LinkedHistoryNode, RootHistoryNode
 };
 #[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
@@ -33,14 +33,14 @@ type MaybeSmallVec<T> = Rc<[T]>;
 
 #[derive(Clone, Default, Debug)]
 pub struct History {
-    pub dots: MaybeSmallVec<RuleDot>,
+    pub dots: [RuleDot; 3],
     pub origin: ExternalOrigin,
     pub nullable: NullingEliminated,
     pub weight: Option<f64>,
     pub sequence: Option<SequenceDetails>,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct RuleDot {
     pub event: Option<(EventId, ExternalDottedRule)>,
     pub distance: MinimalDistance,
@@ -55,6 +55,8 @@ pub struct SequenceDetails {
 
 pub trait HistoryGraphEarleyExt {
     fn final_history(&self) -> Vec<History>;
+
+    fn process_history(&self, history_id: HistoryId) -> History;
 }
 
 impl HistoryGraphEarleyExt for HistoryGraph {
@@ -64,6 +66,18 @@ impl HistoryGraphEarleyExt for HistoryGraph {
             result.push(process_node(node, &result[..]));
         }
         result
+    }
+
+    fn process_history(&self, history_id: HistoryId) -> History {
+        match &self[history_id.get()] {
+            &HistoryNode::Linked {
+                prev,
+                node: ref linked_node,
+            } => {
+                process_linked(linked_node, self.process_history(prev))
+            }
+            HistoryNode::Root(root) => process_root(*root),
+        }
     }
 }
 
@@ -86,8 +100,8 @@ fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
 fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
     match linked_node {
         LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
-        &LinkedHistoryNode::Binarize { height, is_top, .. } => {
-            prev_history.binarize(height, is_top)
+        &LinkedHistoryNode::Binarize { height, full_len, is_top, .. } => {
+            prev_history.binarize(height, full_len, is_top)
         }
         &LinkedHistoryNode::EliminateNulling {
             which, rhs0, rhs1, ..
@@ -100,25 +114,29 @@ fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) ->
             prev_history.weight = Some(weight);
             prev_history
         }
-        LinkedHistoryNode::Rhs { rhs, .. } => {
+        &LinkedHistoryNode::SequenceRhs { rhs } => {
             if let Some(sequence_details) = prev_history.sequence {
+                let rhs: Vec<_> = rhs.into_iter().flatten().collect();
                 prev_history.rewrite_sequence(sequence_details, &rhs[..]);
             }
-            prev_history.dots = (0..=rhs.len())
-                .map(|i| RuleDot::new(0, i))
-                .collect::<Vec<_>>()
-                .into();
             prev_history
         }
-        &LinkedHistoryNode::Distances { .. } => prev_history,
+        // ???
+        // LinkedHistoryNode::Rhs { rhs, .. } => {
+        //     if let Some(sequence_details) = prev_history.sequence {
+        //         prev_history.rewrite_sequence(sequence_details, rhs);
+        //     }
+        //     prev_history
+        // }
+        // &LinkedHistoryNode::Distances { .. } => prev_history,
     }
 }
 
 fn process_root(root_node: RootHistoryNode) -> History {
     match root_node {
-        RootHistoryNode::NoOp => History::new(0, 2),
-        RootHistoryNode::Rule { lhs: _ } => History::new(0, 2),
-        RootHistoryNode::Origin { origin } => History::new(origin as u32, 2),
+        RootHistoryNode::NoOp => History::new(0),
+        RootHistoryNode::Rule { lhs: _ } => History::new(0),
+        RootHistoryNode::Origin { origin } => History::new(origin as u32),
     }
 }
 
@@ -155,12 +173,9 @@ impl RuleDot {
 }
 
 impl History {
-    pub fn new(id: u32, len: usize) -> Self {
+    pub fn new(id: u32) -> Self {
         History {
             origin: Some(id.into()),
-            dots: (0..=len)
-                .map(|i| RuleDot::new(id, i))
-                .collect(),
             ..History::default()
         }
     }
@@ -177,22 +192,25 @@ impl History {
         self.dots.get(n).copied().unwrap_or(RuleDot::none())
     }
 
-    fn binarize(&self, height: u32, is_top: bool) -> Self {
+    fn make_dot(&self, n: usize) -> RuleDot {
+        RuleDot::new(self.origin.map_or(0, |sym| sym.into()), n)
+    }
+
+    fn binarize(&self, height: u32, full_len: usize, is_top: bool) -> Self {
         let none = RuleDot::none();
         let dots = if self.dots.is_empty() {
             [none; 3]
         } else {
-            let dot_len = self.dots.len();
             if is_top {
-                if dot_len == 2 {
-                    [self.dots[0], none, self.dots[1]]
-                } else if dot_len >= 3 {
-                    [self.dots[0], self.dots[dot_len - 2], self.dots[dot_len - 1]]
+                if full_len == 2 {
+                    [self.make_dot(0), none, self.make_dot(1)]
+                } else if full_len >= 3 {
+                    [self.make_dot(0), self.make_dot(full_len - 2), self.make_dot(full_len - 1)]
                 } else {
-                    [self.dots[0], none, none]
+                    [self.make_dot(0), none, none]
                 }
             } else {
-                [none, self.dots[dot_len - 2 - height as usize], none]
+                [none, self.make_dot(full_len - 2 - height as usize), none]
             }
         };
 
@@ -200,18 +218,18 @@ impl History {
 
         History {
             origin,
-            dots: dots[..].to_vec().into(),
+            dots,
             ..self.clone()
         }
     }
 
     fn eliminate_nulling(
         &self,
-        rhs0: Symbol,
+        rhs0: Option<Symbol>,
         rhs1: Option<Symbol>,
         subset: BinarizedRhsRange,
     ) -> Self {
-        if let BinarizedRhsRange::All = subset {
+        if let BinarizedRhsRange::All(_) = subset {
             History {
                 origin: self.origin,
                 ..History::default()
@@ -220,7 +238,7 @@ impl History {
             let sym = if let BinarizedRhsRange::Right = subset {
                 rhs1.unwrap()
             } else {
-                rhs0
+                rhs0.unwrap()
             };
             History {
                 nullable: Some((sym, BinarizedRhsRange::Right == subset)),
@@ -263,19 +281,17 @@ impl History {
             })
             .chain(iter::once(SymKind::Other));
         let mut to_left = SymKind::Other;
-        let dots = syms
-            .map(|to_right| {
-                let dot = match (to_left, to_right) {
-                    (_, SymKind::Separator) => self.dots[1],
-                    (SymKind::Separator, _) => self.dots[2],
-                    (SymKind::Element, _) => self.dots[1],
-                    (_, SymKind::Element) => self.dots[0],
-                    _ => RuleDot::none(),
-                };
-                to_left = to_right;
-                dot
-            })
-            .collect();
+        let mut dots = [RuleDot::none(); 3];
+        for (i, to_right) in syms.enumerate() {
+            dots[i] = match (to_left, to_right) {
+                (_, SymKind::Separator) => self.dots[1],
+                (SymKind::Separator, _) => self.dots[2],
+                (SymKind::Element, _) => self.dots[1],
+                (_, SymKind::Element) => self.dots[0],
+                _ => RuleDot::none(),
+            };
+            to_left = to_right;
+        }
         History {
             dots,
             ..History::default()

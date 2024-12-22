@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::fmt::Write;
 use std::rc::Rc;
 use std::{cmp, fmt};
 use std::{mem, ops};
@@ -137,6 +138,10 @@ impl Cfg {
         &self.wrapped_roots[..]
     }
 
+    pub fn set_wrapped_roots(&mut self, wrapped_roots: &[WrappedRoot]) {
+        self.wrapped_roots = wrapped_roots.into();
+    }
+
     pub fn has_roots(&self) -> bool {
         !self.roots.is_empty()
     }
@@ -232,7 +237,7 @@ impl Cfg {
             self.history_graph.clone(),
         );
 
-        let mut nullable = self.nulling_set();
+        let mut nullable = self.nulling_symbols();
         self.rhs_closure_for_all(&mut nullable);
         if nullable.iter().count() == 0 {
             return result;
@@ -245,41 +250,65 @@ impl Cfg {
                 rule.rhs.get(0).map(is_nullable),
                 rule.rhs.get(1).map(is_nullable),
             ) {
-                (Some(true), Some(true)) | (Some(true), None) => Some(All),
-                (Some(true), Some(false)) => Some(Left),
-                (Some(false), Some(true)) => Some(Right),
+                (Some(true), Some(true)) => Some(All(2)),
+                (Some(true), None) => Some(All(1)),
+                (None, None) => Some(All(0)),
+                (Some(true), Some(false)) => Some(Right),
+                (Some(false), Some(true)) => Some(Left),
                 _ => None,
             };
             if let Some(which) = maybe_which {
-                let history_id = result.add_history_node(
-                    HistoryNodeEliminateNulling {
-                        prev: rule.history_id,
-                        rhs0: rule.rhs[0],
-                        rhs1: rule.rhs.get(1).cloned(),
-                        which,
+                match which {
+                    All(num) => {
+                        // nulling
+                        if num == 2 {
+                            let history_id = rewritten_work.add_history_node(
+                                HistoryNodeEliminateNulling {
+                                    prev: rule.history_id,
+                                    rhs0: rule.rhs.get(0).cloned(),
+                                    rhs1: rule.rhs.get(1).cloned(),
+                                    which,
+                                }
+                                .into(),
+                            );
+                            rewritten_work
+                                .rule(rule.lhs)
+                                .rhs(&rule.rhs[0..1])
+                                .history(history_id);
+                            rewritten_work
+                                .rule(rule.lhs)
+                                .rhs(&rule.rhs[1..2])
+                                .history(history_id);
+                        }
+                        let history_id = result.add_history_node(
+                            HistoryNodeEliminateNulling {
+                                prev: rule.history_id,
+                                rhs0: rule.rhs.get(0).cloned(),
+                                rhs1: rule.rhs.get(1).cloned(),
+                                which,
+                            }
+                            .into(),
+                        );
+                        result
+                            .rule(rule.lhs)
+                            .rhs(&rule.rhs[which.as_range()])
+                            .history(history_id);
                     }
-                    .into(),
-                );
-                if which == All {
-                    if rule.rhs.len() == 2 {
+                    Left | Right => {
+                        let history_id = rewritten_work.add_history_node(
+                            HistoryNodeEliminateNulling {
+                                prev: rule.history_id,
+                                rhs0: rule.rhs.get(0).cloned(),
+                                rhs1: rule.rhs.get(1).cloned(),
+                                which,
+                            }
+                            .into(),
+                        );
                         rewritten_work
                             .rule(rule.lhs)
-                            .rhs(&rule.rhs[0..1])
-                            .history(history_id);
-                        rewritten_work
-                            .rule(rule.lhs)
-                            .rhs(&rule.rhs[1..2])
+                            .rhs(&rule.rhs[which.as_range()])
                             .history(history_id);
                     }
-                    result
-                        .rule(rule.lhs)
-                        .rhs(&rule.rhs[which.as_range()])
-                        .history(history_id);
-                } else {
-                    rewritten_work
-                        .rule(rule.lhs)
-                        .rhs(&rule.rhs[which.as_range()])
-                        .history(history_id);
                 }
             }
         }
@@ -288,14 +317,15 @@ impl Cfg {
 
         let mut productive = SymbolBitSet::new();
         // TODO check if correct
-        productive.productive(&*self); // true
-        // productive.productive(&result); // false
+        productive.productive(&*self);
+        productive.subtract_productive(&result);
+
         self.rhs_closure_for_all(&mut productive);
         self.rules.retain(|rule| {
             // Retain the rule only if it's productive. We have to, in order to remove rules
             // that were made unproductive as a result of `A ::= epsilon` rule elimination.
             // Otherwise, some of our nonterminal symbols might be terminal.
-            productive[rule.lhs]
+            productive[rule.lhs] && rule.rhs.len() != 0
         });
 
         result
@@ -362,6 +392,7 @@ impl Cfg {
                 let history_node_binarize = HistoryNodeBinarize {
                     prev: rule.history_id,
                     height: i,
+                    full_len: rule.rhs.len(),
                     is_top: rhs_rev.is_empty(),
                 };
                 println!("{:?}", rule.rhs);
@@ -381,6 +412,10 @@ impl Cfg {
         if self.maybe_process_rule(&rule) {
             self.rules.push(rule);
         }
+    }
+
+    pub fn clear_rules(&mut self) {
+        self.rules.clear();
     }
 
     /// Reverses the grammar.
@@ -459,6 +494,8 @@ impl Cfg {
                 }
             }
         }
+
+        tmp_stack.clear();
     }
 
     pub fn rhs_closure_with_values(&mut self, value: &mut [Option<u32>]) {
@@ -493,6 +530,8 @@ impl Cfg {
                 }
             }
         }
+
+        tmp_stack.clear();
     }
 
     pub fn wrap_input(&mut self) {
@@ -500,13 +539,13 @@ impl Cfg {
         let roots_len = self.roots.len();
         let roots = mem::replace(&mut self.roots, MaybeSmallVec::with_capacity(roots_len));
         for inner_root in roots {
-            let [root, start_of_input, end_of_input] = self.sym_source.sym();
+            let [root, start_of_input, end_of_input] = self.sym_source.sym_with_names(["root", "start_of_input", "end_of_input"]);
             let history_id = self.add_history_node(RootHistoryNode::Rule { lhs: root }.into());
-            let second_history_id = self.add_history_node(HistoryNode::Linked { prev: history_id, node: LinkedHistoryNode::Rhs { rhs: vec![start_of_input, inner_root, end_of_input] } });
+            // let second_history_id = self.add_history_node(HistoryNode::Linked { prev: history_id, node: LinkedHistoryNode::Rhs { rhs: vec![start_of_input, inner_root, end_of_input] } });
             self.add_rule(CfgRule {
                 lhs: root,
                 rhs: [start_of_input, inner_root, end_of_input].into(),
-                history_id: second_history_id,
+                history_id,
             });
             self.wrapped_roots.push(WrappedRoot {
                 root,
@@ -527,6 +566,21 @@ impl Cfg {
             self.rules()
                 .all(|rule| roots.binary_search(&rule.lhs).is_ok())
         }
+    }
+
+    pub fn stringify_to_bnf(&self) -> String {
+        let mut result = String::new();
+        for rule in self.rules() {
+            let stringify_sym = |sym| format!("{}({})", self.sym_source.name_of(sym), sym.usize());
+            let lhs = stringify_sym(rule.lhs);
+            let rhs = if rule.rhs.is_empty() {
+                "()".into()
+            } else {
+                rule.rhs.iter().copied().map(stringify_sym).enumerate().map(|(i, elem)| if i == 0 { elem.to_string() } else { format!(" ~ {}", elem) }).collect::<String>()
+            };
+            writeln!(&mut result, "{} ::= {};", lhs, rhs).expect("writing to String failed");
+        }
+        result
     }
 }
 

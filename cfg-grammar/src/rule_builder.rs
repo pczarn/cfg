@@ -3,7 +3,7 @@
 use std::convert::AsRef;
 
 use crate::local_prelude::*;
-use cfg_history::{HistoryNodeRhs, LinkedHistoryNode, RootHistoryNode};
+use cfg_history::{LinkedHistoryNode, RootHistoryNode};
 
 /// The rule builder.
 pub struct RuleBuilder<'a> {
@@ -42,24 +42,11 @@ impl<'a> RuleBuilder<'a> {
     /// `Default` history.
     pub fn rhs(mut self, syms: impl AsRef<[Symbol]>) -> Self {
         let new_history = match self.history.take() {
-            Some(history) => self.grammar.add_history_node(
-                HistoryNodeRhs {
-                    prev: history,
-                    rhs: syms.as_ref().to_vec(),
-                }
-                .into(),
-            ),
+            Some(history) => history,
             None => {
-                let base_id = self.grammar.add_history_node(
+                self.grammar.add_history_node(
                     RootHistoryNode::Rule {
                         lhs: self.lhs.unwrap(),
-                    }
-                    .into(),
-                );
-                self.grammar.add_history_node(
-                    HistoryNodeRhs {
-                        prev: base_id,
-                        rhs: syms.as_ref().to_vec(),
                     }
                     .into(),
                 )
@@ -91,9 +78,6 @@ impl<'a> RuleBuilder<'a> {
                 lhs: self.lhs.unwrap(),
             },
             [
-                LinkedHistoryNode::Rhs {
-                    rhs: syms.as_ref().to_vec(),
-                },
                 linked_history,
             ],
         );

@@ -38,7 +38,7 @@ impl FirstSets {
             map: BTreeMap::new(),
             lookahead: PerSymbolSetVal::new(),
             changed: true,
-            terminal_set: grammar.terminal_set(),
+            terminal_set: grammar.terminal_symbols(),
         };
 
         this.collect_from(grammar);

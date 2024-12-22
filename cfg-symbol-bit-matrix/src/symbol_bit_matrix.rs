@@ -159,8 +159,6 @@ pub trait CfgSymbolBitMatrixExt {
     fn direct_derivation_matrix(&self) -> DirectDerivationMatrix;
     fn reachability_matrix(&self) -> ReachabilityMatrix;
     fn unit_derivation_matrix(&self) -> UnitDerivationMatrix;
-    fn reorder_symbols(&mut self, order: SymbolBitMatrix) -> Mapping;
-    fn remove_unused_symbols(&mut self);
 }
 
 impl CfgSymbolBitMatrixExt for Cfg {
@@ -198,47 +196,5 @@ impl CfgSymbolBitMatrixExt for Cfg {
 
         unit_derivation.transitive_closure();
         UnitDerivationMatrix(unit_derivation)
-    }
-
-    fn reorder_symbols(&mut self, mut order: SymbolBitMatrix) -> Mapping {
-        // the order above is not transitive.
-        // We modify it so that if `A < B` and `B < C` then `A < C`
-        order.transitive_closure();
-        let mut maps = {
-            let mut remap = Remap::new(&mut *self);
-            remap.remove_unused_symbols();
-            remap.reorder_symbols(|left, right| {
-                if order[(left, right)] {
-                    cmp::Ordering::Less
-                } else if order[(right, left)] {
-                    cmp::Ordering::Greater
-                } else {
-                    cmp::Ordering::Equal
-                }
-            });
-            remap.get_mapping()
-        };
-        let roots: Vec<_> = self
-            .roots()
-            .iter()
-            .copied()
-            .map(|root| {
-                if let Some(internal_start) = maps.to_internal[root.usize()] {
-                    internal_start
-                } else {
-                    // The trivial grammar is a unique edge case -- the start symbol was removed.
-                    let internal_start = Symbol::from(maps.to_external.len());
-                    maps.to_internal[root.usize()] = Some(internal_start);
-                    maps.to_external.push(root);
-                    internal_start
-                }
-            })
-            .collect();
-        self.set_roots(&roots[..]);
-        maps
-    }
-
-    fn remove_unused_symbols(&mut self) {
-        Remap::new(self).remove_unused_symbols();
     }
 }

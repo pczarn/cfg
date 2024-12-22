@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 cfg = { path = "../cfg/" }
+
+[features]
+nightly = []

@@ -4,7 +4,7 @@ use std::{convert::AsRef, rc::Rc};
 
 use crate::local_prelude::*;
 use crate::rule_builder::RuleBuilder;
-use cfg_history::{HistoryNodeAssignPrecedence, HistoryNodeRhs, RootHistoryNode};
+use cfg_history::{HistoryNodeAssignPrecedence, RootHistoryNode};
 
 use self::Associativity::*;
 
@@ -79,13 +79,6 @@ impl<'a> PrecedencedRuleBuilder<'a> {
             self.grammar
                 .add_history_node(RootHistoryNode::Rule { lhs: self.lhs }.into())
         });
-        let history_id = self.grammar.add_history_node(
-            HistoryNodeRhs {
-                prev: history_id,
-                rhs: syms.as_ref().to_vec(),
-            }
-            .into(),
-        );
         self.rhs_with_history(syms.as_ref(), history_id)
     }
 

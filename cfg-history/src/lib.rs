@@ -66,15 +66,13 @@ pub enum HistoryNode {
 
 #[derive(Clone, Debug)]
 pub enum LinkedHistoryNode {
-    Rhs {
-        rhs: Vec<Symbol>,
-    },
     Binarize {
         height: u32,
+        full_len: usize,
         is_top: bool,
     },
     EliminateNulling {
-        rhs0: Symbol,
+        rhs0: Option<Symbol>,
         rhs1: Option<Symbol>,
         which: BinarizedRhsRange,
     },
@@ -86,12 +84,15 @@ pub enum LinkedHistoryNode {
         rhs: Symbol,
         sep: Option<Symbol>,
     },
+    SequenceRhs {
+        rhs: [Option<Symbol>; 3],
+    },
     Weight {
         weight: f64,
     },
-    Distances {
-        events: Vec<u32>,
-    },
+    // Distances {
+    //     events: Vec<u32>,
+    // },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -116,6 +117,7 @@ pub struct HistoryNodeRhs {
 pub struct HistoryNodeBinarize {
     pub prev: HistoryId,
     pub height: u32,
+    pub full_len: usize,
     pub is_top: bool,
 }
 
@@ -128,7 +130,7 @@ pub struct HistoryNodeWeight {
 #[derive(Clone, Copy)]
 pub struct HistoryNodeEliminateNulling {
     pub prev: HistoryId,
-    pub rhs0: Symbol,
+    pub rhs0: Option<Symbol>,
     pub rhs1: Option<Symbol>,
     pub which: BinarizedRhsRange,
 }
@@ -147,14 +149,20 @@ pub struct HistoryNodeRewriteSequence {
     pub sep: Option<Symbol>,
 }
 
-impl From<HistoryNodeRhs> for HistoryNode {
-    fn from(value: HistoryNodeRhs) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::Rhs { rhs: value.rhs },
-        }
-    }
+#[derive(Clone, Copy)]
+pub struct HistoryNodeSequenceRhs {
+    pub prev: HistoryId,
+    pub rhs: [Option<Symbol>; 3],
 }
+
+// impl From<HistoryNodeRhs> for HistoryNode {
+//     fn from(value: HistoryNodeRhs) -> Self {
+//         HistoryNode::Linked {
+//             prev: value.prev,
+//             node: LinkedHistoryNode::Rhs { rhs: value.rhs },
+//         }
+//     }
+// }
 
 impl From<HistoryNodeBinarize> for HistoryNode {
     fn from(value: HistoryNodeBinarize) -> Self {
@@ -162,6 +170,7 @@ impl From<HistoryNodeBinarize> for HistoryNode {
             prev: value.prev,
             node: LinkedHistoryNode::Binarize {
                 height: value.height,
+                full_len: value.full_len,
                 is_top: value.is_top,
             },
         }
@@ -216,6 +225,17 @@ impl From<HistoryNodeRewriteSequence> for HistoryNode {
     }
 }
 
+impl From<HistoryNodeSequenceRhs> for HistoryNode {
+    fn from(value: HistoryNodeSequenceRhs) -> Self {
+        HistoryNode::Linked {
+            prev: value.prev,
+            node: LinkedHistoryNode::SequenceRhs {
+                rhs: value.rhs,
+            },
+        }
+    }
+}
+
 /// Used to inform which symbols on a rule'Symbol RHS are nullable, and will be eliminated.
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum BinarizedRhsRange {
@@ -223,8 +243,8 @@ pub enum BinarizedRhsRange {
     Left,
     /// The second of two symbols.
     Right,
-    /// All 1 or 2 symbols. The rule is nullable.
-    All,
+    /// All 0, 1 or 2 symbols. The rule is nullable.
+    All(usize),
 }
 
 impl BinarizedRhsRange {
@@ -232,7 +252,7 @@ impl BinarizedRhsRange {
         match self {
             Left => 0..1,
             Right => 1..2,
-            All => 0..2,
+            All(num) => 0..num,
         }
     }
 }

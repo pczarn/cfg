@@ -12,7 +12,7 @@ use crate::Sequence;
 use crate::Symbol;
 use cfg_grammar::rule_builder::RuleBuilder;
 use cfg_grammar::Cfg;
-use cfg_history::{HistoryId, HistoryNodeRewriteSequence, RootHistoryNode};
+use cfg_history::{HistoryId, HistoryNodeRewriteSequence, HistoryNodeSequenceRhs, RootHistoryNode};
 
 /// Rewrites sequence rules into production rules.
 pub struct SequencesToProductions<'a> {
@@ -130,9 +130,16 @@ impl<'a> SequencesToProductions<'a> {
     }
 
     fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
+        assert!(rhs.as_ref().len() <= 3);
+        let history_id = self.destination.add_history_node(
+            HistoryNodeSequenceRhs {
+                prev: self.top.unwrap(),
+                rhs: [rhs.as_ref().get(0).copied(), rhs.as_ref().get(1).copied(), rhs.as_ref().get(2).copied()]
+            }.into()
+        );
         RuleBuilder::new(self.destination)
             .rule(self.lhs.unwrap())
-            .history(self.top.unwrap())
+            .history(history_id)
             .rhs(rhs);
     }
 

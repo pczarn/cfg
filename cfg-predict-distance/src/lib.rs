@@ -89,7 +89,7 @@ impl<'a> MinimalDistance<'a> {
 
     fn minimal_sentence_lengths(&mut self) {
         // The distance for terminals is 1.
-        let terminal_set = self.grammar.terminal_set();
+        let terminal_set = self.grammar.terminal_symbols();
         for terminal in terminal_set.iter() {
             self.min_length[terminal.usize()] = Some(1);
         }

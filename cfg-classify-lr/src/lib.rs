@@ -62,7 +62,7 @@ impl<'a> Lr0ClosureBuilder<'a> {
     pub fn new(grammar: &'a mut Cfg) -> Self {
         Lr0ClosureBuilder {
             queue: VecDeque::new(),
-            terminal_set: grammar.terminal_set(),
+            terminal_set: grammar.terminal_symbols(),
             grammar,
         }
     }

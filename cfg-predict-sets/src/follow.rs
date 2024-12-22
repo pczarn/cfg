@@ -37,7 +37,7 @@ impl FollowSets {
         let mut changed = true;
         while changed {
             changed = false;
-            let terminal_set = grammar.terminal_set();
+            let terminal_set = grammar.terminal_symbols();
             for rule in grammar.rules() {
                 let mut follow_set = this
                     .map

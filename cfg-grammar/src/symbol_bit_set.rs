@@ -8,6 +8,7 @@ use bit_vec::BitVec;
 use crate::local_prelude::*;
 
 /// A set of symbols in the form of a bit vector.
+#[derive(Clone, Debug)]
 pub struct SymbolBitSet {
     bit_vec: BitVec,
 }
@@ -113,8 +114,21 @@ impl SymbolBitSet {
         }
     }
 
+    pub fn subtract_productive(&mut self, grammar: &Cfg) {
+        if self.is_empty() {
+            self.reset(grammar.sym_source());
+        }
+        for rule in grammar.rules() {
+            self.set(rule.lhs, false);
+        }
+    }
+
     pub fn set(&mut self, index: Symbol, elem: bool) {
         self.bit_vec.set(index.usize(), elem);
+    }
+
+    pub fn bit_vec(&self) -> &BitVec {
+        &self.bit_vec
     }
 
     /// Converts into a bit vector.
@@ -174,16 +188,23 @@ impl ops::Index<Symbol> for SymbolBitSet {
 }
 
 impl Cfg {
-    pub fn terminal_set(&self) -> SymbolBitSet {
+    pub fn terminal_symbols(&self) -> SymbolBitSet {
         let mut set = SymbolBitSet::new();
         set.terminal(self);
         set
     }
 
-    pub fn nulling_set(&self) -> SymbolBitSet {
+    pub fn nulling_symbols(&self) -> SymbolBitSet {
         let mut set = SymbolBitSet::new();
         set.reset(self.sym_source());
         set.nulling(self);
+        set
+    }
+
+    pub fn unused_symbols(&self) -> SymbolBitSet {
+        let mut set = SymbolBitSet::new();
+        set.reset(self.sym_source());
+        set.unused(self);
         set
     }
 }

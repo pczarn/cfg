@@ -2,11 +2,10 @@
 
 use std::cmp::Ordering;
 use std::iter;
-use std::mem;
 use std::ops;
 
 use cfg_grammar::{Cfg, CfgRule};
-use cfg_symbol::intern::{Intern, Mapping};
+use cfg_symbol::intern::Mapping;
 use cfg_symbol::{Symbol, Symbolic};
 
 /// Remaps symbols and removes unused symbols.
@@ -30,10 +29,12 @@ impl<'a> Remap<'a> {
 
     /// Removes unused symbols.
     pub fn remove_unused_symbols(&mut self) {
-        let mut intern = Intern::new(self.grammar.num_syms());
-        self.remap_symbols(|sym| intern.intern(sym));
-        let _ = mem::replace(self.grammar.sym_source_mut(), intern.source);
-        self.mapping.translate(&intern.mapping);
+        let unused_symbols = self.grammar.unused_symbols();
+        self.reorder_symbols(|sym0, sym1| {
+            unused_symbols[sym0].cmp(&unused_symbols[sym1])
+        });
+        let num_syms = self.grammar.num_syms();
+        self.grammar.sym_source_mut().truncate(num_syms - unused_symbols.iter().count());
     }
 
     /// Remaps symbols to satisfy given ordering constraints. The argument
@@ -58,7 +59,7 @@ impl<'a> Remap<'a> {
     }
 
     // Translates symbols in rules to new symbol IDs.
-    fn remap_symbols<F>(&mut self, mut map: F)
+    pub fn remap_symbols<F>(&mut self, mut map: F)
     where
         F: FnMut(Symbol) -> Symbol,
     {
@@ -78,8 +79,36 @@ impl<'a> Remap<'a> {
         for rule in added_rules {
             self.grammar.add_rule(rule);
         }
-        let new_roots: Vec<_> = self.grammar.roots().iter().copied().map(map).collect();
-        self.grammar.set_roots(&new_roots[..]);
+
+        // let mut translate = |root: Symbol| {
+        //     if let Some(internal_start) = maps.to_internal[root.usize()] {
+        //         internal_start
+        //     } else {
+        //         // FIXME: weird
+        //         println!("removing {:?}", root);
+        //         // The trivial grammar is a unique edge case -- the start symbol was removed.
+        //         let internal_start = Symbol::from(maps.to_external.len());
+        //         maps.to_internal[root.usize()] = Some(internal_start);
+        //         maps.to_external.push(root);
+        //         internal_start
+        //     }
+        // };
+        let roots: Vec<_> = self.grammar
+            .roots()
+            .iter()
+            .copied()
+            .map(&mut map)
+            .collect();
+        self.grammar.set_roots(&roots[..]);
+        let wrapped_roots: Vec<_> = self.grammar.wrapped_roots().iter().copied().map(|mut wrapped_root| {
+            wrapped_root.inner_root = map(wrapped_root.inner_root);
+            wrapped_root.root = map(wrapped_root.root);
+            wrapped_root.start_of_input = map(wrapped_root.start_of_input);
+            wrapped_root.end_of_input = map(wrapped_root.end_of_input);
+            wrapped_root
+        }).collect();
+        self.grammar.set_wrapped_roots(&wrapped_roots[..]);
+        self.grammar.sym_source_mut().remap_symbols(map);
     }
 
     /// Get the mapping.
