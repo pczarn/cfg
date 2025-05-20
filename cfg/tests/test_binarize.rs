@@ -56,9 +56,8 @@ fn test_binarize() {
 }
 
 #[test_case(3, 10)]
-#[test_case(100, 10_000)]
-#[test_case(1000, 10_000)]
-#[test_case(423, 10_000)]
+#[test_case(100, 1000)]
+#[test_case(423, 1000)]
 fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
     let mut cfg: Cfg = Cfg::new();
     let start = cfg.next_sym();

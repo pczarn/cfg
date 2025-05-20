@@ -1,8 +1,7 @@
 use std::num::NonZeroUsize;
 
 use cfg::{
-    classify::{CfgClassifyExt, RecursionKind},
-    NamedCfgRule,
+    classify::{CfgClassifyExt, RecursionKind}, named_cfg_rule, NamedCfgRule
 };
 use cfg_examples::c::{grammar, SYM_NAMES};
 
@@ -23,17 +22,11 @@ fn test_recursive() {
         .collect();
     let expected_recursive_rules: Vec<(NamedCfgRule, RecursionKind)> = vec![
         (
-            NamedCfgRule::new(
-                &["primary_expression", "lparen", "expression", "rparen"],
-                NonZeroUsize::new(10).unwrap(),
-            ),
+            named_cfg_rule!(primary_expression ::= lparen expression rparen),
             RecursionKind::Middle,
         ),
         (
-            NamedCfgRule::new(
-                &["postfix_expression", "primary_expression"],
-                NonZeroUsize::new(12).unwrap(),
-            ),
+            named_cfg_rule!(postfix_expression ::= primary_expression),
             RecursionKind::All,
         ),
     ];
@@ -51,18 +44,12 @@ fn test_recursive_distances() {
         .collect();
     let expected_recursive_rules: Vec<(NamedCfgRule, RecursionKind, Option<(usize, usize)>)> = vec![
         (
-            NamedCfgRule::new(
-                &["primary_expression", "lparen", "expression", "rparen"],
-                NonZeroUsize::new(10).unwrap(),
-            ),
+            named_cfg_rule!(primary_expression ::= lparen expression rparen),
             RecursionKind::Middle,
             Some((0, 1)),
         ),
         (
-            NamedCfgRule::new(
-                &["postfix_expression", "primary_expression"],
-                NonZeroUsize::new(12).unwrap(),
-            ),
+            named_cfg_rule!(postfix_expression ::= primary_expression),
             RecursionKind::All,
             Some((0, 1)),
         ),

@@ -121,3 +121,13 @@ impl<'a> Remap<'a> {
 fn symbol_iter(num: usize) -> iter::Map<ops::Range<usize>, fn(usize) -> Symbol> {
     (0..num).map(Symbol::from)
 }
+
+pub trait CfgRemapSymbolsExt {
+    fn remap(&mut self) -> Remap;
+}
+
+impl CfgRemapSymbolsExt for Cfg {
+    fn remap(&mut self) -> Remap {
+        Remap::new(self)
+    }
+}

@@ -122,12 +122,6 @@ fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) ->
             prev_history
         }
         // ???
-        // LinkedHistoryNode::Rhs { rhs, .. } => {
-        //     if let Some(sequence_details) = prev_history.sequence {
-        //         prev_history.rewrite_sequence(sequence_details, rhs);
-        //     }
-        //     prev_history
-        // }
         // &LinkedHistoryNode::Distances { .. } => prev_history,
     }
 }

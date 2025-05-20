@@ -1,0 +1,9 @@
+[package]
+name = "cfg-load"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+tiny-earley = { path = "../../tiny-earley", version = "0.1" }
+elsa = { version = "1.11", features = ["indexmap"] }

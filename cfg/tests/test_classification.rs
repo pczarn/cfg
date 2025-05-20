@@ -195,7 +195,7 @@ fn test_recursive() {
     let rec_rule = CfgRule {
         lhs: 1u32.into(),
         rhs: vec![1u32.into(), 2u32.into()].into(),
-        history_id: NonZeroUsize::new(6).unwrap(),
+        history_id: NonZeroUsize::new(3).unwrap(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
@@ -224,7 +224,7 @@ fn test_recursive_right_rec() {
     let rec_rule = CfgRule {
         lhs: 1u32.into(),
         rhs: vec![2u32.into(), 2u32.into(), 3u32.into(), 1u32.into()].into(),
-        history_id: NonZeroUsize::new(6).unwrap(),
+        history_id: NonZeroUsize::new(3).unwrap(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {

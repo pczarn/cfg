@@ -7,6 +7,7 @@ use cfg::symbol_bit_matrix::CfgSymbolBitMatrixExt;
 use cfg::symbol_bit_matrix::Remap;
 use cfg::Cfg;
 use cfg::Symbolic;
+use cfg_symbol_bit_matrix::CfgRemapSymbolsExt;
 
 #[test]
 fn test_remap_unused_symbols() {
@@ -27,7 +28,7 @@ fn test_remap_unused_symbols() {
 
     cfg.set_roots([start]);
 
-    cfg.remove_unused_symbols();
+    cfg.remap().remove_unused_symbols();
 
     {
         let mut equivalent: Cfg = Cfg::new();
@@ -75,8 +76,7 @@ fn test_reorder_symbols() {
         /* start => */ 1, /* a => */ 2, /* x => */ 5, /* b => */ 3,
         /* c => */ 4, /* y => */ 6,
     ];
-    Remap::new(&mut cfg)
-        .reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
+    cfg.remap().reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
 
     {
         let mut equivalent: Cfg = Cfg::new();
@@ -126,7 +126,7 @@ fn test_maps() {
         /* c => */ 4, /* y => */ 6,
     ];
 
-    let mut remap = Remap::new(&mut cfg);
+    let mut remap = cfg.remap();
     remap.reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
     let maps = remap.get_mapping();
 

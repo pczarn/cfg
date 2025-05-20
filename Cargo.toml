@@ -18,7 +18,7 @@ members = [
     "cfg-classify-regular",
     "cfg-classify-recursive",
     "cfg-earley-history",
-    "cfg-examples",
+    "cfg-examples", "cfg-load",
 ]
 
 resolver = "2"

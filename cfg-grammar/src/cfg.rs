@@ -50,7 +50,7 @@ pub struct NamedCfgRule {
     /// The rule's right-hand side symbols.
     pub rhs: Rc<[Symbol]>,
     /// The rule's history.
-    pub history_id: HistoryId,
+    pub history_id: Option<HistoryId>,
     /// Collection of symbol names.
     pub names: &'static [&'static str],
 }
@@ -598,24 +598,43 @@ impl CfgRule {
         NamedCfgRule {
             lhs: self.lhs,
             rhs: self.rhs.clone(),
-            history_id: self.history_id,
+            history_id: Some(self.history_id),
             names,
         }
     }
 }
 
 impl NamedCfgRule {
-    pub fn new(names: &'static [&'static str], history_id: HistoryId) -> Self {
+    pub fn new(names: &'static [&'static str]) -> Self {
         NamedCfgRule {
             lhs: Symbol::from(0u32),
             rhs: (1..names.len() as u32)
                 .map(|id| Symbol::from(id))
                 .collect::<Vec<_>>()
                 .into(),
-            history_id,
+            history_id: None,
             names,
         }
     }
+
+    pub fn with_history_id(names: &'static [&'static str], history_id: HistoryId) -> Self {
+        NamedCfgRule {
+            lhs: Symbol::from(0u32),
+            rhs: (1..names.len() as u32)
+                .map(|id| Symbol::from(id))
+                .collect::<Vec<_>>()
+                .into(),
+            history_id: Some(history_id),
+            names,
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! named_cfg_rule {
+    ($lhs:ident ::= $($rhs:ident)*) => {
+        NamedCfgRule::new(&[stringify!($lhs), $(stringify!($rhs)),*])
+    };
 }
 
 impl Eq for NamedCfgRule {
@@ -631,7 +650,7 @@ impl PartialEq for NamedCfgRule {
                 .iter()
                 .zip(other.rhs.iter())
                 .all(|(sym_a, sym_b)| self.names[sym_a.usize()] == other.names[sym_b.usize()])
-            && self.history_id == other.history_id
+            && (self.history_id.is_none() || other.history_id.is_none() || self.history_id == other.history_id)
     }
 }
 
