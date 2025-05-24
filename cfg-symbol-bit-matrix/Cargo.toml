@@ -7,3 +7,4 @@ edition = "2021"
 bit-matrix = "0.8.1"
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+log = "0.4"

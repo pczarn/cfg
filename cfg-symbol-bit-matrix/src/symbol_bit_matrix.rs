@@ -1,4 +1,3 @@
-use std::cmp;
 use std::ops::{self, Deref, DerefMut};
 
 use bit_matrix::BitMatrix;

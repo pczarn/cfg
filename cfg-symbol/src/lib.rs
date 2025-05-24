@@ -2,8 +2,9 @@
 //! IDs.
 
 pub mod intern;
-mod repr;
-pub mod source;
+mod symbol;
+mod source;
 
-pub use self::repr::{Symbol, Symbol16, Symbol8, Symbolic};
+pub use self::symbol::Symbol;
+pub use self::symbol::SymbolPrimitive;
 pub use self::source::SymbolSource;

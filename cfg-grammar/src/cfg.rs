@@ -1,9 +1,12 @@
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::rc::Rc;
 use std::{cmp, fmt};
 use std::{mem, ops};
+
+use log::trace;
 
 use occurence_map::OccurenceMap;
 use rule_builder::RuleBuilder;
@@ -109,14 +112,14 @@ impl Cfg {
     }
 
     /// Generates a new unique symbol.
-    pub fn next_sym(&mut self) -> Symbol {
-        self.sym_source_mut().next_sym()
+    pub fn next_sym(&mut self, name: Option<Cow<str>>) -> Symbol {
+        self.sym_source_mut().next_sym(name)
     }
 
     pub fn sym_at<const N: usize>(at: usize) -> [Symbol; N] {
         let mut sym_source = SymbolSource::new();
         for _ in 0..at {
-            sym_source.next_sym();
+            sym_source.next_sym(None);
         }
         sym_source.sym()
     }
@@ -372,6 +375,7 @@ impl Cfg {
         rhs_rev.reverse();
         let mut tail = Vec::new();
         let mut i: u32 = 0;
+        trace!("RULE_LHS_LEN_ALLOWED_RANGE: {}", self.rule_rhs_len_allowed_range().end);
         while !rhs_rev.is_empty() {
             let tail_idx = rhs_rev
                 .len()
@@ -382,7 +386,7 @@ impl Cfg {
             if rhs_rev.is_empty() {
                 lhs = rule.lhs;
             } else {
-                lhs = self.next_sym();
+                lhs = self.next_sym(None);
                 rhs_rev.push(lhs);
             }
             let history_id;
@@ -500,7 +504,7 @@ impl Cfg {
 
     pub fn rhs_closure_with_values(&mut self, value: &mut [Option<u32>]) {
         let mut tmp_stack = self.tmp_stack.borrow_mut();
-        for (sym_id, maybe_sym_value) in value.iter().enumerate() {
+        for (sym_id, maybe_sym_value) in value.iter().zip(SymbolSource::new().generate()) {
             if maybe_sym_value.is_some() {
                 tmp_stack.push(Symbol::from(sym_id));
             }
@@ -606,10 +610,10 @@ impl CfgRule {
 
 impl NamedCfgRule {
     pub fn new(names: &'static [&'static str]) -> Self {
+        let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
-            lhs: Symbol::from(0u32),
-            rhs: (1..names.len() as u32)
-                .map(|id| Symbol::from(id))
+            lhs: iter.next().unwrap(),
+            rhs: iter.take(names.len() - 1)
                 .collect::<Vec<_>>()
                 .into(),
             history_id: None,
@@ -618,10 +622,10 @@ impl NamedCfgRule {
     }
 
     pub fn with_history_id(names: &'static [&'static str], history_id: HistoryId) -> Self {
+        let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
-            lhs: Symbol::from(0u32),
-            rhs: (1..names.len() as u32)
-                .map(|id| Symbol::from(id))
+            lhs: iter.next().unwrap(),
+            rhs: iter.take(names.len() - 1)
                 .collect::<Vec<_>>()
                 .into(),
             history_id: Some(history_id),

@@ -19,6 +19,7 @@ bit-vec = "0.8"
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-history = { version = "0.0.1", path = "../cfg-history/" }
 smallvec = { version = "1.13", features = ["const_generics"], optional = true }
+log = "0.4"
 
 # serialize
 serde = { version = "1.0", features = ["derive"], optional = true }

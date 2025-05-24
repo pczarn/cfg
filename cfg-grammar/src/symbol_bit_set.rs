@@ -116,7 +116,7 @@ impl SymbolBitSet {
 
     pub fn subtract_productive(&mut self, grammar: &Cfg) {
         if self.is_empty() {
-            self.reset(grammar.sym_source());
+            self.set_all(grammar.sym_source());
         }
         for rule in grammar.rules() {
             self.set(rule.lhs, false);
@@ -137,10 +137,8 @@ impl SymbolBitSet {
     }
 
     /// Iterates over symbols in the set.
-    pub fn iter(&self) -> Iter {
-        Iter {
-            iter: self.bit_vec.iter().enumerate(),
-        }
+    pub fn iter(&self) -> impl Iterator<Item = Symbol> + use<'_> {
+        self.bit_vec.iter().zip(SymbolSource::generate_fresh()).filter_map(|(is_present, sym)| if is_present { Some(sym) } else { None })
     }
 
     pub fn union(&mut self, other: &SymbolBitSet) {
@@ -160,18 +158,6 @@ impl SymbolBitSet {
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
-    type Item = Symbol;
-    fn next(&mut self) -> Option<Self::Item> {
-        for (id, is_present) in &mut self.iter {
-            if is_present {
-                return Some(Symbol::from(id));
-            }
-        }
-        None
-    }
-}
-
 static TRUE: bool = true;
 static FALSE: bool = false;
 
@@ -179,7 +165,7 @@ impl ops::Index<Symbol> for SymbolBitSet {
     type Output = bool;
 
     fn index(&self, index: Symbol) -> &Self::Output {
-        if self.bit_vec[index.into()] {
+        if self.bit_vec[index.usize()] {
             &TRUE
         } else {
             &FALSE

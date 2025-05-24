@@ -4,6 +4,8 @@ use std::cmp::Ordering;
 use std::iter;
 use std::ops;
 
+use log::trace;
+
 use cfg_grammar::{Cfg, CfgRule};
 use cfg_symbol::intern::Mapping;
 use cfg_symbol::{Symbol, Symbolic};
@@ -65,6 +67,7 @@ impl<'a> Remap<'a> {
     {
         let mut added_rules = vec![];
         self.grammar.retain(|rule| {
+            trace!("REMAP {:?} -> {:?} ::= {:?} -> {:?}", rule.lhs, map(rule.lhs), rule.rhs, rule.rhs.iter().map(|&sym| map(sym)).collect::<Vec<_>>());
             if map(rule.lhs) == rule.lhs && rule.rhs.iter().all(|&sym| map(sym) == sym) {
                 true
             } else {
@@ -101,6 +104,7 @@ impl<'a> Remap<'a> {
             .collect();
         self.grammar.set_roots(&roots[..]);
         let wrapped_roots: Vec<_> = self.grammar.wrapped_roots().iter().copied().map(|mut wrapped_root| {
+            trace!("REMAP WRAPPED ROOT {:?}", (wrapped_root.inner_root, wrapped_root.root, wrapped_root.start_of_input, wrapped_root.end_of_input));
             wrapped_root.inner_root = map(wrapped_root.inner_root);
             wrapped_root.root = map(wrapped_root.root);
             wrapped_root.start_of_input = map(wrapped_root.start_of_input);
