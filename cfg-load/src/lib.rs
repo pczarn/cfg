@@ -289,14 +289,14 @@ impl CfgLoadExt for Cfg {
             let mut intern_empty = true;
             for rule in rules {
                 let lhs = intern.get_or_intern(&rule.lhs[..]);
-                let lhs_sym = *sym_map.entry(lhs).or_insert_with(|| cfg.sym_source_mut().next_sym_with_name(&rule.lhs[..]));
+                let lhs_sym = *sym_map.entry(lhs).or_insert_with(|| cfg.sym_source_mut().next_sym(Some(rule.lhs[..].into())));
                 if intern_empty {
                     cfg.set_roots([lhs_sym]);
                     intern_empty = false;
                 }
                 let rhs_syms: Vec<_> = rule.rhs.into_iter().map(|fragment| {
                     let id = intern.get_or_intern(&fragment.ident[..]);
-                    let rhs_sym = *sym_map.entry(id).or_insert_with(|| cfg.sym_source_mut().next_sym_with_name(&fragment.ident[..]));
+                    let rhs_sym = *sym_map.entry(id).or_insert_with(|| cfg.sym_source_mut().next_sym(Some(fragment.ident[..].into())));
                     match fragment.rep {
                         Rep::None => rhs_sym,
                         Rep::ZeroOrMore => {

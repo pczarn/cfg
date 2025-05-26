@@ -37,7 +37,7 @@ pub struct PrecedencedRuleBuilder<'a> {
 impl<'a> PrecedencedRuleBuilder<'a> {
     /// Returns a precedenced rule builder.
     pub fn new(grammar: &'a mut Cfg, lhs: Symbol) -> Self {
-        let tightest_lhs = grammar.next_sym();
+        let tightest_lhs = grammar.next_sym(None);
         PrecedencedRuleBuilder {
             grammar,
             lhs,
@@ -147,7 +147,7 @@ impl<'a> PrecedencedRuleBuilder<'a> {
         self.looseness += 1;
 
         self.tighter_lhs = self.current_lhs;
-        self.current_lhs = self.grammar.next_sym();
+        self.current_lhs = self.grammar.next_sym(None);
 
         let history_id = self.grammar.add_history_node(RootHistoryNode::NoOp.into());
         RuleBuilder::new(self.grammar)

@@ -504,9 +504,9 @@ impl Cfg {
 
     pub fn rhs_closure_with_values(&mut self, value: &mut [Option<u32>]) {
         let mut tmp_stack = self.tmp_stack.borrow_mut();
-        for (sym_id, maybe_sym_value) in value.iter().zip(SymbolSource::new().generate()) {
+        for (maybe_sym_value, sym) in value.iter().zip(SymbolSource::generate_fresh()) {
             if maybe_sym_value.is_some() {
-                tmp_stack.push(Symbol::from(sym_id));
+                tmp_stack.push(sym);
             }
         }
 
@@ -543,7 +543,7 @@ impl Cfg {
         let roots_len = self.roots.len();
         let roots = mem::replace(&mut self.roots, MaybeSmallVec::with_capacity(roots_len));
         for inner_root in roots {
-            let [root, start_of_input, end_of_input] = self.sym_source.sym_with_names(["root", "start_of_input", "end_of_input"]);
+            let [root, start_of_input, end_of_input] = self.sym_source.with_names([Some("root"), Some("start_of_input"), Some("end_of_input")]);
             let history_id = self.add_history_node(RootHistoryNode::Rule { lhs: root }.into());
             // let second_history_id = self.add_history_node(HistoryNode::Linked { prev: history_id, node: LinkedHistoryNode::Rhs { rhs: vec![start_of_input, inner_root, end_of_input] } });
             self.add_rule(CfgRule {

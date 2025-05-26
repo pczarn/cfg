@@ -21,7 +21,6 @@ cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
 cfg-classify = { version = "0.0.1", path = "../cfg-classify/", optional = true }
 cfg-generate = { version = "0.0.1", path = "../cfg-generate/", optional = true }
-cfg-earley-history = { version = "0.0.1", path = "../cfg-earley-history/", optional = true }
 cfg-predict-distance = { version = "0.0.1", path = "../cfg-predict-distance/", optional = true }
 cfg-predict-sets = { version = "0.0.1", path = "../cfg-predict-sets/", optional = true }
 cfg-symbol-bit-matrix = { version = "0.0.1", path = "../cfg-symbol-bit-matrix/", optional = true }
@@ -37,7 +36,7 @@ rand = { version = "0.8", optional = true, features = ["small_rng"] }
 test-case = "3.3"
 
 [features]
-default = ["cfg-classify", "cfg-generate", "cfg-earley-history", "cfg-predict-sets", "cfg-predict-distance", "cfg-generate", "cfg-sequence", "cfg-history", "cfg-symbol-bit-matrix"]
+default = ["cfg-classify", "cfg-generate", "cfg-predict-sets", "cfg-predict-distance", "cfg-generate", "cfg-sequence", "cfg-history", "cfg-symbol-bit-matrix"]
 serde = ["cfg-grammar/serde"]
 miniserde = ["cfg-grammar/miniserde"]
 ll = ["cfg-classify/cfg-predict-sets"]

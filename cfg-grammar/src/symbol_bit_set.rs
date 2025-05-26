@@ -13,11 +13,6 @@ pub struct SymbolBitSet {
     bit_vec: BitVec,
 }
 
-/// An iterator over a symbol set.
-pub struct Iter<'a> {
-    iter: iter::Enumerate<bit_vec::Iter<'a>>,
-}
-
 impl Default for SymbolBitSet {
     fn default() -> Self {
         Self::new()

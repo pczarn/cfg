@@ -180,7 +180,7 @@ impl<'a> Lr0FsmBuilder<'a> {
     }
 
     fn augment_grammar(&mut self, start_sym: Symbol) -> (Symbol, RuleId) {
-        let new_start = self.closure.grammar.next_sym();
+        let new_start = self.closure.grammar.next_sym(None);
         let rule_id = self.closure.grammar.rules().count() as RuleId;
         let history_id = self
             .closure

@@ -1,20 +1,27 @@
+mod id;
+mod rule_dot;
+
 use core::iter;
 #[cfg(not(feature = "smallvec"))]
 use std::rc::Rc;
 
 use cfg_symbol::Symbol;
 
-use cfg_history::{
+use crate::{
     BinarizedRhsRange, HistoryGraph, HistoryId, HistoryNode, LinkedHistoryNode, RootHistoryNode
 };
 #[cfg(feature = "smallvec")]
 use smallvec::SmallVec;
 
-type Id = Symbol;
+use id::Id;
+use rule_dot::RuleDot;
 
-pub type ExternalOrigin = Option<Id>;
-pub type EventId = Option<Id>;
-pub type MinimalDistance = Option<Id>;
+#[derive(Copy, Clone, Default, Debug)]
+pub struct ExternalOrigin(pub Id);
+#[derive(Copy, Clone, Default, Debug)]
+pub struct EventId(pub Id);
+#[derive(Copy, Clone, Default, Debug)]
+pub struct MinimalDistance(pub Id);
 pub type NullingEliminated = Option<(Symbol, bool)>;
 pub type ExternalDottedRule = (u32, u32);
 pub type Event = (EventId, MinimalDistance);
@@ -31,7 +38,7 @@ type MaybeSmallVec<T> = SmallVec<[T; 4]>;
 #[cfg(not(feature = "smallvec"))]
 type MaybeSmallVec<T> = Rc<[T]>;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Copy, Clone, Default, Debug)]
 pub struct History {
     pub dots: [RuleDot; 3],
     pub origin: ExternalOrigin,
@@ -40,13 +47,7 @@ pub struct History {
     pub sequence: Option<SequenceDetails>,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
-pub struct RuleDot {
-    pub event: Option<(EventId, ExternalDottedRule)>,
-    pub distance: MinimalDistance,
-}
-
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct SequenceDetails {
     top: bool,
     rhs: Symbol,
@@ -54,34 +55,21 @@ pub struct SequenceDetails {
 }
 
 pub trait HistoryGraphEarleyExt {
-    fn final_history(&self) -> Vec<History>;
-
-    fn process_history(&self, history_id: HistoryId) -> History;
+    fn transpose(&self) -> [impl Iterator<Item = RuleDot>; 3];
 }
 
 impl HistoryGraphEarleyExt for HistoryGraph {
-    fn final_history(&self) -> Vec<History> {
-        let mut result: Vec<History> = Vec::with_capacity(self.capacity());
-        for node in self.iter() {
-            result.push(process_node(node, &result[..]));
-        }
-        result
-    }
-
-    fn process_history(&self, history_id: HistoryId) -> History {
-        match &self[history_id.get()] {
-            &HistoryNode::Linked {
-                prev,
-                node: ref linked_node,
-            } => {
-                process_linked(linked_node, self.process_history(prev))
-            }
-            HistoryNode::Root(root) => process_root(*root),
-        }
+    fn transpose(&self) -> [impl Iterator<Item = RuleDot>; 3] {
+        let x = |(history, at): (&History, usize)| history.at_dot(at);
+        [
+            self.earley.as_ref().unwrap().iter().zip(iter::repeat(0)).map(x),
+            self.earley.as_ref().unwrap().iter().zip(iter::repeat(1)).map(x),
+            self.earley.as_ref().unwrap().iter().zip(iter::repeat(2)).map(x),
+        ]
     }
 }
 
-fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
+pub(crate) fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
     match node {
         &HistoryNode::Linked {
             prev,
@@ -134,42 +122,10 @@ fn process_root(root_node: RootHistoryNode) -> History {
     }
 }
 
-impl RuleDot {
-    fn new(id: u32, pos: usize) -> Self {
-        RuleDot {
-            event: Some((None, (id, pos as u32))),
-            distance: None,
-        }
-    }
-
-    pub fn none() -> Self {
-        RuleDot {
-            event: None,
-            distance: None,
-        }
-    }
-
-    pub fn trace(self) -> Option<ExternalDottedRule> {
-        self.event.map(|x| x.1)
-    }
-
-    pub fn event(self) -> Option<(EventId, ExternalDottedRule)> {
-        self.event
-    }
-
-    pub fn event_without_tracing(self) -> Event {
-        (self.event.and_then(|x| x.0), self.distance)
-    }
-
-    pub fn distance(&self) -> MinimalDistance {
-        self.distance
-    }
-}
-
 impl History {
     pub fn new(id: u32) -> Self {
         History {
-            origin: Some(id.into()),
+            origin: ExternalOrigin(Some(id).into()),
             ..History::default()
         }
     }
@@ -186,8 +142,8 @@ impl History {
         self.dots.get(n).copied().unwrap_or(RuleDot::none())
     }
 
-    fn make_dot(&self, n: usize) -> RuleDot {
-        RuleDot::new(self.origin.map_or(0, |sym| sym.into()), n)
+    fn at_dot(&self, n: usize) -> RuleDot {
+        RuleDot::new(self.origin.0.to_option().map_or(0, |sym| sym.into()), n)
     }
 
     fn binarize(&self, height: u32, full_len: usize, is_top: bool) -> Self {
@@ -197,18 +153,18 @@ impl History {
         } else {
             if is_top {
                 if full_len == 2 {
-                    [self.make_dot(0), none, self.make_dot(1)]
+                    [self.at_dot(0), none, self.at_dot(1)]
                 } else if full_len >= 3 {
-                    [self.make_dot(0), self.make_dot(full_len - 2), self.make_dot(full_len - 1)]
+                    [self.at_dot(0), self.at_dot(full_len - 2), self.at_dot(full_len - 1)]
                 } else {
-                    [self.make_dot(0), none, none]
+                    [self.at_dot(0), none, none]
                 }
             } else {
-                [none, self.make_dot(full_len - 2 - height as usize), none]
+                [none, self.at_dot(full_len - 2 - height as usize), none]
             }
         };
 
-        let origin = if is_top { self.origin } else { None };
+        let origin = if is_top { self.origin } else { ExternalOrigin(None.into()) };
 
         History {
             origin,

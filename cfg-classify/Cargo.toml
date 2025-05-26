@@ -17,18 +17,9 @@ bit-vec = "0.8"
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
 cfg-predict-sets = { version = "0.0.1", path = "../cfg-predict-sets/", optional = true }
-cfg-classify-cyclical = { version = "0.0.1", path = "../cfg-classify-cyclical/", optional = true }
-cfg-classify-ll = { version = "0.0.1", path = "../cfg-classify-ll/", optional = true }
-cfg-classify-lr = { version = "0.0.1", path = "../cfg-classify-lr/", optional = true }
-cfg-classify-linear = { version = "0.0.1", path = "../cfg-classify-linear/", optional = true }
-cfg-classify-useful = { version = "0.0.1", path = "../cfg-classify-useful/", optional = true }
-cfg-classify-recursive = { version = "0.0.1", path = "../cfg-classify-recursive/", optional = true }
+cfg-symbol-bit-matrix = { version = "0.0.1", path = "../cfg-symbol-bit-matrix/" }
+cfg-history = { version = "0.0.1", path = "../cfg-history/", optional = true }
 
 [features]
-default = ["cyclical", "ll", "lr", "linear", "useful", "recursive"]
-cyclical = ["dep:cfg-classify-cyclical"]
-ll = ["dep:cfg-classify-ll"]
-lr = ["dep:cfg-classify-lr"]
-linear = ["dep:cfg-classify-linear"]
-useful = ["dep:cfg-classify-useful"]
-recursive = ["dep:cfg-classify-recursive"]
+default = []
+lr = ["dep:cfg-history"]

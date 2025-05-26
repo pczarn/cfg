@@ -7,23 +7,31 @@ use cfg_symbol::Symbol;
 
 use self::BinarizedRhsRange::*;
 
+pub mod earley;
+
 pub type HistoryId = NonZeroUsize;
 
 #[derive(Clone, Debug)]
 pub struct HistoryGraph {
     nodes: Vec<HistoryNode>,
+    earley: Option<Vec<earley::History>>,
+}
+
+enum HistoryKind {
+    Earley,
 }
 
 impl Default for HistoryGraph {
     fn default() -> Self {
-        Self::new()
+        Self::new(false)
     }
 }
 
 impl HistoryGraph {
-    pub fn new() -> Self {
+    pub fn new(earley: bool) -> Self {
         Self {
             nodes: vec![RootHistoryNode::NoOp.into()],
+            earley: if earley { Some(vec![earley::History::new(0)]) } else { None },
         }
     }
 
@@ -36,6 +44,10 @@ impl HistoryGraph {
 
     pub fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
         let result = self.next_id();
+        if let Some(earley) = self.earley.as_mut() {
+            let result = earley::process_node(&node, &earley[..]);
+            earley.push(result);
+        }
         self.push(node);
         result
     }

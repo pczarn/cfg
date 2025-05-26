@@ -2,7 +2,7 @@
 
 use cfg_grammar::*;
 use cfg_history::HistoryId;
-use cfg_symbol::{Symbol, Symbolic};
+use cfg_symbol::Symbol;
 
 /// Calculation of minimum distance from one part of the grammar to another.
 /// Similar to multi-source shortest path search in a graph.

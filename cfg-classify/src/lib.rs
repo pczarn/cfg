@@ -7,20 +7,13 @@
 // pub mod ll;
 // pub mod lr;
 
-#[cfg(feature = "cyclical")]
-pub use cfg_classify_cyclical::*;
-// #[cfg(feature = "linear")]
-// pub use cfg_classify_linear::*;
-#[cfg(feature = "ll")]
-pub use cfg_classify_ll::*;
-#[cfg(feature = "lr")]
-pub use cfg_classify_lr::*;
-#[cfg(feature = "recursive")]
-pub use cfg_classify_recursive::*;
-#[cfg(feature = "useful")]
-pub use cfg_classify_useful::*;
-use cfg_grammar::Cfg;
-use cfg_symbol::Symbol;
+mod cyclical;
+mod linear;
+mod ll;
+mod lr;
+mod recursive;
+mod regular;
+mod useful;
 
 pub trait CfgClassifyExt {
     fn ll_parse_table(&self) -> LlParseTable;

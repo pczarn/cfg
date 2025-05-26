@@ -120,7 +120,7 @@ impl<'a> SequencesToProductions<'a> {
 
         match self.map.entry(partial) {
             Entry::Vacant(vacant) => {
-                let lhs = sym_source.next_sym();
+                let lhs = sym_source.next_sym(None);
                 vacant.insert(lhs);
                 self.stack.push(Sequence { lhs, ..*seq });
                 lhs

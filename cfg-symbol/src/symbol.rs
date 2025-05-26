@@ -1,3 +1,6 @@
+//! TODO: Allow choice between u8, u16 and u32 for symbols
+//! 
+
 use std::num::{NonZeroU16, NonZeroU32, NonZeroU8};
 
 pub trait SymbolPrimitive: TryFrom<NonZeroU32> + Into<NonZeroU32> + Copy {
