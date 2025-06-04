@@ -2,7 +2,7 @@
 
 mod support;
 
-use cfg::classify::Cycles;
+use cfg::classify::cyclical::Cycles;
 use cfg::Cfg;
 
 #[test]

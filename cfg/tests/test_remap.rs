@@ -3,10 +3,7 @@
 mod support;
 
 use cfg::classify::CfgClassifyExt;
-use cfg::symbol_bit_matrix::CfgSymbolBitMatrixExt;
-use cfg::symbol_bit_matrix::Remap;
 use cfg::Cfg;
-use cfg::Symbolic;
 use cfg_symbol_bit_matrix::CfgRemapSymbolsExt;
 
 #[test]

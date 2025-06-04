@@ -17,7 +17,7 @@ pub struct HistoryGraph {
     earley: Option<Vec<earley::History>>,
 }
 
-enum HistoryKind {
+pub enum HistoryKind {
     Earley,
 }
 
@@ -33,6 +33,22 @@ impl HistoryGraph {
             nodes: vec![RootHistoryNode::NoOp.into()],
             earley: if earley { Some(vec![earley::History::new(0)]) } else { None },
         }
+    }
+
+    pub fn enable(&mut self, history_kind: HistoryKind) {
+        match history_kind {
+            HistoryKind::Earley => {
+                let mut prev_histories = vec![];
+                for node in &self.nodes {
+                    prev_histories.push(earley::process_node(node, &prev_histories[..]));
+                }
+                self.earley = Some(prev_histories);
+            }
+        }
+    }
+
+    pub fn earley(&self) -> &[earley::History] {
+        self.earley.as_ref().map_or(&[], |v| &v[..])
     }
 
     pub fn next_id(&mut self) -> HistoryId {

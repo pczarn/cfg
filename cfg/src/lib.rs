@@ -1,7 +1,5 @@
 #[cfg(feature = "cfg-classify")]
 pub use cfg_classify as classify;
-#[cfg(feature = "cfg-earley-history")]
-pub use cfg_earley_history as earley_history;
 #[cfg(feature = "cfg-generate")]
 pub use cfg_generate as generate;
 pub use cfg_grammar::*;

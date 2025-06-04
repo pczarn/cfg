@@ -1,4 +1,4 @@
-use tiny_earley::{grammar, forest, Grammar, Recognizer, Symbol};
+use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
@@ -26,16 +26,16 @@ impl StringInterner {
         self.set.insert_full(value.as_ref().to_string()).0
     }
 
-    fn get<T>(&self, value: T) -> Option<usize>
-    where
-        T: AsRef<str>,
-    {
-        self.set.get_full(value.as_ref()).map(|(i, _r)| i)
-    }
+    // fn get<T>(&self, value: T) -> Option<usize>
+    // where
+    //     T: AsRef<str>,
+    // {
+    //     self.set.get_full(value.as_ref()).map(|(i, _r)| i)
+    // }
 
-    fn resolve(&self, index: usize) -> Option<&str> {
-        self.set.get_index(index)
-    }
+    // fn resolve(&self, index: usize) -> Option<&str> {
+    //     self.set.get_index(index)
+    // }
 }
 
 #[derive(Clone, Debug)]
@@ -59,13 +59,11 @@ enum Rep {
 
 #[derive(Clone, Debug)]
 enum Value {
-    Root(Vec<Symbol>),
     Digit(char),
     Alpha(char),
     Alnum(char),
     Ident(String),
     Rules(Vec<Rule>),
-    Rule(Rule),
     Rhs(Vec<Vec<Fragment>>),
     Fragment(Fragment),
     Alt(Vec<Fragment>),
@@ -177,7 +175,7 @@ impl forest::Eval for Evaluator {
             }
             // alnum ::= digit;
             (18, Value::Digit(digit), _, _) => {
-                Value::None
+                Value::Digit(digit)
             }
             args => panic!("unknown rule id {:?} or args {:?}", action, args),
         }
@@ -243,7 +241,7 @@ impl CfgLoadExt for Cfg {
         let mut recognizer = Recognizer::new(&bnf_grammar);
         let mut line_no = 1;
         let mut col_no = 1;
-        for (i, ch) in bnf.chars().enumerate() {
+        for ch in bnf.chars() {
             let terminal = match ch {
                 ':' => colon,
                 ';' => semicolon,
@@ -263,10 +261,9 @@ impl CfgLoadExt for Cfg {
             };
             recognizer.scan(terminal, ch as u32);
             let success = recognizer.end_earleme();
-            #[cfg(feature = "debug")]
-            if !success {
-                self.recognizer.log_earley_set_diff();
-            }
+            // if !success {
+            //     self.recognizer.log_earley_set_diff();
+            // }
             if !success {
                 return Err(LoadError::Parse { reason: "parse failed".to_string(), line: line_no, col: col_no });
             }
@@ -284,7 +281,7 @@ impl CfgLoadExt for Cfg {
             .evaluate(finished_node);
         if let Value::Rules(rules) = result {
             let mut cfg = Cfg::new();
-            let mut intern = StringInterner::new();
+            let intern = StringInterner::new();
             let mut sym_map = HashMap::new();
             let mut intern_empty = true;
             for rule in rules {

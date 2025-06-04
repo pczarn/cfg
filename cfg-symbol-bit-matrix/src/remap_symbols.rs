@@ -1,14 +1,13 @@
 //! Remaps symbols and removes unused symbols.
 
 use std::cmp::Ordering;
-use std::iter;
-use std::ops;
 
+use cfg_symbol::SymbolSource;
 use log::trace;
 
 use cfg_grammar::{Cfg, CfgRule};
 use cfg_symbol::intern::Mapping;
-use cfg_symbol::{Symbol, Symbolic};
+use cfg_symbol::Symbol;
 
 /// Remaps symbols and removes unused symbols.
 pub struct Remap<'a> {
@@ -23,8 +22,8 @@ impl<'a> Remap<'a> {
         Remap {
             grammar,
             mapping: Mapping {
-                to_internal: symbol_iter(num_syms).map(Some).collect(),
-                to_external: symbol_iter(num_syms).collect(),
+                to_internal: SymbolSource::generate_fresh().take(num_syms).map(Some).collect(),
+                to_external: SymbolSource::generate_fresh().take(num_syms).collect(),
             },
         }
     }
@@ -47,13 +46,12 @@ impl<'a> Remap<'a> {
     {
         // Create a new map from N to N symbols.
         let mut new_mapping = Mapping::new(self.grammar.num_syms());
-        new_mapping.to_external = symbol_iter(self.grammar.num_syms()).collect();
+        new_mapping.to_external = SymbolSource::generate_fresh().take(self.grammar.num_syms()).collect();
         // Sort its external symbols (corresponding to internal symbols of self.maps)
         // according to the given order.
         new_mapping.to_external.sort_by(|&a, &b| f(a, b));
         // Update its internal symbol map based on external symbol map.
-        for (after_id, before) in new_mapping.to_external.iter().cloned().enumerate() {
-            let after = Symbol::from(after_id);
+        for (before, after) in new_mapping.to_external.iter().cloned().zip(SymbolSource::generate_fresh()) {
             new_mapping.to_internal[before.usize()] = Some(after);
         }
         self.mapping.translate(&new_mapping);
@@ -119,11 +117,6 @@ impl<'a> Remap<'a> {
     pub fn get_mapping(self) -> Mapping {
         self.mapping
     }
-}
-
-// Iterates over symbols with consecutive IDs.
-fn symbol_iter(num: usize) -> iter::Map<ops::Range<usize>, fn(usize) -> Symbol> {
-    (0..num).map(Symbol::from)
 }
 
 pub trait CfgRemapSymbolsExt {

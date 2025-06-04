@@ -1,56 +1,60 @@
 //! Classification of rules and grammars.
 
-// mod linear;
-// mod recursive;
-// pub mod cyclical;
-// #[cfg(feature = "cfg-predict-sets")]
-// pub mod ll;
-// pub mod lr;
+use cfg_symbol::Symbol;
+use cfg_grammar::Cfg;
 
-mod cyclical;
-mod linear;
-mod ll;
-mod lr;
-mod recursive;
-mod regular;
-mod useful;
+pub mod cyclical;
+pub mod linear;
+#[cfg(feature = "ll")]
+pub mod ll;
+#[cfg(feature = "lr")]
+pub mod lr;
+pub mod recursive;
+pub mod regular;
+pub mod useful;
 
 pub trait CfgClassifyExt {
-    fn ll_parse_table(&self) -> LlParseTable;
-    fn lr0_fsm_builder(&mut self) -> Lr0FsmBuilder;
-    fn lr0_closure_builder(&mut self) -> Lr0ClosureBuilder;
-    fn recursion(&self) -> Recursion;
+#[cfg(feature = "ll")]
+    fn ll_parse_table(&self) -> ll::LlParseTable;
+#[cfg(feature = "lr")]
+    fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder;
+#[cfg(feature = "lr")]
+    fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder;
+    fn recursion(&self) -> recursive::Recursion;
     fn make_proper(&mut self) -> bool;
-    fn usefulness(&mut self) -> Usefulness;
-    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> Usefulness;
+    fn usefulness(&mut self) -> useful::Usefulness;
+    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> useful::Usefulness;
 }
 
 impl CfgClassifyExt for Cfg {
-    fn ll_parse_table(&self) -> LlParseTable {
-        LlParseTable::new(self)
+#[cfg(feature = "ll")]
+    fn ll_parse_table(&self) -> ll::LlParseTable {
+        ll::LlParseTable::new(self)
     }
 
-    fn recursion(&self) -> Recursion {
-        Recursion::new(self)
+    fn recursion(&self) -> recursive::Recursion {
+        recursive::Recursion::new(self)
     }
 
-    fn lr0_fsm_builder(&mut self) -> Lr0FsmBuilder {
-        Lr0FsmBuilder::new(self)
+#[cfg(feature = "lr")]
+    fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder {
+        lr::Lr0FsmBuilder::new(self)
     }
 
-    fn lr0_closure_builder(&mut self) -> Lr0ClosureBuilder {
-        Lr0ClosureBuilder::new(self)
+#[cfg(feature = "lr")]
+    fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder {
+        lr::Lr0ClosureBuilder::new(self)
     }
 
-    fn usefulness(&mut self) -> Usefulness {
-        let mut usefulness = Usefulness::new(self);
+    fn usefulness(&mut self) -> useful::Usefulness {
+        let mut usefulness = useful::Usefulness::new(self);
         let roots = self.roots();
         usefulness.reachable(roots);
         usefulness
     }
 
-    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> Usefulness {
-        let mut usefulness = Usefulness::new(self);
+    fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> useful::Usefulness {
+        let mut usefulness = useful::Usefulness::new(self);
         usefulness.reachable(roots);
         usefulness
     }

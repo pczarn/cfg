@@ -13,8 +13,7 @@ use rule_builder::RuleBuilder;
 
 use crate::local_prelude::*;
 use cfg_history::{
-    BinarizedRhsRange::*, HistoryGraph, HistoryId, HistoryNode, HistoryNodeBinarize,
-    HistoryNodeEliminateNulling, LinkedHistoryNode, RootHistoryNode,
+    BinarizedRhsRange::*, HistoryGraph, HistoryId, HistoryNode, HistoryNodeBinarize, HistoryNodeEliminateNulling, LinkedHistoryNode, RootHistoryNode
 };
 
 /// Representation of context-free grammars.
@@ -72,6 +71,14 @@ pub enum RhsPropertyMode {
     Any,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct DotInfo {
+    pub lhs: Symbol,
+    pub predot: Option<Symbol>,
+    pub postdot: Option<Symbol>,
+    pub earley: Option<earley::rule_dot::RuleDot>,
+}
+
 impl Default for Cfg {
     fn default() -> Self {
         Self::with_sym_source(SymbolSource::new())
@@ -87,7 +94,7 @@ impl Cfg {
 
     /// Creates an empty context-free grammar with the given symbol source.
     pub fn with_sym_source(sym_source: SymbolSource) -> Self {
-        Cfg::with_sym_source_and_history_graph(sym_source, HistoryGraph::new())
+        Cfg::with_sym_source_and_history_graph(sym_source, HistoryGraph::new(false))
     }
 
     pub fn with_sym_source_and_history_graph(
@@ -343,6 +350,20 @@ impl Cfg {
 
     pub fn history_graph(&self) -> &HistoryGraph {
         &self.history_graph
+    }
+
+    pub fn column(&self, col: usize) -> impl Iterator<Item = DotInfo> + '_ {
+        let earley = self.history_graph.earley();
+        let mapper = move |rule: &CfgRule| {
+            let history_id: usize = rule.history_id.into();
+            DotInfo {
+                lhs: rule.lhs,
+                predot: rule.rhs.get(col.wrapping_sub(1)).copied(),
+                postdot: rule.rhs.get(col).copied(),
+                earley: if earley.is_empty() { None } else { Some(earley[history_id].dot(col)) },
+            }
+        };
+        self.rules().map(mapper)
     }
 
     pub fn sym_source(&self) -> &SymbolSource {

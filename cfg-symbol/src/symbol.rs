@@ -26,9 +26,15 @@ impl SymbolPrimitive for NonZeroU32 {
 /// A common grammar symbol type.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 // miniserde impls are further below
-#[derive(Clone, Copy, Default, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Symbol<T: SymbolPrimitive = NonZeroU32> {
     pub(crate) n: T,
+}
+
+impl<T: SymbolPrimitive> Default for Symbol<T> {
+    fn default() -> Self {
+        Self::first()
+    }
 }
 
 impl<T: SymbolPrimitive> Symbol<T> {
@@ -40,14 +46,14 @@ impl<T: SymbolPrimitive> Symbol<T> {
     }
 
     pub fn usize(&self) -> usize {
-        self.n.into().get() as usize
+        self.n.into().get() as usize - 1
     }
 }
 
 impl<T: SymbolPrimitive> Into<u32> for Symbol<T> {
     fn into(self) -> u32 {
         let nzu32: NonZeroU32 = self.n.into();
-        nzu32.get()
+        nzu32.get() - 1
     }
 }
 

@@ -60,7 +60,7 @@ fn test_binarize() {
 #[test_case(423, 1000)]
 fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
     let mut cfg: Cfg = Cfg::new();
-    let start = cfg.next_sym();
+    let start = cfg.next_sym(Some("start".into()));
 
     let mut long_rhs = cfg
         .sym_source_mut()
@@ -77,7 +77,7 @@ fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
     assert_eq!(cfg.rules().count(), rhs_len - 1);
 
     let mut equivalent = Cfg::new();
-    let start = equivalent.next_sym();
+    let start = equivalent.next_sym(Some("start".into()));
 
     let mut long_rhs: VecDeque<Symbol> = equivalent
         .sym_source_mut()
@@ -86,7 +86,7 @@ fn test_binarize_very_long_rule(num_syms: usize, rhs_len: usize) {
         .collect();
     long_rhs = long_rhs.iter().cloned().cycle().take(rhs_len).collect();
     while long_rhs.len() > 2 {
-        let new_sym = equivalent.next_sym();
+        let new_sym = equivalent.next_sym(Some("start".into()));
         let rhs = [long_rhs.pop_front().unwrap(), long_rhs.pop_front().unwrap()];
         equivalent.rule(new_sym).rhs(rhs);
         long_rhs.push_front(new_sym);

@@ -3,10 +3,7 @@ use std::ops::{self, Deref, DerefMut};
 use bit_matrix::BitMatrix;
 
 use cfg_grammar::Cfg;
-use cfg_symbol::intern::Mapping;
-use cfg_symbol::{Symbol, Symbolic};
-
-use crate::Remap;
+use cfg_symbol::{Symbol, SymbolSource};
 
 pub struct SymbolBitMatrix {
     bit_matrix: BitMatrix,
@@ -30,8 +27,8 @@ impl SymbolBitMatrix {
     pub fn iter_row_syms(&self, row: Symbol) -> impl Iterator<Item = Symbol> + '_ {
         self.bit_matrix
             .iter_row(row.usize())
-            .enumerate()
-            .filter_map(|(i, present)| if present { Some(i.into()) } else { None })
+            .zip(SymbolSource::generate_fresh())
+            .filter_map(|(present, sym)| if present { Some(sym) } else { None })
     }
 }
 

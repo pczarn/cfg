@@ -1,39 +1,42 @@
-use super::{EventId, Event, MinimalDistance, ExternalDottedRule};
+use super::{EventAndDistance, EventId, ExternalDottedRule, MinimalDistance};
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct RuleDot {
-    pub event: Option<(EventId, ExternalDottedRule)>,
+    pub event: EventId,
+    pub trace: ExternalDottedRule,
     pub distance: MinimalDistance,
 }
 
 impl RuleDot {
-    pub fn new(id: u32, pos: usize) -> Self {
+    pub fn new(id: u32, pos: u32) -> Self {
         RuleDot {
-            event: Some((EventId(None.into()), (id, pos as u32))),
-            distance: MinimalDistance(None.into()),
+            event: EventId::null(),
+            trace: ExternalDottedRule { id, pos },
+            distance: MinimalDistance::null(),
         }
     }
 
     pub fn none() -> Self {
         RuleDot {
-            event: None,
-            distance: MinimalDistance(None.into()),
+            event: EventId::null(),
+            trace: ExternalDottedRule::null(),
+            distance: MinimalDistance::null(),
         }
     }
 
-    pub fn trace(self) -> Option<ExternalDottedRule> {
-        self.event.map(|x| x.1)
+    pub fn trace(self) -> ExternalDottedRule {
+        self.trace
     }
 
-    pub fn event(self) -> Option<(EventId, ExternalDottedRule)> {
+    pub fn event(self) -> EventId {
         self.event
     }
 
-    pub fn event_without_tracing(self) -> Event {
-        (EventId(self.event.and_then(|(id, _external_dotted_rule)| id.0.to_option()).into()), self.distance)
+    pub fn distance(self) -> MinimalDistance {
+        self.distance
     }
 
-    pub fn distance(&self) -> MinimalDistance {
-        self.distance
+    pub fn event_and_distance(self) -> EventAndDistance {
+        (self.event(), self.distance())
     }
 }

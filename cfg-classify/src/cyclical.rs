@@ -4,6 +4,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::collections::BTreeMap;
 
 use cfg_grammar::{Cfg, CfgRule, SymbolBitSet};
+use cfg_symbol::SymbolSource;
 use cfg_symbol_bit_matrix::{CfgSymbolBitMatrixExt, UnitDerivationMatrix};
 
 /// Provides information about cycles among unit derivations in the grammar. There are two ways of
@@ -27,8 +28,8 @@ impl<G: Borrow<Cfg>> Cycles<G> {
     /// Checks whether the grammar is cycle-free.
     pub fn cycle_free(&mut self) -> bool {
         *self.cycle_free.get_or_insert_with(|| {
-            (0..self.grammar.borrow().num_syms())
-                .all(|i| !self.unit_derivation[(i.into(), i.into())])
+            SymbolSource::generate_fresh().take(self.grammar.borrow().num_syms())
+                .all(|i| !self.unit_derivation[(i, i)])
         })
     }
 
@@ -79,12 +80,12 @@ impl<G: BorrowMut<Cfg>> Cycles<G> {
                     if !translation.contains_key(&rule.lhs) {
                         // Start rewrite. Check which symbols participate in this cycle.
                         // Get the union of `n`th row and column.
-                        for (i, lhs_derives) in
-                            unit_derivation.iter_row(rule.lhs.into()).enumerate()
+                        for (lhs_derives, s) in
+                            unit_derivation.iter_row(rule.lhs.usize()).zip(SymbolSource::generate_fresh())
                         {
                             row.set(
-                                i.into(),
-                                lhs_derives && unit_derivation[(i.into(), rule.lhs)],
+                                s,
+                                lhs_derives && unit_derivation[(s, rule.lhs)],
                             )
                         }
                         for sym in row.iter() {

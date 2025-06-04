@@ -1,7 +1,5 @@
-use std::num::NonZeroUsize;
-
 use cfg::{
-    classify::{CfgClassifyExt, RecursionKind}, named_cfg_rule, NamedCfgRule
+    classify::{CfgClassifyExt, recursive::RecursionKind}, named_cfg_rule, NamedCfgRule
 };
 use cfg_examples::c::{grammar, SYM_NAMES};
 

@@ -44,7 +44,7 @@ fn test_nulling_sequence() {
     cfg.set_roots([start]);
 
     let mut equivalent: Cfg = Cfg::new();
-    let start = equivalent.next_sym();
+    let start = equivalent.next_sym(Some("start".into()));
 
     equivalent.rule(start).rhs([]);
 

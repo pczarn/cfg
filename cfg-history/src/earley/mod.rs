@@ -1,30 +1,60 @@
-mod id;
-mod rule_dot;
+pub mod rule_dot;
 
 use core::iter;
-#[cfg(not(feature = "smallvec"))]
-use std::rc::Rc;
 
 use cfg_symbol::Symbol;
 
 use crate::{
-    BinarizedRhsRange, HistoryGraph, HistoryId, HistoryNode, LinkedHistoryNode, RootHistoryNode
+    BinarizedRhsRange, HistoryGraph, HistoryNode, LinkedHistoryNode, RootHistoryNode
 };
-#[cfg(feature = "smallvec")]
-use smallvec::SmallVec;
 
-use id::Id;
 use rule_dot::RuleDot;
 
-#[derive(Copy, Clone, Default, Debug)]
-pub struct ExternalOrigin(pub Id);
-#[derive(Copy, Clone, Default, Debug)]
-pub struct EventId(pub Id);
-#[derive(Copy, Clone, Default, Debug)]
-pub struct MinimalDistance(pub Id);
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+pub struct ExternalOrigin { pub id: u32 }
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+pub struct EventId { pub id: u32 }
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+pub struct MinimalDistance { pub distance: u32 }
 pub type NullingEliminated = Option<(Symbol, bool)>;
-pub type ExternalDottedRule = (u32, u32);
-pub type Event = (EventId, MinimalDistance);
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+pub struct ExternalDottedRule {
+    id: u32,
+    pos: u32,
+}
+pub type EventAndDistance = (EventId, MinimalDistance);
+
+impl MinimalDistance {
+    pub fn null() -> Self {
+        MinimalDistance { distance: !0 }
+    }
+}
+
+impl EventId {
+    pub fn null() -> Self {
+        EventId { id: 0 }
+    }
+}
+
+impl ExternalDottedRule {
+    pub fn null() -> Self {
+        ExternalDottedRule { id: !0, pos: !0 }
+    }
+}
+
+impl ExternalOrigin {
+    pub fn null() -> Self {
+        ExternalOrigin { id: 0 }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.id == 0
+    }
+}
 
 #[derive(Copy, Clone)]
 enum SymKind {
@@ -32,11 +62,6 @@ enum SymKind {
     Separator,
     Other,
 }
-
-#[cfg(feature = "smallvec")]
-type MaybeSmallVec<T> = SmallVec<[T; 4]>;
-#[cfg(not(feature = "smallvec"))]
-type MaybeSmallVec<T> = Rc<[T]>;
 
 #[derive(Copy, Clone, Default, Debug)]
 pub struct History {
@@ -54,20 +79,20 @@ pub struct SequenceDetails {
     sep: Option<Symbol>,
 }
 
-pub trait HistoryGraphEarleyExt {
-    fn transpose(&self) -> [impl Iterator<Item = RuleDot>; 3];
-}
+// pub trait HistoryGraphEarleyExt {
+//     fn transpose(&self) -> [impl Iterator<Item = RuleDot>; 3];
+// }
 
-impl HistoryGraphEarleyExt for HistoryGraph {
-    fn transpose(&self) -> [impl Iterator<Item = RuleDot>; 3] {
-        let x = |(history, at): (&History, usize)| history.at_dot(at);
-        [
-            self.earley.as_ref().unwrap().iter().zip(iter::repeat(0)).map(x),
-            self.earley.as_ref().unwrap().iter().zip(iter::repeat(1)).map(x),
-            self.earley.as_ref().unwrap().iter().zip(iter::repeat(2)).map(x),
-        ]
-    }
-}
+// impl HistoryGraphEarleyExt for HistoryGraph {
+//     fn transpose(&self) -> [impl Iterator<Item = RuleDot>; 3] {
+//         let x = |(history, at): (&History, usize)| history.at_dot(at);
+//         [
+//             self.earley.as_ref().unwrap().iter().zip(iter::repeat(0)).map(x),
+//             self.earley.as_ref().unwrap().iter().zip(iter::repeat(1)).map(x),
+//             self.earley.as_ref().unwrap().iter().zip(iter::repeat(2)).map(x),
+//         ]
+//     }
+// }
 
 pub(crate) fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
     match node {
@@ -124,8 +149,9 @@ fn process_root(root_node: RootHistoryNode) -> History {
 
 impl History {
     pub fn new(id: u32) -> Self {
+        assert!(!ExternalOrigin { id }.is_null());
         History {
-            origin: ExternalOrigin(Some(id).into()),
+            origin: ExternalOrigin { id },
             ..History::default()
         }
     }
@@ -143,7 +169,7 @@ impl History {
     }
 
     fn at_dot(&self, n: usize) -> RuleDot {
-        RuleDot::new(self.origin.0.to_option().map_or(0, |sym| sym.into()), n)
+        RuleDot::new(self.origin.id, n as u32)
     }
 
     fn binarize(&self, height: u32, full_len: usize, is_top: bool) -> Self {
@@ -164,7 +190,7 @@ impl History {
             }
         };
 
-        let origin = if is_top { self.origin } else { ExternalOrigin(None.into()) };
+        let origin = if is_top { self.origin } else { ExternalOrigin::null() };
 
         History {
             origin,

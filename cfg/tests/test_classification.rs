@@ -1,16 +1,14 @@
 #![cfg(feature = "cfg-classify")]
 
 use std::num::NonZeroUsize;
-use std::rc::Rc;
 
 #[cfg(feature = "ll")]
 use cfg::classify::{LlNonterminalClass, LlParseTable};
+#[cfg(feature = "lr")]
 use cfg::classify::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
 use cfg::{Cfg, CfgRule};
 use cfg_classify::CfgClassifyExt;
-use cfg_classify::RecursiveRule;
-
-use std::collections::BTreeMap;
+use cfg_classify::recursive::RecursiveRule;
 
 #[cfg(feature = "ll")]
 #[test]
@@ -69,6 +67,7 @@ fn test_ll_transitive_classification() {
     assert_eq!(classes, &map);
 }
 
+#[cfg(feature = "lr")]
 #[test]
 fn test_lr0() {
     let mut cfg: Cfg = Cfg::new();
@@ -193,14 +192,14 @@ fn test_recursive() {
     cfg.rule(foo).rhs([bar]).rhs([foo, bar]);
 
     let rec_rule = CfgRule {
-        lhs: 1u32.into(),
-        rhs: vec![1u32.into(), 2u32.into()].into(),
+        lhs: foo,
+        rhs: vec![foo, bar].into(),
         history_id: NonZeroUsize::new(3).unwrap(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
         rule: &rec_rule,
-        recursion: cfg_classify::RecursionKind::Left,
+        recursion: cfg_classify::recursive::RecursionKind::Left,
         distances: None,
     }];
 
@@ -222,14 +221,14 @@ fn test_recursive_right_rec() {
     cfg.rule(foo).rhs([bar]).rhs([bar, bar, buzz, foo]);
 
     let rec_rule = CfgRule {
-        lhs: 1u32.into(),
-        rhs: vec![2u32.into(), 2u32.into(), 3u32.into(), 1u32.into()].into(),
+        lhs: foo,
+        rhs: vec![bar, bar, buzz, foo].into(),
         history_id: NonZeroUsize::new(3).unwrap(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
         rule: &rec_rule,
-        recursion: cfg_classify::RecursionKind::Right,
+        recursion: cfg_classify::recursive::RecursionKind::Right,
         distances: None,
     }];
 
