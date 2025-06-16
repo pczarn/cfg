@@ -1,7 +1,7 @@
 use cfg::{
     classify::{CfgClassifyExt, recursive::RecursionKind}, named_cfg_rule, NamedCfgRule
 };
-use cfg_examples::c::{grammar, SYM_NAMES};
+use cfg_examples::c::grammar;
 
 #[test]
 fn test_useful() {
@@ -15,7 +15,7 @@ fn test_recursive() {
     let recursion = grammar.recursion();
     let actual_recursive_rules: Vec<_> = recursion
         .recursive_rules()
-        .map(|rec| (rec.rule.named(SYM_NAMES), rec.recursion))
+        .map(|rec| (rec.rule.named(grammar.sym_source()), rec.recursion))
         .take(2) // TODO full
         .collect();
     let expected_recursive_rules: Vec<(NamedCfgRule, RecursionKind)> = vec![
@@ -37,7 +37,7 @@ fn test_recursive_distances() {
     let recursion = grammar.recursion();
     let actual_recursive_rules: Vec<_> = recursion
         .minimal_distances()
-        .map(|rec| (rec.rule.named(SYM_NAMES), rec.recursion, rec.distances))
+        .map(|rec| (rec.rule.named(grammar.sym_source()), rec.recursion, rec.distances))
         .take(2) // TODO full
         .collect();
     let expected_recursive_rules: Vec<(NamedCfgRule, RecursionKind, Option<(usize, usize)>)> = vec![

@@ -18,7 +18,7 @@ pub struct Remap<'a> {
 impl<'a> Remap<'a> {
     /// Creates `Remap` to record information about remapped symbols.
     pub fn new(grammar: &'a mut Cfg) -> Self {
-        let num_syms = grammar.num_syms();
+        let num_syms = grammar.num_syms() + 1;
         Remap {
             grammar,
             mapping: Mapping {

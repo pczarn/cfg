@@ -9,7 +9,7 @@ use crate::{symbol::SymbolPrimitive, *};
 #[derive(Clone, Debug, Default)]
 pub struct SymbolSource<T: SymbolPrimitive = NonZeroU32> {
     next_symbol: Symbol<T>,
-    names: Vec<Option<Rc<String>>>,
+    names: Vec<Option<Rc<str>>>,
 }
 
 #[macro_export]
@@ -37,7 +37,7 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
         for dest in result.iter_mut() {
             *dest = self.next_sym(None);
         }
-        self.names.extend([const { None }; N]);
+        // self.names.extend([const { None }; N]);
         result
     }
     /// Returns generated symbols.
@@ -46,14 +46,14 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
         for (dest, name) in result.iter_mut().zip(names.into_iter()) {
             *dest = self.next_sym(name.map(|s| s.into()));
         }
-        self.names.extend([const { None }; N]);
+        // self.names.extend([const { None }; N]);
         result
     }
     /// Generates a new unique symbol.
     pub fn next_sym(&mut self, name: Option<Cow<str>>) -> Symbol<T> {
         let ret = self.next_symbol;
         advance(&mut self.next_symbol);
-        self.names.push(name.map(|cow| Rc::new(cow.to_string())));
+        self.names.push(name.map(|cow| Rc::<str>::from(&*cow)));
         ret
     }
     pub fn name_of(&self, sym: Symbol) -> Cow<str> {
@@ -71,7 +71,7 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
     }
     /// Returns the number of symbols in use.
     pub fn num_syms(&self) -> usize {
-        self.next_symbol.usize()
+        self.next_symbol.usize() + 1
     }
     /// Returns an iterator that generates symbols.
     pub fn generate(&mut self) -> impl Iterator<Item = Symbol<T>> + use<'_, T> {
@@ -113,6 +113,10 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
         assert!(new_len as u64 <= T::MAX as u64, "attempt to truncate to too high length");
         self.names.truncate(new_len);
         self.next_symbol = Symbol { n: NonZeroU32::new(new_len as u32).expect("unreachable").try_into().ok().expect("unreachable") };
+    }
+
+    pub fn names(&self) -> Vec<Option<Rc<str>>> {
+        self.names.clone()
     }
 }
 

@@ -54,7 +54,7 @@ pub struct NamedCfgRule {
     /// The rule's history.
     pub history_id: Option<HistoryId>,
     /// Collection of symbol names.
-    pub names: &'static [&'static str],
+    pub names: Vec<Option<Rc<str>>>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -619,18 +619,18 @@ impl CfgRule {
         }
     }
 
-    pub fn named(&self, names: &'static [&'static str]) -> NamedCfgRule {
+    pub fn named(&self, sym_source: &SymbolSource) -> NamedCfgRule {
         NamedCfgRule {
             lhs: self.lhs,
             rhs: self.rhs.clone(),
             history_id: Some(self.history_id),
-            names,
+            names: sym_source.names(),
         }
     }
 }
 
 impl NamedCfgRule {
-    pub fn new(names: &'static [&'static str]) -> Self {
+    pub fn new(names: Vec<Option<Rc<str>>>) -> Self {
         let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
             lhs: iter.next().unwrap(),
@@ -642,7 +642,7 @@ impl NamedCfgRule {
         }
     }
 
-    pub fn with_history_id(names: &'static [&'static str], history_id: HistoryId) -> Self {
+    pub fn with_history_id(names: Vec<Option<Rc<str>>>, history_id: HistoryId) -> Self {
         let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
             lhs: iter.next().unwrap(),
@@ -658,7 +658,10 @@ impl NamedCfgRule {
 #[macro_export]
 macro_rules! named_cfg_rule {
     ($lhs:ident ::= $($rhs:ident)*) => {
-        NamedCfgRule::new(&[stringify!($lhs), $(stringify!($rhs)),*])
+        {
+            use std::rc::Rc;
+            NamedCfgRule::new(vec![Some(Rc::<str>::from(stringify!($lhs))), $(Some(Rc::<str>::from(stringify!($rhs)))),*])
+        }
     };
 }
 
@@ -681,11 +684,12 @@ impl PartialEq for NamedCfgRule {
 
 impl fmt::Debug for NamedCfgRule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let lhs = self.names[self.lhs.usize()].to_string();
+        let gensym = &"gensym".to_string();
+        let lhs = self.names[self.lhs.usize()].as_deref().unwrap_or(gensym);
         let rhs = self
             .rhs
             .iter()
-            .map(|sym| self.names[sym.usize()].to_string())
+            .map(|sym| self.names[sym.usize()].as_deref().unwrap_or(gensym))
             .collect::<Vec<_>>();
         f.debug_struct("NamedCfgRule")
             .field("lhs", &lhs)

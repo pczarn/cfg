@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 cfg = { path = "../cfg/" }
+cfg-load = { path = "../cfg-load/" }
 
 [features]
 nightly = []

@@ -1,766 +1,246 @@
-extern crate cfg;
-
 use cfg::Cfg;
+use cfg_load::CfgLoadExt;
 
-pub const SYM_NAMES: &'static [&'static str] = &[
-    // "term",  TODO
-    "identifier",
-    "signed",
-    "const_",
-    "inline",
-    "auto",
-    "break_",
-    "case",
-    "char_",
-    "continue_",
-    "default",
-    "do_",
-    "double",
-    "else_",
-    "enum_",
-    "extern_",
-    "float",
-    "for_",
-    "goto",
-    "if_",
-    "int",
-    "long",
-    "register",
-    "return_",
-    "short",
-    "sizeof_",
-    "static_",
-    "struct_",
-    "switch",
-    "typedef",
-    "union",
-    "unsigned",
-    "void",
-    "volatile",
-    "while_",
-    "constant",
-    "string_literal",
-    "right_assign",
-    "left_assign",
-    "add_assign",
-    "sub_assign",
-    "mul_assign",
-    "div_assign",
-    "mod_assign",
-    "and_assign",
-    "xor_assign",
-    "or_assign",
-    "right_op",
-    "left_op",
-    "inc_op",
-    "dec_op",
-    "ptr_op",
-    "and_op",
-    "or_op",
-    "le_op",
-    "ge_op",
-    "eq_op",
-    "ne_op",
-    "elipsis",
-    "restrict",
-    "bool_",
-    "complex",
-    "imaginary",
-    "lparen",
-    "rparen",
-    "lbracket",
-    "rbracket",
-    "lbrace",
-    "rbrace",
-    "dot",
-    "colon",
-    "semicolon",
-    "comma",
-    "ampersand",
-    "star",
-    "plus",
-    "minus",
-    "tilde",
-    "exclamation",
-    "slash",
-    "percent",
-    "langle",
-    "rangle",
-    "xor",
-    "pipe",
-    "question",
-    "equal",
-    "start",
-    "primary_expression",
-    "postfix_expression",
-    "argument_expression_list_opt",
-    "argument_expression_list",
-    "unary_expression",
-    "unary_operator",
-    "cast_expression",
-    "multiplicative_expression",
-    "additive_expression",
-    "shift_expression",
-    "relational_expression",
-    "equality_expression",
-    "AND_expression",
-    "exclusive_OR_expression",
-    "inclusive_OR_expression",
-    "logical_AND_expression",
-    "logical_OR_expression",
-    "conditional_expression",
-    "assignment_expression",
-    "assignment_operator",
-    "expression",
-    "constant_expression",
-    "declaration",
-    "init_declarator_list_opt",
-    "declaration_specifiers",
-    "declaration_specifiers_opt",
-    "init_declarator_list",
-    "init_declarator",
-    "storage_class_specifier",
-    "type_specifier",
-    "struct_or_union_specifier",
-    "identifier_opt",
-    "struct_or_union",
-    "struct_declaration_list",
-    "struct_declaration",
-    "specifier_qualifier_list",
-    "specifier_qualifier_list_opt",
-    "struct_declarator_list",
-    "struct_declarator",
-    "declarator_opt",
-    "enum_specifier",
-    "enumerator_list",
-    "enumerator",
-    "type_qualifier",
-    "function_specifier",
-    "declarator",
-    "pointer_opt",
-    "direct_declarator",
-    "type_qualifier_list_opt",
-    "identifier_list_opt",
-    "pointer",
-    "type_qualifier_list",
-    "parameter_type_list",
-    "parameter_list",
-    "parameter_declaration",
-    "abstract_declarator_opt",
-    "identifier_list",
-    "abstract_declarator",
-    "direct_abstract_declarator",
-    "direct_abstract_declarator_opt",
-    "assignment_expression_opt",
-    "parameter_type_list_opt",
-    "typedef_name",
-    "initializer",
-    "initializer_list",
-    "designation_opt",
-    "designation",
-    "designator_list",
-    "designator",
-    "statement",
-    "labeled_statement",
-    "compound_statement",
-    "block_item_list_opt",
-    "block_item_list",
-    "block_item",
-    "expression_statement",
-    "expression_opt",
-    "selection_statement",
-    "iteration_statement",
-    "jump_statement",
-    "translation_unit",
-    "external_declaration",
-    "function_definition",
-    "declaration_list_opt",
-    "declaration_list",
-    "enumeration_constant",
-    "type_name",
-    "error",
-];
-
-#[allow(non_snake_case)]
 pub fn grammar() -> Cfg {
-    let mut grammar = Cfg::new();
-    let [
-        // term,  TODO
-        identifier,
-        signed,
-        const_,
-        inline,
-        auto,
-        break_,
-        case,
-        char_,
-        continue_,
-        default,
-        do_,
-        double,
-        else_,
-        enum_,
-        extern_,
-        float,
-        for_,
-        goto,
-        if_,
-        int,
-        long,
-        register,
-        return_,
-        short,
-        sizeof_,
-        static_,
-        struct_,
-        switch,
-        typedef,
-        union,
-        unsigned,
-        void,
-        volatile,
-        while_,
-        constant,
-        string_literal,
-        right_assign,
-        left_assign,
-        add_assign,
-        sub_assign,
-        mul_assign,
-        div_assign,
-        mod_assign,
-        and_assign,
-        xor_assign,
-        or_assign,
-        right_op,
-        left_op,
-        inc_op,
-        dec_op,
-        ptr_op,
-        and_op,
-        or_op,
-        le_op,
-        ge_op,
-        eq_op,
-        ne_op,
-        elipsis,
-        restrict,
-        bool_,
-        complex,
-        imaginary,
-        lparen,
-        rparen,
-        lbracket,
-        rbracket,
-        lbrace,
-        rbrace,
-        dot,
-        colon,
-        semicolon,
-        comma,
-        ampersand,
-        star,
-        plus,
-        minus,
-        tilde,
-        exclamation,
-        slash,
-        percent,
-        langle,
-        rangle,
-        xor,
-        pipe,
-        question,
-        equal,
-    ] = grammar.sym();
-
-    let [start, primary_expression, postfix_expression, argument_expression_list_opt, argument_expression_list, unary_expression, unary_operator, cast_expression, multiplicative_expression, additive_expression, shift_expression, relational_expression, equality_expression, AND_expression, exclusive_OR_expression, inclusive_OR_expression, logical_AND_expression, logical_OR_expression, conditional_expression, assignment_expression, assignment_operator, expression, constant_expression, declaration, init_declarator_list_opt, declaration_specifiers, declaration_specifiers_opt, init_declarator_list, init_declarator, storage_class_specifier, type_specifier, struct_or_union_specifier, identifier_opt, struct_or_union, struct_declaration_list, struct_declaration, specifier_qualifier_list, specifier_qualifier_list_opt, struct_declarator_list, struct_declarator, declarator_opt, enum_specifier, enumerator_list, enumerator, type_qualifier, function_specifier, declarator, pointer_opt, direct_declarator, type_qualifier_list_opt, identifier_list_opt, pointer, type_qualifier_list, parameter_type_list, parameter_list, parameter_declaration, abstract_declarator_opt, identifier_list, abstract_declarator, direct_abstract_declarator, direct_abstract_declarator_opt, assignment_expression_opt, parameter_type_list_opt, typedef_name, initializer, initializer_list, designation_opt, designation, designator_list, designator, statement, labeled_statement, compound_statement, block_item_list_opt, block_item_list, block_item, expression_statement, expression_opt, selection_statement, iteration_statement, jump_statement, translation_unit, external_declaration, function_definition, declaration_list_opt, declaration_list, enumeration_constant, type_name, error] =
-        grammar.sym();
-
-    grammar.rule(start).rhs([translation_unit]);
-    grammar
-        .rule(primary_expression)
-        .rhs([identifier])
-        .rhs([constant])
-        .rhs([string_literal])
-        .rhs([lparen, expression, rparen]);
-    grammar
-        .rule(postfix_expression)
-        .rhs([primary_expression])
-        .rhs([postfix_expression, lbracket, expression, rbracket])
-        .rhs([
-            postfix_expression,
-            lparen,
-            argument_expression_list_opt,
-            rparen,
-        ])
-        .rhs([postfix_expression, dot, identifier])
-        .rhs([postfix_expression, ptr_op, identifier])
-        .rhs([postfix_expression, inc_op])
-        .rhs([postfix_expression, dec_op])
-        .rhs([lparen, type_name, rparen, lbrace, initializer_list, rbrace])
-        .rhs([
-            lparen,
-            type_name,
-            rparen,
-            lbrace,
-            initializer_list,
-            comma,
-            rbrace,
-        ]);
-    grammar
-        .rule(argument_expression_list_opt)
-        .rhs([])
-        .rhs([argument_expression_list]);
-    grammar
-        .rule(argument_expression_list)
-        .rhs([assignment_expression])
-        .rhs([argument_expression_list, comma, assignment_expression]);
-    grammar
-        .rule(unary_expression)
-        .rhs([postfix_expression])
-        .rhs([inc_op, unary_expression])
-        .rhs([dec_op, unary_expression])
-        .rhs([unary_operator, cast_expression])
-        .rhs([sizeof_, unary_expression])
-        .rhs([sizeof_, lparen, type_name, rparen]);
-    grammar
-        .rule(unary_operator)
-        .rhs([ampersand])
-        .rhs([star])
-        .rhs([plus])
-        .rhs([minus])
-        .rhs([tilde])
-        .rhs([exclamation]);
-    grammar.rule(cast_expression).rhs([unary_expression]).rhs([
-        lparen,
-        type_name,
-        rparen,
-        cast_expression,
-    ]);
-    grammar
-        .rule(multiplicative_expression)
-        .rhs([cast_expression])
-        .rhs([multiplicative_expression, star, cast_expression])
-        .rhs([multiplicative_expression, slash, cast_expression])
-        .rhs([multiplicative_expression, percent, cast_expression]);
-    grammar
-        .rule(additive_expression)
-        .rhs([multiplicative_expression])
-        .rhs([additive_expression, plus, multiplicative_expression])
-        .rhs([additive_expression, minus, multiplicative_expression]);
-    grammar
-        .rule(shift_expression)
-        .rhs([additive_expression])
-        .rhs([shift_expression, left_op, additive_expression])
-        .rhs([shift_expression, right_op, additive_expression]);
-    grammar
-        .rule(relational_expression)
-        .rhs([shift_expression])
-        .rhs([relational_expression, langle, shift_expression])
-        .rhs([relational_expression, rangle, shift_expression])
-        .rhs([relational_expression, le_op, shift_expression])
-        .rhs([relational_expression, ge_op, shift_expression]);
-    grammar
-        .rule(equality_expression)
-        .rhs([relational_expression])
-        .rhs([equality_expression, eq_op, relational_expression])
-        .rhs([equality_expression, ne_op, relational_expression]);
-    grammar
-        .rule(AND_expression)
-        .rhs([equality_expression])
-        .rhs([AND_expression, ampersand, equality_expression]);
-    grammar
-        .rule(exclusive_OR_expression)
-        .rhs([AND_expression])
-        .rhs([exclusive_OR_expression, xor, AND_expression]);
-    grammar
-        .rule(inclusive_OR_expression)
-        .rhs([exclusive_OR_expression])
-        .rhs([inclusive_OR_expression, pipe, exclusive_OR_expression]);
-    grammar
-        .rule(logical_AND_expression)
-        .rhs([inclusive_OR_expression])
-        .rhs([logical_AND_expression, and_op, inclusive_OR_expression]);
-    grammar
-        .rule(logical_OR_expression)
-        .rhs([logical_AND_expression])
-        .rhs([logical_OR_expression, or_op, logical_AND_expression]);
-    grammar
-        .rule(conditional_expression)
-        .rhs([logical_OR_expression])
-        .rhs([
-            logical_OR_expression,
-            question,
-            expression,
-            colon,
-            conditional_expression,
-        ]);
-    grammar
-        .rule(assignment_expression)
-        .rhs([conditional_expression])
-        .rhs([unary_expression, assignment_operator, assignment_expression]);
-    grammar
-        .rule(assignment_operator)
-        .rhs([equal])
-        .rhs([mul_assign])
-        .rhs([div_assign])
-        .rhs([mod_assign])
-        .rhs([add_assign])
-        .rhs([sub_assign])
-        .rhs([left_assign])
-        .rhs([right_assign])
-        .rhs([and_assign])
-        .rhs([xor_assign])
-        .rhs([or_assign]);
-    grammar
-        .rule(expression)
-        .rhs([assignment_expression])
-        .rhs([expression, comma, assignment_expression])
-        .rhs([error]);
-    grammar
-        .rule(constant_expression)
-        .rhs([conditional_expression]);
-
-    grammar
-        .rule(declaration)
-        .rhs([declaration_specifiers, init_declarator_list_opt, semicolon])
-        .rhs([error]);
-    grammar
-        .rule(init_declarator_list_opt)
-        .rhs([])
-        .rhs([init_declarator_list]);
-    grammar
-        .rule(declaration_specifiers)
-        .rhs([storage_class_specifier, declaration_specifiers_opt])
-        .rhs([type_specifier, declaration_specifiers_opt])
-        .rhs([type_qualifier, declaration_specifiers_opt])
-        .rhs([function_specifier, declaration_specifiers_opt]);
-    grammar
-        .rule(declaration_specifiers_opt)
-        .rhs([])
-        .rhs([declaration_specifiers]);
-    grammar
-        .rule(init_declarator_list)
-        .rhs([init_declarator])
-        .rhs([init_declarator_list, comma, init_declarator]);
-    grammar
-        .rule(init_declarator)
-        .rhs([declarator])
-        .rhs([declarator, equal, initializer]);
-    grammar
-        .rule(storage_class_specifier)
-        .rhs([typedef])
-        .rhs([extern_])
-        .rhs([static_])
-        .rhs([auto])
-        .rhs([register]);
-    grammar
-        .rule(type_specifier)
-        .rhs([void])
-        .rhs([char_])
-        .rhs([short])
-        .rhs([int])
-        .rhs([long])
-        .rhs([float])
-        .rhs([double])
-        .rhs([signed])
-        .rhs([unsigned])
-        .rhs([bool_])
-        .rhs([complex])
-        .rhs([imaginary])
-        .rhs([struct_or_union_specifier])
-        .rhs([enum_specifier])
-        .rhs([typedef_name]);
-    grammar
-        .rule(struct_or_union_specifier)
-        .rhs([
-            struct_or_union,
-            identifier_opt,
-            lbrace,
-            struct_declaration_list,
-            rbrace,
-        ])
-        .rhs([struct_or_union, identifier]);
-    grammar.rule(identifier_opt).rhs([]).rhs([identifier]);
-    grammar.rule(struct_or_union).rhs([struct_]).rhs([union]);
-    grammar
-        .rule(struct_declaration_list)
-        .rhs([struct_declaration])
-        .rhs([struct_declaration_list, struct_declaration]);
-    grammar.rule(struct_declaration).rhs([
-        specifier_qualifier_list,
-        struct_declarator_list,
-        semicolon,
-    ]);
-    grammar
-        .rule(specifier_qualifier_list)
-        .rhs([type_specifier, specifier_qualifier_list_opt])
-        .rhs([type_qualifier, specifier_qualifier_list_opt]);
-    grammar
-        .rule(specifier_qualifier_list_opt)
-        .rhs([])
-        .rhs([specifier_qualifier_list]);
-    grammar
-        .rule(struct_declarator_list)
-        .rhs([struct_declarator])
-        .rhs([struct_declarator_list, comma, struct_declarator]);
-    grammar.rule(struct_declarator).rhs([declarator]).rhs([
-        declarator_opt,
-        colon,
-        constant_expression,
-    ]);
-    grammar.rule(declarator_opt).rhs([]).rhs([declarator]);
-    grammar
-        .rule(enum_specifier)
-        .rhs([enum_, identifier_opt, lbrace, enumerator_list, rbrace])
-        .rhs([
-            enum_,
-            identifier_opt,
-            lbrace,
-            enumerator_list,
-            comma,
-            rbrace,
-        ])
-        .rhs([enum_, identifier]);
-    grammar
-        .rule(enumerator_list)
-        .rhs([enumerator])
-        .rhs([enumerator_list, comma, enumerator]);
-    grammar.rule(enumerator).rhs([enumeration_constant]).rhs([
-        enumeration_constant,
-        equal,
-        constant_expression,
-    ]);
-    grammar
-        .rule(type_qualifier)
-        .rhs([const_])
-        .rhs([restrict])
-        .rhs([volatile]);
-    grammar.rule(function_specifier).rhs([inline]);
-    grammar
-        .rule(declarator)
-        .rhs([pointer_opt, direct_declarator]);
-    grammar.rule(pointer_opt).rhs([]).rhs([pointer]);
-    grammar
-        .rule(direct_declarator)
-        .rhs([identifier])
-        .rhs([lparen, declarator, rparen])
-        .rhs([
-            direct_declarator,
-            lbracket,
-            type_qualifier_list_opt,
-            assignment_expression_opt,
-            rbracket,
-        ])
-        .rhs([
-            direct_declarator,
-            lbracket,
-            static_,
-            type_qualifier_list_opt,
-            assignment_expression,
-            rbracket,
-        ])
-        .rhs([
-            direct_declarator,
-            lbracket,
-            type_qualifier_list,
-            static_,
-            assignment_expression,
-            rbracket,
-        ])
-        .rhs([
-            direct_declarator,
-            lbracket,
-            type_qualifier_list_opt,
-            star,
-            rbracket,
-        ])
-        .rhs([direct_declarator, lparen, parameter_type_list, rparen])
-        .rhs([direct_declarator, lparen, identifier_list_opt, rparen]);
-    grammar
-        .rule(type_qualifier_list_opt)
-        .rhs([])
-        .rhs([type_qualifier_list]);
-    grammar
-        .rule(identifier_list_opt)
-        .rhs([])
-        .rhs([identifier_list]);
-    grammar
-        .rule(pointer)
-        .rhs([star, type_qualifier_list_opt])
-        .rhs([star, type_qualifier_list_opt, pointer]);
-    grammar
-        .rule(type_qualifier_list)
-        .rhs([type_qualifier])
-        .rhs([type_qualifier_list, type_qualifier]);
-    grammar
-        .rule(parameter_type_list)
-        .rhs([parameter_list])
-        .rhs([parameter_list, comma, elipsis]);
-    grammar
-        .rule(parameter_list)
-        .rhs([parameter_declaration])
-        .rhs([parameter_list, comma, parameter_declaration]);
-    grammar
-        .rule(parameter_declaration)
-        .rhs([declaration_specifiers, declarator])
-        .rhs([declaration_specifiers, abstract_declarator_opt]);
-    grammar
-        .rule(abstract_declarator_opt)
-        .rhs([])
-        .rhs([abstract_declarator]);
-    grammar
-        .rule(identifier_list)
-        .rhs([identifier])
-        .rhs([identifier_list, comma, identifier]);
-    grammar
-        .rule(type_name)
-        .rhs([specifier_qualifier_list, abstract_declarator_opt]);
-    grammar
-        .rule(abstract_declarator)
-        .rhs([pointer])
-        .rhs([pointer_opt, direct_abstract_declarator]);
-    grammar
-        .rule(direct_abstract_declarator)
-        .rhs([lparen, abstract_declarator, rparen])
-        .rhs([
-            direct_abstract_declarator_opt,
-            lbracket,
-            assignment_expression_opt,
-            rbracket,
-        ])
-        .rhs([direct_abstract_declarator_opt, lbracket, star, rbracket])
-        .rhs([
-            direct_abstract_declarator_opt,
-            lparen,
-            parameter_type_list_opt,
-            rparen,
-        ]);
-    grammar
-        .rule(direct_abstract_declarator_opt)
-        .rhs([])
-        .rhs([direct_abstract_declarator]);
-    grammar
-        .rule(assignment_expression_opt)
-        .rhs([])
-        .rhs([assignment_expression]);
-    grammar
-        .rule(parameter_type_list_opt)
-        .rhs([])
-        .rhs([parameter_type_list]);
-    grammar.rule(typedef_name).rhs([identifier]);
-    grammar
-        .rule(initializer)
-        .rhs([assignment_expression])
-        .rhs([lbrace, initializer_list, rbrace])
-        .rhs([lbrace, initializer_list, comma, rbrace]);
-    grammar
-        .rule(initializer_list)
-        .rhs([designation_opt, initializer])
-        .rhs([initializer_list, comma, designation_opt, initializer]);
-    grammar.rule(designation_opt).rhs([]).rhs([designation]);
-    grammar.rule(designation).rhs([designator_list, equal]);
-    grammar
-        .rule(designator_list)
-        .rhs([designator])
-        .rhs([designator_list, designator]);
-    grammar
-        .rule(designator)
-        .rhs([rbracket, constant_expression, rbracket])
-        .rhs([dot, identifier]);
-    grammar
-        .rule(statement)
-        .rhs([labeled_statement])
-        .rhs([compound_statement])
-        .rhs([expression_statement])
-        .rhs([selection_statement])
-        .rhs([iteration_statement])
-        .rhs([jump_statement])
-        .rhs([error]);
-    grammar
-        .rule(labeled_statement)
-        .rhs([identifier, colon, statement])
-        .rhs([case, constant_expression, colon, statement])
-        .rhs([default, colon, statement]);
-    grammar
-        .rule(compound_statement)
-        .rhs([lbrace, block_item_list_opt, rbrace]);
-    grammar
-        .rule(block_item_list_opt)
-        .rhs([])
-        .rhs([block_item_list]);
-    grammar
-        .rule(block_item_list)
-        .rhs([block_item])
-        .rhs([block_item_list, block_item]);
-    grammar.rule(block_item).rhs([declaration]).rhs([statement]);
-    grammar
-        .rule(expression_statement)
-        .rhs([expression_opt, semicolon]);
-    grammar.rule(expression_opt).rhs([]).rhs([expression]);
-    grammar
-        .rule(selection_statement)
-        .rhs([if_, lparen, expression, rparen, statement])
-        .rhs([if_, lparen, expression, rparen, statement, else_, statement])
-        .rhs([switch, lparen, expression, rparen, statement]);
-    grammar
-        .rule(iteration_statement)
-        .rhs([while_, lparen, expression, rparen, statement])
-        .rhs([
-            do_, statement, while_, lparen, expression, rparen, semicolon,
-        ])
-        .rhs([
-            for_,
-            lparen,
-            expression_opt,
-            semicolon,
-            expression_opt,
-            semicolon,
-            expression_opt,
-            rparen,
-            statement,
-        ])
-        .rhs([
-            for_,
-            lparen,
-            declaration,
-            expression_opt,
-            semicolon,
-            expression_opt,
-            rparen,
-            statement,
-        ]);
-    grammar
-        .rule(jump_statement)
-        .rhs([goto, identifier, semicolon])
-        .rhs([continue_, semicolon])
-        .rhs([break_, semicolon])
-        .rhs([return_, expression_opt, semicolon]);
-    grammar
-        .rule(translation_unit)
-        .rhs([external_declaration])
-        .rhs([translation_unit, external_declaration]);
-    grammar
-        .rule(external_declaration)
-        .rhs([function_definition])
-        .rhs([declaration]);
-    grammar.rule(function_definition).rhs([
-        declaration_specifiers,
-        declarator,
-        declaration_list_opt,
-        compound_statement,
-    ]);
-    grammar
-        .rule(declaration_list_opt)
-        .rhs([])
-        .rhs([declaration_list]);
-    grammar
-        .rule(declaration_list)
-        .rhs([declaration])
-        .rhs([declaration_list, declaration]);
-    grammar.rule(enumeration_constant).rhs([identifier]);
-
-    grammar.set_roots([start]);
-    grammar
+    Cfg::load(r##"
+start ::= translation_unit;
+primary_expression ::= identifier;
+primary_expression ::= constant;
+primary_expression ::= string_literal;
+primary_expression ::= lparen expression rparen;
+postfix_expression ::= primary_expression;
+postfix_expression ::= postfix_expression lbracket expression rbracket;
+postfix_expression ::= postfix_expression lparen argument_expression_list_opt rparen;
+postfix_expression ::= postfix_expression dot identifier;
+postfix_expression ::= postfix_expression ptr_op identifier;
+postfix_expression ::= postfix_expression inc_op;
+postfix_expression ::= postfix_expression dec_op;
+postfix_expression ::= lparen type_name rparen lbrace initializer_list rbrace;
+postfix_expression ::= lparen type_name rparen lbrace initializer_list comma rbrace;
+argument_expression_list_opt ::= ;
+argument_expression_list_opt ::= argument_expression_list;
+argument_expression_list ::= assignment_expression;
+argument_expression_list ::= argument_expression_list comma assignment_expression;
+unary_expression ::= postfix_expression;
+unary_expression ::= inc_op unary_expression;
+unary_expression ::= dec_op unary_expression;
+unary_expression ::= unary_operator cast_expression;
+unary_expression ::= sizeof_ unary_expression;
+unary_expression ::= sizeof_ lparen type_name rparen;
+unary_operator ::= ampersand;
+unary_operator ::= star;
+unary_operator ::= plus;
+unary_operator ::= minus;
+unary_operator ::= tilde;
+unary_operator ::= exclamation;
+cast_expression ::= unary_expression;
+cast_expression ::= lparen type_name rparen cast_expression;
+multiplicative_expression ::= cast_expression;
+multiplicative_expression ::= multiplicative_expression star cast_expression;
+multiplicative_expression ::= multiplicative_expression slash cast_expression;
+multiplicative_expression ::= multiplicative_expression percent cast_expression;
+additive_expression ::= multiplicative_expression;
+additive_expression ::= additive_expression plus multiplicative_expression;
+additive_expression ::= additive_expression minus multiplicative_expression;
+shift_expression ::= additive_expression;
+shift_expression ::= shift_expression left_op additive_expression;
+shift_expression ::= shift_expression right_op additive_expression;
+relational_expression ::= shift_expression;
+relational_expression ::= relational_expression langle shift_expression;
+relational_expression ::= relational_expression rangle shift_expression;
+relational_expression ::= relational_expression le_op shift_expression;
+relational_expression ::= relational_expression ge_op shift_expression;
+equality_expression ::= relational_expression;
+equality_expression ::= equality_expression eq_op relational_expression;
+equality_expression ::= equality_expression ne_op relational_expression;
+AND_expression ::= equality_expression;
+AND_expression ::= AND_expression ampersand equality_expression;
+exclusive_OR_expression ::= AND_expression;
+exclusive_OR_expression ::= exclusive_OR_expression xor AND_expression;
+inclusive_OR_expression ::= exclusive_OR_expression;
+inclusive_OR_expression ::= inclusive_OR_expression pipe exclusive_OR_expression;
+logical_AND_expression ::= inclusive_OR_expression;
+logical_AND_expression ::= logical_AND_expression and_op inclusive_OR_expression;
+logical_OR_expression ::= logical_AND_expression;
+logical_OR_expression ::= logical_OR_expression or_op logical_AND_expression;
+conditional_expression ::= logical_OR_expression;
+conditional_expression ::= logical_OR_expression question expression colon conditional_expression;
+assignment_expression ::= conditional_expression;
+assignment_expression ::= unary_expression assignment_operator assignment_expression;
+assignment_operator ::= equal;
+assignment_operator ::= mul_assign;
+assignment_operator ::= div_assign;
+assignment_operator ::= mod_assign;
+assignment_operator ::= add_assign;
+assignment_operator ::= sub_assign;
+assignment_operator ::= left_assign;
+assignment_operator ::= right_assign;
+assignment_operator ::= and_assign;
+assignment_operator ::= xor_assign;
+assignment_operator ::= or_assign;
+expression ::= assignment_expression;
+expression ::= expression comma assignment_expression;
+expression ::= error;
+constant_expression ::= conditional_expression;
+declaration ::= declaration_specifiers init_declarator_list_opt semicolon;
+declaration ::= error;
+init_declarator_list_opt ::= ;
+init_declarator_list_opt ::= init_declarator_list;
+declaration_specifiers ::= storage_class_specifier declaration_specifiers_opt;
+declaration_specifiers ::= type_specifier declaration_specifiers_opt;
+declaration_specifiers ::= type_qualifier declaration_specifiers_opt;
+declaration_specifiers ::= function_specifier declaration_specifiers_opt;
+declaration_specifiers_opt ::= ;
+declaration_specifiers_opt ::= declaration_specifiers;
+init_declarator_list ::= init_declarator;
+init_declarator_list ::= init_declarator_list comma init_declarator;
+init_declarator ::= declarator;
+init_declarator ::= declarator equal initializer;
+storage_class_specifier ::= typedef;
+storage_class_specifier ::= extern_;
+storage_class_specifier ::= static_;
+storage_class_specifier ::= auto;
+storage_class_specifier ::= register;
+type_specifier ::= void;
+type_specifier ::= char_;
+type_specifier ::= short;
+type_specifier ::= int;
+type_specifier ::= long;
+type_specifier ::= float;
+type_specifier ::= double;
+type_specifier ::= signed;
+type_specifier ::= unsigned;
+type_specifier ::= bool_;
+type_specifier ::= complex;
+type_specifier ::= imaginary;
+type_specifier ::= struct_or_union_specifier;
+type_specifier ::= enum_specifier;
+type_specifier ::= typedef_name;
+struct_or_union_specifier ::= struct_or_union identifier_opt lbrace struct_declaration_list rbrace;
+struct_or_union_specifier ::= struct_or_union identifier;
+identifier_opt ::= ;
+identifier_opt ::= identifier;
+struct_or_union ::= struct_;
+struct_or_union ::= union;
+struct_declaration_list ::= struct_declaration;
+struct_declaration_list ::= struct_declaration_list struct_declaration;
+struct_declaration ::= specifier_qualifier_list struct_declarator_list semicolon;
+specifier_qualifier_list ::= type_specifier specifier_qualifier_list_opt;
+specifier_qualifier_list ::= type_qualifier specifier_qualifier_list_opt;
+specifier_qualifier_list_opt ::= ;
+specifier_qualifier_list_opt ::= specifier_qualifier_list;
+struct_declarator_list ::= struct_declarator;
+struct_declarator_list ::= struct_declarator_list comma struct_declarator;
+struct_declarator ::= declarator;
+struct_declarator ::= declarator_opt colon constant_expression;
+declarator_opt ::= ;
+declarator_opt ::= declarator;
+enum_specifier ::= enum_ identifier_opt lbrace enumerator_list rbrace;
+enum_specifier ::= enum_ identifier_opt lbrace enumerator_list comma rbrace;
+enum_specifier ::= enum_ identifier;
+enumerator_list ::= enumerator;
+enumerator_list ::= enumerator_list comma enumerator;
+enumerator ::= enumeration_constant;
+enumerator ::= enumeration_constant equal constant_expression;
+type_qualifier ::= const_;
+type_qualifier ::= restrict;
+type_qualifier ::= volatile;
+function_specifier ::= inline;
+declarator ::= pointer_opt direct_declarator;
+pointer_opt ::= ;
+pointer_opt ::= pointer;
+direct_declarator ::= identifier;
+direct_declarator ::= lparen declarator rparen;
+direct_declarator ::= direct_declarator lbracket type_qualifier_list_opt assignment_expression_opt rbracket;
+direct_declarator ::= direct_declarator lbracket static_ type_qualifier_list_opt assignment_expression rbracket;
+direct_declarator ::= direct_declarator lbracket type_qualifier_list static_ assignment_expression rbracket;
+direct_declarator ::= direct_declarator lbracket type_qualifier_list_opt star rbracket;
+direct_declarator ::= direct_declarator lparen parameter_type_list rparen;
+direct_declarator ::= direct_declarator lparen identifier_list_opt rparen;
+type_qualifier_list_opt ::= ;
+type_qualifier_list_opt ::= type_qualifier_list;
+identifier_list_opt ::= ;
+identifier_list_opt ::= identifier_list;
+pointer ::= star type_qualifier_list_opt;
+pointer ::= star type_qualifier_list_opt pointer;
+type_qualifier_list ::= type_qualifier;
+type_qualifier_list ::= type_qualifier_list type_qualifier;
+parameter_type_list ::= parameter_list;
+parameter_type_list ::= parameter_list comma elipsis;
+parameter_list ::= parameter_declaration;
+parameter_list ::= parameter_list comma parameter_declaration;
+parameter_declaration ::= declaration_specifiers declarator;
+parameter_declaration ::= declaration_specifiers abstract_declarator_opt;
+abstract_declarator_opt ::= ;
+abstract_declarator_opt ::= abstract_declarator;
+identifier_list ::= identifier;
+identifier_list ::= identifier_list comma identifier;
+type_name ::= specifier_qualifier_list abstract_declarator_opt;
+abstract_declarator ::= pointer;
+abstract_declarator ::= pointer_opt direct_abstract_declarator;
+direct_abstract_declarator ::= lparen abstract_declarator rparen;
+direct_abstract_declarator ::= direct_abstract_declarator_opt lbracket assignment_expression_opt rbracket;
+direct_abstract_declarator ::= direct_abstract_declarator_opt lbracket star rbracket;
+direct_abstract_declarator ::= direct_abstract_declarator_opt lparen parameter_type_list_opt rparen;
+direct_abstract_declarator_opt ::= ;
+direct_abstract_declarator_opt ::= direct_abstract_declarator;
+assignment_expression_opt ::= ;
+assignment_expression_opt ::= assignment_expression;
+parameter_type_list_opt ::= ;
+parameter_type_list_opt ::= parameter_type_list;
+typedef_name ::= identifier;
+initializer ::= assignment_expression;
+initializer ::= lbrace initializer_list rbrace;
+initializer ::= lbrace initializer_list comma rbrace;
+initializer_list ::= designation_opt initializer;
+initializer_list ::= initializer_list comma designation_opt initializer;
+designation_opt ::= ;
+designation_opt ::= designation;
+designation ::= designator_list equal;
+designator_list ::= designator;
+designator_list ::= designator_list designator;
+designator ::= rbracket constant_expression rbracket;
+designator ::= dot identifier;
+statement ::= labeled_statement;
+statement ::= compound_statement;
+statement ::= expression_statement;
+statement ::= selection_statement;
+statement ::= iteration_statement;
+statement ::= jump_statement;
+statement ::= error;
+labeled_statement ::= identifier colon statement;
+labeled_statement ::= case constant_expression colon statement;
+labeled_statement ::= default colon statement;
+compound_statement ::= lbrace block_item_list_opt rbrace;
+block_item_list_opt ::= ;
+block_item_list_opt ::= block_item_list;
+block_item_list ::= block_item;
+block_item_list ::= block_item_list block_item;
+block_item ::= declaration;
+block_item ::= statement;
+expression_statement ::= expression_opt semicolon;
+expression_opt ::= ;
+expression_opt ::= expression;
+selection_statement ::= if_ lparen expression rparen statement;
+selection_statement ::= if_ lparen expression rparen statement else_ statement;
+selection_statement ::= switch lparen expression rparen statement;
+iteration_statement ::= while_ lparen expression rparen statement;
+iteration_statement ::= do_ statement while_ lparen expression rparen semicolon;
+iteration_statement ::= for_ lparen expression_opt semicolon expression_opt semicolon expression_opt rparen statement;
+iteration_statement ::= for_ lparen declaration expression_opt semicolon expression_opt rparen statement;
+jump_statement ::= goto identifier semicolon;
+jump_statement ::= continue_ semicolon;
+jump_statement ::= break_ semicolon;
+jump_statement ::= return_ expression_opt semicolon;
+translation_unit ::= external_declaration;
+translation_unit ::= translation_unit external_declaration;
+external_declaration ::= function_definition;
+external_declaration ::= declaration;
+function_definition ::= declaration_specifiers declarator declaration_list_opt compound_statement;
+declaration_list_opt ::= ;
+declaration_list_opt ::= declaration_list;
+declaration_list ::= declaration;
+declaration_list ::= declaration_list declaration;
+enumeration_constant ::= identifier;
+    "##).expect("could not load grammar")
 }

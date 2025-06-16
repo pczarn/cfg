@@ -1,23 +1,24 @@
+use cfg_symbol::SymbolSource;
 use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
-use cfg_grammar::Cfg;
+use cfg_grammar::{Cfg, SymbolBitSet};
 use cfg_sequence::CfgSequenceExt;
-use std::{collections::HashMap, convert::AsRef, fmt};
+use std::{collections::HashMap, convert::AsRef, fmt::{self, Write}};
 
 use elsa::FrozenIndexSet;
 
-struct StringInterner {
+pub struct StringInterner {
     set: FrozenIndexSet<String>,
 }
 
 impl StringInterner {
-    fn new() -> Self {
+    pub fn new() -> Self {
         StringInterner {
             set: FrozenIndexSet::new(),
         }
     }
 
-    fn get_or_intern<T>(&self, value: T) -> usize
+    pub fn get_or_intern<T>(&self, value: T) -> usize
     where
         T: AsRef<str>,
     {
@@ -209,6 +210,7 @@ impl fmt::Display for LoadError {
 
 pub trait CfgLoadExt {
     fn load(bnf: &str) -> Result<Cfg, LoadError>;
+    fn to_bnf(&self) -> String;
 }
 
 impl CfgLoadExt for Cfg {
@@ -314,5 +316,17 @@ impl CfgLoadExt for Cfg {
         } else {
             return Err(LoadError::Eval { reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result) });
         }
+    }
+
+    fn to_bnf(&self) -> String {
+        let mut result = String::new();
+        for rule in self.rules() {
+            let mut rhs = String::new();
+            for &sym in &rule.rhs[..] {
+                write!(rhs, "{} ", self.sym_source().name_of(sym)).unwrap();
+            }
+            writeln!(result, "{} ::= {};", self.sym_source().name_of(rule.lhs), rhs.trim()).unwrap();
+        }
+        result
     }
 }
