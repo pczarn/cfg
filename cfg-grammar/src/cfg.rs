@@ -21,6 +21,8 @@ use cfg_history::{
 pub struct Cfg {
     /// The symbol source.
     sym_source: SymbolSource,
+    /// The list of lexemes.
+    lexemes: SymbolBitSet,
     /// The array of rules.
     rules: Vec<CfgRule>,
     /// Start symbols.
@@ -103,6 +105,7 @@ impl Cfg {
     ) -> Self {
         Cfg {
             sym_source,
+            lexemes: SymbolBitSet::new(),
             rules: vec![],
             roots: MaybeSmallVec::new(),
             wrapped_roots: MaybeSmallVec::new(),
@@ -121,6 +124,14 @@ impl Cfg {
     /// Generates a new unique symbol.
     pub fn next_sym(&mut self, name: Option<Cow<str>>) -> Symbol {
         self.sym_source_mut().next_sym(name)
+    }
+
+    /// Generates a new unique symbol.
+    pub fn lexeme(&mut self, name: Option<Cow<str>>) -> Symbol {
+        self.lexemes.reserve(self.num_syms() + 1);
+        let result = self.sym_source_mut().next_sym(name);
+        self.lexemes.set(result, true);
+        result
     }
 
     pub fn sym_at<const N: usize>(at: usize) -> [Symbol; N] {

@@ -1,6 +1,6 @@
 //! Source
 
-use std::{borrow::Cow, iter, num::NonZeroU32, rc::Rc};
+use std::{borrow::Cow, collections::HashMap, iter, num::NonZeroU32, rc::Rc};
 
 use crate::{symbol::SymbolPrimitive, *};
 
@@ -117,6 +117,10 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
 
     pub fn names(&self) -> Vec<Option<Rc<str>>> {
         self.names.clone()
+    }
+
+    pub fn name_map(&self) -> HashMap<Rc<str>, Symbol> {
+        self.names.iter().zip(SymbolSource::generate_fresh()).filter_map(|(opt, i)| opt.clone().map(|rc| (rc, i))).collect::<HashMap<_, _>>()
     }
 }
 

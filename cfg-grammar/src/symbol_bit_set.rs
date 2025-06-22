@@ -151,6 +151,10 @@ impl SymbolBitSet {
     pub fn all(&self) -> bool {
         self.bit_vec.iter().all(|b| b)
     }
+
+    pub fn reserve(&mut self, len: usize) {
+        self.bit_vec.extend(iter::repeat(false).take(len.saturating_sub(self.bit_vec.len())));
+    }
 }
 
 static TRUE: bool = true;

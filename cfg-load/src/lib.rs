@@ -215,6 +215,7 @@ pub trait CfgLoadExt {
 
 impl CfgLoadExt for Cfg {
     fn load(bnf: &str) -> Result<Cfg, LoadError> {
+        use tiny_earley::Grammar;
         let bnf_grammar = grammar! {
             S = [start, rule, alt, rhs, bnf_op, ident, colon, eq_op, alpha, ident_tail, alnum, digit, pipe, op_mul, op_plus, semicolon, fragment]
             R = {
