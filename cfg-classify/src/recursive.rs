@@ -124,6 +124,9 @@ impl<'a, 'b, R: Iterator<Item = (usize, &'b CfgRule)>> Iterator
 }
 
 fn rule_recursion(rule: &CfgRule, derivation: &ReachabilityMatrix) -> Option<RecursionKind> {
+    if rule.rhs.len() == 0 {
+        return None;
+    }
     if rule
         .rhs
         .iter()

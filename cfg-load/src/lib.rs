@@ -1,9 +1,10 @@
-use cfg_symbol::SymbolSource;
+#![deny(unsafe_code)]
+
 use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
-use cfg_grammar::{Cfg, SymbolBitSet};
+use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
-use std::{collections::HashMap, convert::AsRef, fmt::{self, Write}};
+use std::{collections::HashMap, convert::AsRef, fmt::{self, Write}, str::Chars};
 
 use elsa::FrozenIndexSet;
 
@@ -60,9 +61,6 @@ enum Rep {
 
 #[derive(Clone, Debug)]
 enum Value {
-    Digit(char),
-    Alpha(char),
-    Alnum(char),
     Ident(String),
     Rules(Vec<Rule>),
     Rhs(Vec<Vec<Fragment>>),
@@ -72,7 +70,8 @@ enum Value {
 }
 
 struct Evaluator {
-    symbols: [Symbol; 19],
+    symbols: [Symbol; 11],
+    tokens: Vec<Token>,
 }
 
 impl forest::Eval for Evaluator {
@@ -80,12 +79,10 @@ impl forest::Eval for Evaluator {
 
     fn leaf(&self, terminal: Symbol, values: u32) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, whitespace, alt, rhs, bnf_op, ident, colon, eq_op, alpha, ident_tail, alnum, digit, pipe, op_mul, op_plus, semicolon, fragment, ident2] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] =
             self.symbols;
-        if terminal == digit {
-            Value::Digit(values as u8 as char)
-        } else if terminal == alpha {
-            Value::Alpha(char::from_u32(values).unwrap())
+        if terminal == ident {
+            self.tokens[values as usize].ident()
         } else {
             Value::None
         }
@@ -93,7 +90,7 @@ impl forest::Eval for Evaluator {
 
     fn product(&self, action: u32, args: Vec<Self::Elem>) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, whitespace, alt, rhs, bnf_op, ident, colon, eq_op, alpha, ident_tail, alnum, digit, pipe, op_mul, op_plus, semicolon, fragment, ident2] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] =
             self.symbols;
         // let mut iter = args.into_iter();
         match (
@@ -111,12 +108,12 @@ impl forest::Eval for Evaluator {
             (3, Value::Rules(rule), _, _) => {
                 Value::Rules(rule)
             }
-            // rule ::= lhs bnf_op rhs semicolon;
-            (4, Value::Ident(lhs), _, Value::Rhs(rhs)) => {
-                let rules = rhs.into_iter().map(|rhs| Rule { lhs: lhs.clone(), rhs }).collect();
+            // rule ::= lhs bnf_op semicolon;
+            (4, Value::Ident(lhs), ..) => {
+                let rules = vec![Rule { lhs: lhs.clone(), rhs: vec![] }];
                 Value::Rules(rules)
             }
-            // rule ::= lhs bnf_op rhs semicolon whitespace;
+            // rule ::= lhs bnf_op rhs semicolon;
             (5, Value::Ident(lhs), _, Value::Rhs(rhs)) => {
                 let rules = rhs.into_iter().map(|rhs| Rule { lhs: lhs.clone(), rhs }).collect();
                 Value::Rules(rules)
@@ -143,69 +140,13 @@ impl forest::Eval for Evaluator {
             (10, Value::Ident(ident), _, _) => {
                 Value::Fragment(Fragment { ident, rep: Rep::OneOrMore })
             }
-            // fragment ::= ident op_plus whitespace;
-            (11, Value::Ident(ident), _, _) => {
-                Value::Fragment(Fragment { ident, rep: Rep::OneOrMore })
-            }
             // fragment ::= ident op_mul;
-            (12, Value::Ident(ident), _, _) => {
-                Value::Fragment(Fragment { ident, rep: Rep::ZeroOrMore })
-            }
-            // fragment ::= ident op_mul whitespace;
-            (13, Value::Ident(ident), _, _) => {
+            (11, Value::Ident(ident), _, _) => {
                 Value::Fragment(Fragment { ident, rep: Rep::ZeroOrMore })
             }
             // fragment ::= ident;
-            (14, Value::Ident(ident), _, _) => {
+            (12, Value::Ident(ident), _, _) => {
                 Value::Fragment(Fragment { ident, rep: Rep::None })
-            }
-            // bnf_op ::= colon colon eq_op;
-            (15, _, _, _) => {
-                Value::None
-            }
-            // ident2 ::= alpha ident_tail;
-            (16, Value::Alpha(alpha), Value::Ident(ident), _) => {
-                let mut result = String::new();
-                result.push(alpha);
-                result.push_str(&ident[..]);
-                Value::Ident(result)
-            }
-            // ident2 ::= alpha;
-            (17, Value::Alpha(ch), _, _) => {
-                Value::Ident(ch.into())
-            }
-            // ident_tail ::= ident_tail alnum;
-            (18, Value::Ident(mut ident), Value::Alnum(ch), _) => {
-                ident.push(ch);
-                Value::Ident(ident)
-            }
-            // ident_tail ::= alnum;
-            (19, Value::Alnum(ch), _, _) => {
-                Value::Ident(ch.into())
-            }
-            // alnum ::= alpha;
-            (20, Value::Alpha(ch), _, _) => {
-                Value::Alnum(ch)
-            }
-            // alnum ::= digit;
-            (21, Value::Digit(digit), _, _) => {
-                Value::Digit(digit)
-            }
-            // ident ::= ident2;
-            (22, Value::Ident(i), _, _) => {
-                Value::Ident(i)
-            }
-            // ident ::= whitespace ident2;
-            (23, _, Value::Ident(i), _) => {
-                Value::Ident(i)
-            }
-            // ident ::= ident2 whitespace;
-            (24, Value::Ident(i), _, _) => {
-                Value::Ident(i)
-            }
-            // ident ::= whitespace ident2 whitespace;
-            (25, _, Value::Ident(i), _) => {
-                Value::Ident(i)
             }
             args => panic!("unknown rule id {:?} or args {:?}", action, args),
         }
@@ -237,6 +178,114 @@ impl fmt::Display for LoadError {
     }
 }
 
+struct Lexer<'a> {
+    chars: Chars<'a>,
+    line_no: usize,
+    col_no: usize,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum Token {
+    Ident(String),
+    BnfOp,
+    Semicolon,
+    Pipe,
+    Plus,
+    Mul,
+    Whitespace,
+    Error(usize, usize),
+}
+
+impl Token {
+    fn ident(&self) -> Value {
+        if let &Token::Ident(ref s) = self {
+            Value::Ident(s.clone())
+        } else {
+            panic!("cannot extract ident from token")
+        }
+    }
+}
+
+impl<'a> Lexer<'a> {
+    fn tokenize(bnf: &str) -> Vec<Token> {
+        let mut lexer = Lexer { chars: bnf.chars(), line_no: 1, col_no: 1 };
+        let mut result = vec![];
+        while let Some(token) = lexer.eat_token() {
+            if token != Token::Whitespace {
+                result.push(token);
+            }
+        }
+        result
+    }
+
+    fn eat_token(&mut self) -> Option<Token> {
+        // while let Some(' ' | '\n' | '\t') = self.peek() {
+        //     self.advance();
+        // }
+        self.peek().map(|ch| self.eat(ch))
+    }
+
+    fn eat(&mut self, ch: char) -> Token {
+        match ch {
+            'a'..='z' | 'A'..='Z' | '_' => {
+                let substring = self.chars.as_str();
+                while let Some('a'..='z' | 'A'..='Z' | '_' | '0'..='9') = self.peek() {
+                    self.advance();
+                }
+                Token::Ident(substring[..substring.len() - self.chars.as_str().len()].to_string())
+            }
+            ':' => {
+                if self.chars.as_str().starts_with("::=") {
+                    self.advance();
+                    self.advance();
+                    self.advance();
+                    Token::BnfOp
+                } else {
+                    Token::Error(self.line_no, self.col_no)
+                }
+            }
+            ';' => {
+                self.advance();
+                Token::Semicolon
+            }
+            '|' => {
+                self.advance();
+                Token::Pipe
+            }
+            '+' => {
+                self.advance();
+                Token::Plus
+            }
+            '*' => {
+                self.advance();
+                Token::Mul
+            }
+            ' ' | '\n' | '\t' => {
+                self.advance();
+                Token::Whitespace
+            }
+            _ => Token::Error(self.line_no, self.col_no)
+        }
+    }
+
+    fn advance(&mut self) {
+        match self.chars.next() {
+            Some('\n') => {
+                self.line_no += 1;
+                self.col_no = 1;
+            }
+            Some(_) => {
+                self.col_no += 1;
+            }
+            None => {}
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.chars.as_str().chars().next()
+    }
+}
+
 pub trait CfgLoadExt {
     fn load(bnf: &str) -> Result<Cfg, LoadError>;
     fn to_bnf(&self) -> String;
@@ -246,93 +295,52 @@ impl CfgLoadExt for Cfg {
     fn load(bnf: &str) -> Result<Cfg, LoadError> {
         use tiny_earley::Grammar;
         let bnf_grammar = grammar! {
-            S = [start, rule, whitespace, alt, rhs, bnf_op, ident, colon, eq_op, alpha, ident_tail, alnum, digit, pipe, op_mul, op_plus, semicolon, fragment, ident2]
+            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment]
             R = {
-                start ::= start rule;
-                start ::= rule;
-                rule ::= ident bnf_op rhs semicolon;
-                rule ::= ident bnf_op rhs semicolon whitespace;
-                rhs ::= rhs pipe alt;
-                rhs ::= alt;
-                alt ::= alt fragment;
-                alt ::= fragment;
-                fragment ::= ident op_plus;
-                fragment ::= ident op_plus whitespace;
-                fragment ::= ident op_mul;
-                fragment ::= ident op_mul whitespace;
-                fragment ::= ident;
-                bnf_op ::= colon colon eq_op;
-                ident2 ::= alpha ident_tail;
-                ident2 ::= alpha;
-                ident_tail ::= ident_tail alnum;
-                ident_tail ::= alnum;
-                alnum ::= alpha;
-                alnum ::= digit;
-                ident ::= ident2;
-                ident ::= whitespace ident2;
-                ident ::= ident2 whitespace;
-                ident ::= whitespace ident2 whitespace;
+                start ::= start rule; // 2
+                start ::= rule; // 3
+                rule ::= ident bnf_op semicolon; // 4
+                rule ::= ident bnf_op rhs semicolon; // 5
+                rhs ::= rhs pipe alt; // 6
+                rhs ::= alt; // 7
+                alt ::= alt fragment; // 8
+                alt ::= fragment; // 9
+                fragment ::= ident op_plus; // 10
+                fragment ::= ident op_mul; // 11
+                fragment ::= ident; // 12
             }
         };
         let symbols = bnf_grammar.symbols();
         #[allow(unused_variables)]
-        let [start, rule, whitespace, alt, rhs, bnf_op, ident, colon, eq_op, alpha, ident_tail, alnum, digit, pipe, op_mul, op_plus, semicolon, fragment, ident2] = bnf_grammar.symbols();
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] = bnf_grammar.symbols();
         let mut recognizer = Recognizer::new(&bnf_grammar);
-        let mut line_no = 1;
-        let mut col_no = 1;
-        let mut last_char = None;
-        for ch in bnf.chars() {
+        let tokens = Lexer::tokenize(bnf);
+        for (i, ch) in tokens.iter().enumerate() {
             let terminal = match ch {
-                ':' => colon,
-                ';' => semicolon,
-                '=' => eq_op,
-                '0'..='9' => digit,
-                '|' => pipe,
-                '*' => op_mul,
-                '+' => op_plus,
-                'a'..='z' | 'A'..='Z' => alpha,
-                ' ' => match last_char {
-                    None | Some(' ') => {
-                        col_no += 1;
-                        continue;
-                    }
-                    Some('\n') => {
-                        line_no += 1;
-                        col_no = 1;
-                        continue;
-                    }
-                    _ => {
-                        whitespace
-                    }
-                }
-                '\n' => {
-                    line_no += 1;
-                    col_no = 1;
-                    continue;
-                }
-                other => return Err(LoadError::Parse { reason: format!("invalid character {}", other), line: line_no, col: col_no }),
+                Token::BnfOp => bnf_op,
+                Token::Semicolon => semicolon,
+                Token::Pipe => pipe,
+                Token::Mul => op_mul,
+                Token::Plus => op_plus,
+                Token::Ident(_) => ident,
+                Token::Whitespace => continue,
+                &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32 }),
             };
-            last_char = Some(ch);
-            recognizer.scan(terminal, ch as u32);
-            // println!("{:?}", ch);
-            // println!("{}", recognizer.earley_set_diff());
+            recognizer.scan(terminal, i as u32);
             let success = recognizer.end_earleme();
-            // if !success {
-            // }
             if !success {
-                return Err(LoadError::Parse { reason: "parse failed".to_string(), line: line_no, col: col_no });
+                return Err(LoadError::Parse { reason: "parse failed".to_string(), line: 1, col: 1 });
             }
-            col_no += 1;
             // assert!(success, "parse failed at character {}", i);
         }
         let finished_node = if let Some(node) = recognizer.finished_node {
             node
         } else {
-            return Err(LoadError::Parse { reason: "parse failed: no result".to_string(), line: line_no, col: col_no });
+            return Err(LoadError::Parse { reason: "parse failed: no result".to_string(), line: 1, col: 1 });
         };
         let result = recognizer
             .forest
-            .evaluator(Evaluator { symbols })
+            .evaluator(Evaluator { symbols, tokens })
             .evaluate(finished_node);
         if let Value::Rules(rules) = result {
             let mut cfg = Cfg::new();

@@ -248,7 +248,7 @@ impl History {
             .chain(iter::once(SymKind::Other));
         let mut to_left = SymKind::Other;
         let mut dots = [RuleDot::none(); 3];
-        for (i, to_right) in syms.enumerate() {
+        for (i, to_right) in syms.take(3).enumerate() {
             dots[i] = match (to_left, to_right) {
                 (_, SymKind::Separator) => self.dots[1],
                 (SymKind::Separator, _) => self.dots[2],

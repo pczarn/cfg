@@ -1,5 +1,7 @@
 //! Classification of rules and grammars.
 
+#![deny(unsafe_code)]
+
 use cfg_symbol::Symbol;
 use cfg_grammar::Cfg;
 
@@ -27,7 +29,7 @@ pub trait CfgClassifyExt {
 }
 
 impl CfgClassifyExt for Cfg {
-#[cfg(feature = "ll")]
+    #[cfg(feature = "ll")]
     fn ll_parse_table(&self) -> ll::LlParseTable {
         ll::LlParseTable::new(self)
     }
@@ -36,12 +38,12 @@ impl CfgClassifyExt for Cfg {
         recursive::Recursion::new(self)
     }
 
-#[cfg(feature = "lr")]
+    #[cfg(feature = "lr")]
     fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder {
         lr::Lr0FsmBuilder::new(self)
     }
 
-#[cfg(feature = "lr")]
+    #[cfg(feature = "lr")]
     fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder {
         lr::Lr0ClosureBuilder::new(self)
     }
