@@ -47,18 +47,8 @@ impl Weighted for Cfg {
     fn weighted(&self) -> WeightedRhsByLhs<f64> {
         let mut weighted = WeightedRhsByLhs::new();
         for rule in self.rules() {
-            let mut history_id = rule.history_id;
-            let mut result = None;
-            while let &HistoryNode::Linked { prev, ref node } =
-                &self.history_graph()[history_id.get()]
-            {
-                if let &LinkedHistoryNode::Weight { weight } = node {
-                    result = Some(weight);
-                    break;
-                }
-                history_id = prev;
-            }
-            weighted.add_weight(result.unwrap_or(1.0), rule.lhs, &rule.rhs[..]);
+            let weight = rule.history.weight.unwrap_or(1000) as f64 / 1000f64;
+            weighted.add_weight(weight, rule.lhs, &rule.rhs[..]);
         }
         weighted
     }

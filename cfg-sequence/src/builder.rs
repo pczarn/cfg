@@ -4,6 +4,7 @@ use std::ops::{Bound, RangeBounds};
 
 use crate::destination::SequenceDestination;
 use crate::{Separator, Sequence};
+use cfg_history::earley::History;
 use cfg_history::HistoryId;
 use cfg_symbol::Symbol;
 
@@ -12,8 +13,8 @@ pub struct SequenceRuleBuilder<D: SequenceDestination> {
     lhs: Option<Symbol>,
     range: Option<(u32, Option<u32>)>,
     separator: Separator,
-    history: Option<HistoryId>,
-    default_history: Option<HistoryId>,
+    history: Option<History>,
+    default_history: Option<History>,
     destination: D,
 }
 
@@ -34,7 +35,7 @@ where
     }
 
     /// Sets the default history source.
-    pub fn default_history(self, default_history: HistoryId) -> Self {
+    pub fn default_history(self, default_history: History) -> Self {
         SequenceRuleBuilder {
             lhs: self.lhs,
             range: self.range,
@@ -65,7 +66,7 @@ where
 
     /// Assigns the rule history, which is used on the next call to `rhs`, or overwritten by a call
     /// to `rhs_with_history`.
-    pub fn history(mut self, history: HistoryId) -> Self {
+    pub fn history(mut self, history: History) -> Self {
         self.history = Some(history);
         self
     }
@@ -101,7 +102,7 @@ where
     }
 
     /// Adds a sequence rule to the grammar.
-    pub fn rhs_with_history(mut self, rhs: Symbol, history_id: Option<HistoryId>) -> Self {
+    pub fn rhs_with_history(mut self, rhs: Symbol, history: Option<History>) -> Self {
         let (start, end) = self.range.take().expect("expected inclusive(n, m)");
         self.destination.add_sequence(Sequence {
             lhs: self.lhs.unwrap(),
@@ -109,7 +110,7 @@ where
             start,
             end,
             separator: self.separator,
-            history_id,
+            history,
         });
         self
     }

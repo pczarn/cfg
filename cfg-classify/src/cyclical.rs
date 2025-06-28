@@ -119,7 +119,7 @@ impl<G: BorrowMut<Cfg>> Cycles<G> {
                     rewritten_rules.push(CfgRule {
                         lhs: new_rule.lhs,
                         rhs: rhs.into(),
-                        history_id: new_rule.history_id,
+                        history: new_rule.history,
                     });
                 }
                 !changed

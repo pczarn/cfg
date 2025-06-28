@@ -32,7 +32,6 @@ type MaybeSmallVec<T, const N: usize = 8> = SmallVec<[T; N]>;
 mod local_prelude {
     pub use crate::precedenced_rule::PrecedencedRuleBuilder;
     pub use crate::*;
-    pub use cfg_history::HistoryId;
     pub use cfg_history::earley;
     pub use cfg_symbol::SymbolSource;
     pub use cfg_symbol::Symbol;

@@ -5,7 +5,7 @@ use cfg_grammar::Cfg;
 fn test_load() {
     let cfg = Cfg::load(r#"
         start ::= a b c d;
-        a ::= xx;
+        a ::= y;
     "#).unwrap();
-    assert_eq!(cfg.rules().count(), 8);
+    assert_eq!(cfg.rules().count(), 2);
 }

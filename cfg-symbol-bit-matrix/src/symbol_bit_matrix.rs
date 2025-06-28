@@ -5,6 +5,7 @@ use bit_matrix::BitMatrix;
 use cfg_grammar::Cfg;
 use cfg_symbol::{Symbol, SymbolSource};
 
+#[derive(Debug)]
 pub struct SymbolBitMatrix {
     bit_matrix: BitMatrix,
 }

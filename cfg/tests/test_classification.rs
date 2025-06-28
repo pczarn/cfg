@@ -3,16 +3,19 @@
 use std::num::NonZeroUsize;
 
 #[cfg(feature = "ll")]
-use cfg::classify::{LlNonterminalClass, LlParseTable};
+use cfg::classify::ll::{LlNonterminalClass, LlParseTable};
 #[cfg(feature = "lr")]
-use cfg::classify::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
+use cfg::classify::lr::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
 use cfg::{Cfg, CfgRule};
 use cfg_classify::CfgClassifyExt;
 use cfg_classify::recursive::RecursiveRule;
+use cfg_history::RootHistoryNode;
 
 #[cfg(feature = "ll")]
 #[test]
 fn test_ll_classification() {
+    use std::collections::BTreeMap;
+
     let mut cfg = Cfg::new();
     let [start, a, x, b, c, y] = cfg.sym();
 
@@ -44,6 +47,8 @@ fn test_ll_classification() {
 #[cfg(feature = "ll")]
 #[test]
 fn test_ll_transitive_classification() {
+    use std::collections::BTreeMap;
+
     let mut cfg: Cfg = Cfg::new();
     let [start, a, b, x, y] = cfg.sym();
 
@@ -70,6 +75,8 @@ fn test_ll_transitive_classification() {
 #[cfg(feature = "lr")]
 #[test]
 fn test_lr0() {
+    use std::{collections::BTreeMap, rc::Rc};
+
     let mut cfg: Cfg = Cfg::new();
     let [start, a, x, b, c, y] = cfg.sym();
 
@@ -194,7 +201,7 @@ fn test_recursive() {
     let rec_rule = CfgRule {
         lhs: foo,
         rhs: vec![foo, bar].into(),
-        history_id: NonZeroUsize::new(3).unwrap(),
+        history: RootHistoryNode::NoOp.into(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
@@ -223,7 +230,7 @@ fn test_recursive_right_rec() {
     let rec_rule = CfgRule {
         lhs: foo,
         rhs: vec![bar, bar, buzz, foo].into(),
-        history_id: NonZeroUsize::new(3).unwrap(),
+        history: RootHistoryNode::NoOp.into(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {

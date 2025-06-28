@@ -12,14 +12,14 @@ use crate::Sequence;
 use crate::Symbol;
 use cfg_grammar::rule_builder::RuleBuilder;
 use cfg_grammar::Cfg;
-use cfg_history::{HistoryId, HistoryNodeRewriteSequence, HistoryNodeSequenceRhs, RootHistoryNode};
+use cfg_history::{earley::History, HistoryNodeRewriteSequence, HistoryNodeSequenceRhs, RootHistoryNode};
 
 /// Rewrites sequence rules into production rules.
 pub struct SequencesToProductions<'a> {
     destination: &'a mut Cfg,
     stack: Vec<Sequence>,
     map: HashMap<PartialSequence, Symbol>,
-    top: Option<HistoryId>,
+    top: Option<History>,
     lhs: Option<Symbol>,
 }
 
@@ -70,7 +70,7 @@ impl<'a> SequencesToProductions<'a> {
                 .sequence(rule.lhs)
                 .separator(rule.separator)
                 .inclusive(rule.start, rule.end)
-                .rhs_with_history(rule.rhs, rule.history_id);
+                .rhs_with_history(rule.rhs, rule.history);
         }
     }
 
@@ -78,35 +78,29 @@ impl<'a> SequencesToProductions<'a> {
     pub fn rewrite(&mut self, top: Sequence) {
         self.stack.clear();
         self.map.clear();
-        let prev = top.history_id.unwrap_or_else(|| {
-            self.destination
-                .add_history_node(RootHistoryNode::NoOp.into())
+        let prev = top.history.unwrap_or_else(|| {
+            RootHistoryNode::NoOp.into()
         });
-        let history_id_top = self.destination.add_history_node(
-            HistoryNodeRewriteSequence {
+        let history_top = HistoryNodeRewriteSequence {
                 top: true,
                 rhs: top.rhs,
                 sep: top.separator.into(),
                 prev,
             }
-            .into(),
-        );
-        self.top = Some(history_id_top);
+            .into();
+        self.top = Some(history_top);
         self.reduce(top);
-        let prev = top.history_id.unwrap_or_else(|| {
-            self.destination
-                .add_history_node(RootHistoryNode::NoOp.into())
+        let prev = top.history.unwrap_or_else(|| {
+            RootHistoryNode::NoOp.into()
         });
-        let history_id_bottom = self.destination.add_history_node(
-            HistoryNodeRewriteSequence {
+        let history_bottom = HistoryNodeRewriteSequence {
                 top: false,
                 rhs: top.rhs,
                 sep: top.separator.into(),
                 prev,
             }
-            .into(),
-        );
-        *self.top.as_mut().unwrap() = history_id_bottom;
+            .into();
+        *self.top.as_mut().unwrap() = history_bottom;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
             self.reduce(seq);
@@ -131,15 +125,13 @@ impl<'a> SequencesToProductions<'a> {
 
     fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
         assert!(rhs.as_ref().len() <= 3);
-        let history_id = self.destination.add_history_node(
-            HistoryNodeSequenceRhs {
+        let history = HistoryNodeSequenceRhs {
                 prev: self.top.unwrap(),
                 rhs: [rhs.as_ref().get(0).copied(), rhs.as_ref().get(1).copied(), rhs.as_ref().get(2).copied()]
-            }.into()
-        );
+            }.into();
         RuleBuilder::new(self.destination)
             .rule(self.lhs.unwrap())
-            .history(history_id)
+            .history(history)
             .rhs(rhs);
     }
 

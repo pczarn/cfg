@@ -30,22 +30,13 @@ fn test_minimum_distance() {
     // min(a) = 0
     // min(c) = 1
     let expected_distances = vec![
-        (NonZeroUsize::new(1).unwrap(), vec![Some(0)]),
-        (
-            NonZeroUsize::new(2).unwrap(),
-            vec![Some(1), Some(1), Some(0), Some(0), None, None],
-        ),
-        (NonZeroUsize::new(3).unwrap(), vec![None, None]),
-        (
-            NonZeroUsize::new(4).unwrap(),
-            vec![Some(0), Some(0), Some(0)],
-        ),
-        (
-            NonZeroUsize::new(5).unwrap(),
-            vec![Some(1), Some(1), Some(0)],
-        ),
-        (NonZeroUsize::new(6).unwrap(), vec![Some(1), Some(0)]),
-        (NonZeroUsize::new(7).unwrap(), vec![Some(1), Some(0)]),
+        vec![Some(0)],
+        vec![Some(1), Some(1), Some(0), Some(0), None, None],
+        vec![None, None],
+        vec![Some(0), Some(0), Some(0)],
+        vec![Some(1), Some(1), Some(0)],
+        vec![Some(1), Some(0)],
+        vec![Some(1), Some(0)],
     ];
 
     assert_eq!(distances, &expected_distances[..]);

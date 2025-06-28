@@ -8,6 +8,7 @@ use bit_vec::BitVec;
 use crate::local_prelude::*;
 
 /// A set of symbols in the form of a bit vector.
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct SymbolBitSet {
     bit_vec: BitVec,

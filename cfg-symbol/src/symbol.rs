@@ -41,7 +41,7 @@ impl<T: SymbolPrimitive> Symbol<T> {
     pub fn first() -> Self {
         let one: T::BasePrimitive = 1u8.into();
         Symbol {
-            n: one.try_into().ok().expect("unreachable"),
+            n: one.try_into().ok().expect("unreachable: could not convert 1u8"),
         }
     }
 

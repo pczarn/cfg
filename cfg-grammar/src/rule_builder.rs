@@ -3,12 +3,12 @@
 use std::convert::AsRef;
 
 use crate::local_prelude::*;
-use cfg_history::{LinkedHistoryNode, RootHistoryNode};
+use cfg_history::{earley::{process_linked, History}, LinkedHistoryNode, RootHistoryNode};
 
 /// The rule builder.
 pub struct RuleBuilder<'a> {
     lhs: Option<Symbol>,
-    history: Option<HistoryId>,
+    history: Option<History>,
     grammar: &'a mut Cfg,
 }
 
@@ -33,7 +33,7 @@ impl<'a> RuleBuilder<'a> {
 
     /// Assigns the rule history, which is used on the next call to `rhs`, or overwritten by a call
     /// to `rhs_with_history`.
-    pub fn history(mut self, history: HistoryId) -> Self {
+    pub fn history(mut self, history: History) -> Self {
         self.history = Some(history);
         self
     }
@@ -44,25 +44,23 @@ impl<'a> RuleBuilder<'a> {
         let new_history = match self.history.take() {
             Some(history) => history,
             None => {
-                self.grammar.add_history_node(
-                    RootHistoryNode::Rule {
-                        lhs: self.lhs.unwrap(),
-                    }
-                    .into(),
-                )
+                RootHistoryNode::Rule {
+                    lhs: self.lhs.unwrap(),
+                }
+                .into()
             }
         };
         self.rhs_with_history(syms, new_history)
     }
 
     /// Adds a rule alternative with the given RHS and history to the grammar.
-    pub fn rhs_with_history(self, syms: impl AsRef<[Symbol]>, history_id: HistoryId) -> Self {
+    pub fn rhs_with_history(self, syms: impl AsRef<[Symbol]>, history: History) -> Self {
         let lhs = self.lhs.unwrap();
         let rhs = syms.as_ref().into();
         self.grammar.add_rule(CfgRule {
             lhs,
             rhs,
-            history_id,
+            history,
         });
         self
     }
@@ -73,15 +71,8 @@ impl<'a> RuleBuilder<'a> {
         syms: impl AsRef<[Symbol]>,
         linked_history: LinkedHistoryNode,
     ) -> Self {
-        let history_id = self.grammar.add_multiple_history_nodes(
-            RootHistoryNode::Rule {
-                lhs: self.lhs.unwrap(),
-            },
-            [
-                linked_history,
-            ],
-        );
-        self.rhs_with_history(syms, history_id)
+        let history = process_linked(&linked_history, RootHistoryNode::Rule { lhs: self.lhs.unwrap() }.into());
+        self.rhs_with_history(syms, history)
     }
 
     /// Starts building a new precedenced rule.

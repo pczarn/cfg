@@ -108,7 +108,7 @@ impl<'a, 'b, R: Iterator<Item = (usize, &'b CfgRule)>> Iterator
         while let Some((idx, rule)) = self.rules.next() {
             if let Some(recursion) = rule_recursion(rule, &self.recursion.derivation) {
                 // if self.recursion.derivation[(rule.lhs, rule.lhs)] {
-                let rule_distances = &self.minimal_distance.distances()[idx].1[..];
+                let rule_distances = &self.minimal_distance.distances()[idx][..];
                 return Some(RecursiveRule {
                     rule,
                     recursion,

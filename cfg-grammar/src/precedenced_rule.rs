@@ -4,7 +4,7 @@ use std::{convert::AsRef, rc::Rc};
 
 use crate::local_prelude::*;
 use crate::rule_builder::RuleBuilder;
-use cfg_history::{HistoryNodeAssignPrecedence, RootHistoryNode};
+use cfg_history::{earley::History, HistoryNodeAssignPrecedence, RootHistoryNode};
 
 use self::Associativity::*;
 
@@ -28,7 +28,7 @@ pub struct PrecedencedRuleBuilder<'a> {
     lhs: Symbol,
     tighter_lhs: Symbol,
     current_lhs: Symbol,
-    history: Option<HistoryId>,
+    history: Option<History>,
     assoc: Associativity,
     looseness: u32,
     rules_with_group_assoc: Vec<CfgRule>,
@@ -64,7 +64,7 @@ impl<'a> PrecedencedRuleBuilder<'a> {
     /// Assigns the rule history, which is used on the next call to `rhs`, unless overwritten by
     /// a call to `rhs_with_history`.
     #[must_use]
-    pub fn history(mut self, history: HistoryId) -> Self {
+    pub fn history(mut self, history: History) -> Self {
         self.history = Some(history);
         self
     }
@@ -75,27 +75,24 @@ impl<'a> PrecedencedRuleBuilder<'a> {
     where
         S: AsRef<[Symbol]>,
     {
-        let history_id = self.history.take().unwrap_or_else(|| {
-            self.grammar
-                .add_history_node(RootHistoryNode::Rule { lhs: self.lhs }.into())
+        let history = self.history.take().unwrap_or_else(|| {
+            RootHistoryNode::Rule { lhs: self.lhs }.into()
         });
-        self.rhs_with_history(syms.as_ref(), history_id)
+        self.rhs_with_history(syms.as_ref(), history)
     }
 
     /// Creates a rule alternative with the given RHS and history.
     #[must_use]
-    pub fn rhs_with_history<S>(mut self, syms: S, history_id: HistoryId) -> Self
+    pub fn rhs_with_history<S>(mut self, syms: S, history: History) -> Self
     where
         S: AsRef<[Symbol]>,
     {
         let syms = syms.as_ref();
-        let history_assign_precedence = self.grammar.add_history_node(
-            HistoryNodeAssignPrecedence {
-                prev: history_id,
+        let history_assign_precedence = HistoryNodeAssignPrecedence {
+                prev: history,
                 looseness: self.looseness,
             }
-            .into(),
-        );
+            .into();
         let lhs = self.lhs;
         let mut syms = syms.to_vec();
         if self.assoc == Group {
@@ -125,7 +122,7 @@ impl<'a> PrecedencedRuleBuilder<'a> {
             self.grammar.add_rule(CfgRule {
                 lhs: self.current_lhs,
                 rhs: syms.into(),
-                history_id: history_assign_precedence,
+                history: history_assign_precedence,
             });
         }
         // Reset to default associativity and no history.
@@ -149,10 +146,10 @@ impl<'a> PrecedencedRuleBuilder<'a> {
         self.tighter_lhs = self.current_lhs;
         self.current_lhs = self.grammar.next_sym(None);
 
-        let history_id = self.grammar.add_history_node(RootHistoryNode::NoOp.into());
+        let history = RootHistoryNode::NoOp.into();
         RuleBuilder::new(self.grammar)
             .rule(self.current_lhs)
-            .rhs_with_history([self.tighter_lhs], history_id);
+            .rhs_with_history([self.tighter_lhs], history);
         self
     }
 
@@ -167,10 +164,10 @@ impl<'a> PrecedencedRuleBuilder<'a> {
                 .collect();
             self.grammar.add_rule(CfgRule { rhs, ..rule });
         }
-        let history_id = self.grammar.add_history_node(RootHistoryNode::NoOp.into());
+        let history = RootHistoryNode::NoOp.into();
         // The associativity is not reset in the call to `rhs`.
         RuleBuilder::new(self.grammar)
             .rule(self.lhs)
-            .rhs_with_history([loosest_lhs], history_id)
+            .rhs_with_history([loosest_lhs], history)
     }
 }

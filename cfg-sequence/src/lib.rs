@@ -9,13 +9,13 @@ pub use crate::ext::CfgSequenceExt;
 
 use std::ops::{Bound, RangeBounds};
 
-use cfg_history::HistoryId;
+use cfg_history::{earley::History, HistoryId};
 use cfg_symbol::Symbol;
 
 use self::Separator::*;
 
 /// Sequence rule representation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Sequence {
     /// The rule's left-hand side.
     pub lhs: Symbol,
@@ -29,7 +29,7 @@ pub struct Sequence {
     /// The way elements are separated in a sequence, or `Null`.
     pub separator: Separator,
     /// The history carried with the sequence rule.
-    pub history_id: Option<HistoryId>,
+    pub history: Option<History>,
 }
 
 /// The separator symbol and mode of separation in a sequence, or `Null` for no separation.

@@ -1,11 +1,12 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::fmt::Write;
 use std::rc::Rc;
 use std::{cmp, fmt};
 use std::{mem, ops};
 
+use cfg_history::earley::History;
+use cfg_symbol::SymbolName;
 use log::trace;
 
 use occurence_map::OccurenceMap;
@@ -13,7 +14,7 @@ use rule_builder::RuleBuilder;
 
 use crate::local_prelude::*;
 use cfg_history::{
-    BinarizedRhsRange::*, HistoryGraph, HistoryId, HistoryNode, HistoryNodeBinarize, HistoryNodeEliminateNulling, LinkedHistoryNode, RootHistoryNode
+    BinarizedRhsRange::*, HistoryNodeBinarize, HistoryNodeEliminateNulling, RootHistoryNode
 };
 
 /// Representation of context-free grammars.
@@ -28,22 +29,20 @@ pub struct Cfg {
     /// Start symbols.
     roots: MaybeSmallVec<Symbol>,
     wrapped_roots: MaybeSmallVec<WrappedRoot>,
-    /// History container.
-    history_graph: HistoryGraph,
     rhs_len_invariant: Option<usize>,
     eliminate_nulling: bool,
     tmp_stack: RefCell<Vec<Symbol>>,
 }
 
 /// Your standard grammar rule representation.
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CfgRule {
     /// The rule's left-hand side symbol.
     pub lhs: Symbol,
     /// The rule's right-hand side symbols.
     pub rhs: Rc<[Symbol]>,
     /// The rule's history.
-    pub history_id: HistoryId,
+    pub history: History,
 }
 
 /// Your standard grammar rule representation.
@@ -54,9 +53,9 @@ pub struct NamedCfgRule {
     /// The rule's right-hand side symbols.
     pub rhs: Rc<[Symbol]>,
     /// The rule's history.
-    pub history_id: Option<HistoryId>,
+    pub history: Option<History>,
     /// Collection of symbol names.
-    pub names: Vec<Option<Rc<str>>>,
+    pub names: Vec<Option<SymbolName>>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,14 +93,8 @@ impl Cfg {
         Self::default()
     }
 
-    /// Creates an empty context-free grammar with the given symbol source.
-    pub fn with_sym_source(sym_source: SymbolSource) -> Self {
-        Cfg::with_sym_source_and_history_graph(sym_source, HistoryGraph::new(false))
-    }
-
-    pub fn with_sym_source_and_history_graph(
+    pub fn with_sym_source(
         sym_source: SymbolSource,
-        history_graph: HistoryGraph,
     ) -> Self {
         Cfg {
             sym_source,
@@ -109,7 +102,6 @@ impl Cfg {
             rules: vec![],
             roots: MaybeSmallVec::new(),
             wrapped_roots: MaybeSmallVec::new(),
-            history_graph,
             rhs_len_invariant: None,
             eliminate_nulling: false,
             tmp_stack: RefCell::new(vec![]),
@@ -188,7 +180,7 @@ impl Cfg {
 
     /// Sorts the rule array.
     pub fn sort(&mut self) {
-        self.rules.sort();
+        self.rules.sort_by_key(|rule| (rule.lhs, rule.rhs.clone()));
     }
 
     /// Sorts the rule array in place, using the argument to compare elements.
@@ -198,42 +190,12 @@ impl Cfg {
 
     /// Removes consecutive duplicate rules.
     pub fn dedup(&mut self) {
-        self.rules.dedup();
+        self.rules.dedup_by_key(|rule| (rule.lhs, rule.rhs.clone()));
     }
 
     pub fn extend(&mut self, other: &Cfg) {
-        let mut map = BTreeMap::new();
-        let mut work_stack: Vec<_> = other.rules().map(|rule| (rule.history_id, false)).collect();
-        let new_nodes_start = self.history_graph.len();
-        while let Some((others_history_id, finished)) = work_stack.pop() {
-            let node = other.history_graph[others_history_id.get()].clone();
-            if finished {
-                map.entry(others_history_id).or_insert_with(|| {
-                    self.add_history_node(node)
-                });
-            } else {
-                work_stack.push((others_history_id, true));
-                if let HistoryNode::Linked { prev, .. } = node {
-                    work_stack.push((prev, false));
-                }
-            }
-        }
-        for node in &mut self.history_graph[new_nodes_start..] {
-            match node {
-                &mut HistoryNode::Linked { ref mut prev, .. } => {
-                    *prev = map.get(prev).copied().expect("history ID not found");
-                }
-                HistoryNode::Root(..) => {}
-            }
-        }
         self.rules
-            .extend(other.rules.iter().cloned().map(|mut cfg_rule| {
-                cfg_rule.history_id = map
-                    .get(&cfg_rule.history_id)
-                    .copied()
-                    .expect("history ID not found");
-                cfg_rule
-            }));
+            .extend(other.rules.iter().cloned());
     }
 
     /// Ensures the grammar is binarized and eliminates all nulling rules, which have the
@@ -253,9 +215,8 @@ impl Cfg {
     pub fn binarize_and_eliminate_nulling_rules(&mut self) -> Cfg {
         self.limit_rhs_len(Some(2));
 
-        let mut result = Cfg::with_sym_source_and_history_graph(
+        let mut result = Cfg::with_sym_source(
             self.sym_source.clone(),
-            self.history_graph.clone(),
         );
 
         let mut nullable = self.nulling_symbols();
@@ -283,52 +244,47 @@ impl Cfg {
                     All(num) => {
                         // nulling
                         if num == 2 {
-                            let history_id = rewritten_work.add_history_node(
+                            let history = 
                                 HistoryNodeEliminateNulling {
-                                    prev: rule.history_id,
+                                    prev: rule.history,
                                     rhs0: rule.rhs.get(0).cloned(),
                                     rhs1: rule.rhs.get(1).cloned(),
                                     which,
                                 }
-                                .into(),
-                            );
+                                .into();
                             rewritten_work
                                 .rule(rule.lhs)
                                 .rhs(&rule.rhs[0..1])
-                                .history(history_id);
+                                .history(history);
                             rewritten_work
                                 .rule(rule.lhs)
                                 .rhs(&rule.rhs[1..2])
-                                .history(history_id);
+                                .history(history);
                         }
-                        let history_id = result.add_history_node(
-                            HistoryNodeEliminateNulling {
-                                prev: rule.history_id,
+                        let history = HistoryNodeEliminateNulling {
+                                prev: rule.history,
                                 rhs0: rule.rhs.get(0).cloned(),
                                 rhs1: rule.rhs.get(1).cloned(),
                                 which,
                             }
-                            .into(),
-                        );
+                            .into();
                         result
                             .rule(rule.lhs)
                             .rhs(&rule.rhs[which.as_range()])
-                            .history(history_id);
+                            .history(history);
                     }
                     Left | Right => {
-                        let history_id = rewritten_work.add_history_node(
-                            HistoryNodeEliminateNulling {
-                                prev: rule.history_id,
+                        let history = HistoryNodeEliminateNulling {
+                                prev: rule.history,
                                 rhs0: rule.rhs.get(0).cloned(),
                                 rhs1: rule.rhs.get(1).cloned(),
                                 which,
                             }
-                            .into(),
-                        );
+                            .into();
                         rewritten_work
                             .rule(rule.lhs)
                             .rhs(&rule.rhs[which.as_range()])
-                            .history(history_id);
+                            .history(history);
                     }
                 }
             }
@@ -359,19 +315,13 @@ impl Cfg {
         self.rules.iter()
     }
 
-    pub fn history_graph(&self) -> &HistoryGraph {
-        &self.history_graph
-    }
-
     pub fn column(&self, col: usize) -> impl Iterator<Item = DotInfo> + '_ {
-        let earley = self.history_graph.earley();
         let mapper = move |rule: &CfgRule| {
-            let history_id: usize = rule.history_id.into();
             DotInfo {
                 lhs: rule.lhs,
                 predot: rule.rhs.get(col.wrapping_sub(1)).copied(),
                 postdot: rule.rhs.get(col).copied(),
-                earley: if earley.is_empty() { None } else { Some(earley[history_id].dot(col)) },
+                earley: Some(rule.history.dot(col)),
             }
         };
         self.rules().map(mapper)
@@ -421,22 +371,20 @@ impl Cfg {
                 lhs = self.next_sym(None);
                 rhs_rev.push(lhs);
             }
-            let history_id;
+            let history;
             if i == 0 && rhs_rev.is_empty() {
-                history_id = rule.history_id;
+                history = rule.history;
             } else {
                 let history_node_binarize = HistoryNodeBinarize {
-                    prev: rule.history_id,
+                    prev: rule.history,
                     height: i,
                     full_len: rule.rhs.len(),
                     is_top: rhs_rev.is_empty(),
                 };
                 println!("{:?}", rule.rhs);
-                history_id = self
-                    .history_graph
-                    .add_history_node(history_node_binarize.into());
+                history = history_node_binarize.into();
             }
-            self.rules.push(CfgRule::new(lhs, &tail[..], history_id));
+            self.rules.push(CfgRule::new(lhs, &tail[..], history));
             tail.clear();
             i += 1;
         }
@@ -459,36 +407,6 @@ impl Cfg {
         for rule in &mut self.rules {
             rule.rhs = rule.rhs.iter().copied().rev().collect();
         }
-    }
-
-    #[inline]
-    pub fn with_symbol_source_and_history_graph(
-        sym_source: SymbolSource,
-        history_graph: HistoryGraph,
-    ) -> Self {
-        Cfg {
-            sym_source,
-            history_graph,
-            ..Default::default()
-        }
-    }
-
-    pub fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
-        let result = self.history_graph.next_id();
-        self.history_graph.push(node);
-        result
-    }
-
-    pub fn add_multiple_history_nodes<const N: usize>(
-        &mut self,
-        root: RootHistoryNode,
-        nodes: [LinkedHistoryNode; N],
-    ) -> HistoryId {
-        let mut prev = self.add_history_node(HistoryNode::Root(root));
-        for node in nodes {
-            prev = self.add_history_node(HistoryNode::Linked { prev, node });
-        }
-        prev
     }
 
     /// Starts building a new rule.
@@ -576,12 +494,10 @@ impl Cfg {
         let roots = mem::replace(&mut self.roots, MaybeSmallVec::with_capacity(roots_len));
         for inner_root in roots {
             let [root, start_of_input, end_of_input] = self.sym_source.with_names([Some("root"), Some("start_of_input"), Some("end_of_input")]);
-            let history_id = self.add_history_node(RootHistoryNode::Rule { lhs: root }.into());
-            // let second_history_id = self.add_history_node(HistoryNode::Linked { prev: history_id, node: LinkedHistoryNode::Rhs { rhs: vec![start_of_input, inner_root, end_of_input] } });
             self.add_rule(CfgRule {
                 lhs: root,
                 rhs: [start_of_input, inner_root, end_of_input].into(),
-                history_id,
+                history: RootHistoryNode::Rule { lhs: root }.into(),
             });
             self.wrapped_roots.push(WrappedRoot {
                 root,
@@ -622,11 +538,11 @@ impl Cfg {
 
 impl CfgRule {
     /// Creates a new rule.
-    pub fn new(lhs: Symbol, rhs: impl AsRef<[Symbol]>, history_id: HistoryId) -> Self {
+    pub fn new(lhs: Symbol, rhs: impl AsRef<[Symbol]>, history: History) -> Self {
         CfgRule {
             lhs,
             rhs: rhs.as_ref().into(),
-            history_id,
+            history,
         }
     }
 
@@ -634,33 +550,33 @@ impl CfgRule {
         NamedCfgRule {
             lhs: self.lhs,
             rhs: self.rhs.clone(),
-            history_id: Some(self.history_id),
+            history: Some(self.history),
             names: sym_source.names(),
         }
     }
 }
 
 impl NamedCfgRule {
-    pub fn new(names: Vec<Option<Rc<str>>>) -> Self {
+    pub fn new(names: Vec<Option<SymbolName>>) -> Self {
         let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
             lhs: iter.next().unwrap(),
             rhs: iter.take(names.len() - 1)
                 .collect::<Vec<_>>()
                 .into(),
-            history_id: None,
+            history: None,
             names,
         }
     }
 
-    pub fn with_history_id(names: Vec<Option<Rc<str>>>, history_id: HistoryId) -> Self {
+    pub fn with_history(names: Vec<Option<SymbolName>>, history: History) -> Self {
         let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
             lhs: iter.next().unwrap(),
             rhs: iter.take(names.len() - 1)
                 .collect::<Vec<_>>()
                 .into(),
-            history_id: Some(history_id),
+            history: Some(history),
             names,
         }
     }
@@ -671,7 +587,7 @@ macro_rules! named_cfg_rule {
     ($lhs:ident ::= $($rhs:ident)*) => {
         {
             use std::rc::Rc;
-            NamedCfgRule::new(vec![Some(Rc::<str>::from(stringify!($lhs))), $(Some(Rc::<str>::from(stringify!($rhs)))),*])
+            NamedCfgRule::new(vec![Some(stringify!($lhs).into()), $(Some(stringify!($rhs).into())),*])
         }
     };
 }
@@ -689,7 +605,7 @@ impl PartialEq for NamedCfgRule {
                 .iter()
                 .zip(other.rhs.iter())
                 .all(|(sym_a, sym_b)| self.names[sym_a.usize()] == other.names[sym_b.usize()])
-            && (self.history_id.is_none() || other.history_id.is_none() || self.history_id == other.history_id)
+            && (self.history.is_none() || other.history.is_none() || self.history == other.history)
     }
 }
 
@@ -705,7 +621,7 @@ impl fmt::Debug for NamedCfgRule {
         f.debug_struct("NamedCfgRule")
             .field("lhs", &lhs)
             .field("rhs", &rhs)
-            .field("history_id", &self.history_id)
+            .field("history", &self.history)
             .finish()
     }
 }

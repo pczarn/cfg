@@ -1,6 +1,6 @@
 use super::{EventAndDistance, EventId, ExternalDottedRule, MinimalDistance};
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct RuleDot {
     pub event: EventId,
     pub trace: ExternalDottedRule,

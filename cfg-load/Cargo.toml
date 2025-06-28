@@ -7,6 +7,6 @@ edition = "2024"
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
 cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/" }
 cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-tiny-earley = { path = "../../tiny-earley", version = "0.1" }
+tiny-earley = { path = "../../tiny-earley", version = "0.1", features = ["debug"] }
 elsa = { version = "1.11", features = ["indexmap"] }
 log = "0.4"

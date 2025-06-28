@@ -182,14 +182,11 @@ impl<'a> Lr0FsmBuilder<'a> {
     fn augment_grammar(&mut self, start_sym: Symbol) -> (Symbol, RuleId) {
         let new_start = self.closure.grammar.next_sym(None);
         let rule_id = self.closure.grammar.rules().count() as RuleId;
-        let history_id = self
-            .closure
-            .grammar
-            .add_history_node(RootHistoryNode::NoOp.into());
+        let history = RootHistoryNode::NoOp.into();
         self.closure
             .grammar
             .rule(new_start)
-            .rhs_with_history([start_sym], history_id);
+            .rhs_with_history([start_sym], history);
         (new_start, rule_id)
     }
 

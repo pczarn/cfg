@@ -1,14 +1,14 @@
 //! Calculation of minimum distance from one part of the grammar to another.
 
 use cfg_grammar::*;
-use cfg_history::HistoryId;
+use cfg_history::{earley::History, HistoryId};
 use cfg_symbol::Symbol;
 
 /// Calculation of minimum distance from one part of the grammar to another.
 /// Similar to multi-source shortest path search in a graph.
 pub struct MinimalDistance<'a> {
     grammar: &'a Cfg,
-    distances: Vec<(HistoryId, Vec<Option<u32>>)>,
+    distances: Vec<Vec<Option<u32>>>,
     forward_distances: Distances,
     backward_distances: Distances,
     min_length: Vec<Option<u32>>,
@@ -56,7 +56,7 @@ impl<'a> MinimalDistance<'a> {
     pub fn new(grammar: &'a Cfg) -> Self {
         let distances = grammar
             .rules()
-            .map(|rule| (rule.history_id, vec![None; rule.rhs.len() + 1]))
+            .map(|rule| vec![None; rule.rhs.len() + 1])
             .collect();
         MinimalDistance {
             grammar,
@@ -68,7 +68,7 @@ impl<'a> MinimalDistance<'a> {
     }
 
     /// Returns distances in order respective to the order of rule iteration.
-    pub fn distances(&self) -> &[(HistoryId, Vec<Option<u32>>)] {
+    pub fn distances(&self) -> &[Vec<Option<u32>>] {
         &self.distances[..]
     }
 
@@ -78,7 +78,7 @@ impl<'a> MinimalDistance<'a> {
         &mut self,
         dots: &[(usize, usize)],
         direction: DistanceDirection,
-    ) -> &[(HistoryId, Vec<Option<u32>>)] {
+    ) -> &[Vec<Option<u32>>] {
         let mut dots = dots.to_vec();
         dots.sort_unstable();
         self.minimal_sentence_lengths();
@@ -167,18 +167,18 @@ impl<'a> MinimalDistance<'a> {
     ) -> (u32, bool) {
         let last = if reverse {
             for (dot, &sym) in rhs.iter().enumerate() {
-                set_min(&mut self.distances[idx].1[dot], cur);
+                set_min(&mut self.distances[idx][dot], cur);
                 cur = self.update_sym_distance(cur, sym, true);
             }
             rhs.len()
         } else {
             for (dot, &sym) in rhs.iter().enumerate().rev() {
-                set_min(&mut self.distances[idx].1[dot + 1], cur);
+                set_min(&mut self.distances[idx][dot + 1], cur);
                 cur = self.update_sym_distance(cur, sym, false);
             }
             0
         };
-        let changed = set_min(&mut self.distances[idx].1[last], cur);
+        let changed = set_min(&mut self.distances[idx][last], cur);
         (cur, changed)
     }
 

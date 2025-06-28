@@ -4,6 +4,7 @@
 use std::{num::NonZeroUsize, ops};
 
 use cfg_symbol::Symbol;
+use earley::{process_linked, History};
 
 use self::BinarizedRhsRange::*;
 
@@ -11,82 +12,88 @@ pub mod earley;
 
 pub type HistoryId = NonZeroUsize;
 
-#[derive(Clone, Debug)]
-pub struct HistoryGraph {
-    nodes: Vec<HistoryNode>,
-    earley: Option<Vec<earley::History>>,
-}
+// #[derive(Clone, Debug)]
+// pub enum HistoryGraph {
+//     Nodes {
+//         nodes: Vec<HistoryNode>,
+//     }, 
+//     Earley {
+//         earley: Vec<earley::History>,
+//     },
+// }
 
-pub enum HistoryKind {
-    Earley,
-}
+// pub enum HistoryKind {
+//     Earley,
+// }
 
-impl Default for HistoryGraph {
-    fn default() -> Self {
-        Self::new(false)
-    }
-}
+// impl Default for HistoryGraph {
+//     fn default() -> Self {
+//         Self::nodes()
+//     }
+// }
 
-impl HistoryGraph {
-    pub fn new(earley: bool) -> Self {
-        Self {
-            nodes: vec![RootHistoryNode::NoOp.into()],
-            earley: if earley { Some(vec![earley::History::new(0)]) } else { None },
-        }
-    }
+// impl HistoryGraph {
+//     pub fn nodes() -> Self {
+//         Self::Nodes {
+//             nodes: vec![RootHistoryNode::NoOp.into()],
+//         }
+//     }
 
-    pub fn enable(&mut self, history_kind: HistoryKind) {
-        match history_kind {
-            HistoryKind::Earley => {
-                let mut prev_histories = vec![];
-                for node in &self.nodes {
-                    prev_histories.push(earley::process_node(node, &prev_histories[..]));
-                }
-                self.earley = Some(prev_histories);
-            }
-        }
-    }
+//     pub fn earley() -> Self {
+//         Self::Earley { earley: vec![earley::History::new(0)] }
+//     }
 
-    pub fn earley(&self) -> &[earley::History] {
-        self.earley.as_ref().map_or(&[], |v| &v[..])
-    }
+//     // pub fn enable(&mut self, history_kind: HistoryKind) {
+//     //     match history_kind {
+//     //         HistoryKind::Earley => {
+//     //             let mut prev_histories = vec![];
+//     //             for node in &self.nodes {
+//     //                 prev_histories.push(earley::process_node(node, &prev_histories[..]));
+//     //             }
+//     //             self.earley = Some(prev_histories);
+//     //         }
+//     //     }
+//     // }
 
-    pub fn next_id(&mut self) -> HistoryId {
-        self.nodes
-            .len()
-            .try_into()
-            .expect("problem with zero length history graph")
-    }
+//     pub fn next_id(&mut self) -> HistoryId {
+//         match self {
+//             Self::Nodes { nodes } => nodes.len(),
+//             Self::Earley { earley } => earley.len(),
+//         }.try_into().expect("problem with zero length history graph")
+//     }
 
-    pub fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
-        let result = self.next_id();
-        if let Some(earley) = self.earley.as_mut() {
-            let result = earley::process_node(&node, &earley[..]);
-            earley.push(result);
-        }
-        self.push(node);
-        result
-    }
-}
+//     pub fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
+//         let result = self.next_id();
+//         match self {
+//             Self::Nodes { nodes }
+//         }
+//         if let Some(earley) = self.earley.as_mut() {
+//             let result = earley::process_node(&node, &earley[..]);
+//             earley.push(result);
+//         }
+//         self.push(node);
+//         result
+//     }
+// }
 
-impl ::std::ops::Deref for HistoryGraph {
-    type Target = Vec<HistoryNode>;
+// impl ::std::ops::Deref for HistoryGraph {
+//     type Target = Vec<HistoryNode>;
 
-    fn deref(&self) -> &Self::Target {
-        &self.nodes
-    }
-}
+//     fn deref(&self) -> &Self::Target {
+//         &self.nodes
+//     }
+// }
 
-impl ::std::ops::DerefMut for HistoryGraph {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.nodes
-    }
-}
+// impl ::std::ops::DerefMut for HistoryGraph {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.nodes
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub enum HistoryNode {
     Linked {
-        prev: HistoryId,
+        prev: History,
         node: LinkedHistoryNode,
     },
     Root(RootHistoryNode),
@@ -137,13 +144,13 @@ impl From<RootHistoryNode> for HistoryNode {
 }
 
 pub struct HistoryNodeRhs {
-    pub prev: HistoryId,
+    pub prev: History,
     pub rhs: Vec<Symbol>,
 }
 
 #[derive(Clone, Copy)]
 pub struct HistoryNodeBinarize {
-    pub prev: HistoryId,
+    pub prev: History,
     pub height: u32,
     pub full_len: usize,
     pub is_top: bool,
@@ -151,13 +158,13 @@ pub struct HistoryNodeBinarize {
 
 #[derive(Clone, Copy)]
 pub struct HistoryNodeWeight {
-    pub prev: HistoryId,
+    pub prev: History,
     pub weight: f64,
 }
 
 #[derive(Clone, Copy)]
 pub struct HistoryNodeEliminateNulling {
-    pub prev: HistoryId,
+    pub prev: History,
     pub rhs0: Option<Symbol>,
     pub rhs1: Option<Symbol>,
     pub which: BinarizedRhsRange,
@@ -165,13 +172,13 @@ pub struct HistoryNodeEliminateNulling {
 
 #[derive(Clone, Copy)]
 pub struct HistoryNodeAssignPrecedence {
-    pub prev: HistoryId,
+    pub prev: History,
     pub looseness: u32,
 }
 
 #[derive(Clone, Copy)]
 pub struct HistoryNodeRewriteSequence {
-    pub prev: HistoryId,
+    pub prev: History,
     pub top: bool,
     pub rhs: Symbol,
     pub sep: Option<Symbol>,
@@ -179,7 +186,7 @@ pub struct HistoryNodeRewriteSequence {
 
 #[derive(Clone, Copy)]
 pub struct HistoryNodeSequenceRhs {
-    pub prev: HistoryId,
+    pub prev: History,
     pub rhs: [Option<Symbol>; 3],
 }
 
@@ -192,75 +199,57 @@ pub struct HistoryNodeSequenceRhs {
 //     }
 // }
 
-impl From<HistoryNodeBinarize> for HistoryNode {
+impl From<HistoryNodeBinarize> for History {
     fn from(value: HistoryNodeBinarize) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::Binarize {
+        process_linked(&LinkedHistoryNode::Binarize {
                 height: value.height,
                 full_len: value.full_len,
                 is_top: value.is_top,
-            },
-        }
+            }, value.prev)
     }
 }
 
-impl From<HistoryNodeWeight> for HistoryNode {
+impl From<HistoryNodeWeight> for History {
     fn from(value: HistoryNodeWeight) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::Weight {
-                weight: value.weight,
-            },
-        }
+        process_linked(&LinkedHistoryNode::Weight {
+            weight: value.weight,
+        }, value.prev)
     }
 }
 
-impl From<HistoryNodeEliminateNulling> for HistoryNode {
+impl From<HistoryNodeEliminateNulling> for History {
     fn from(value: HistoryNodeEliminateNulling) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::EliminateNulling {
-                rhs0: value.rhs0,
-                rhs1: value.rhs1,
-                which: value.which,
-            },
-        }
+        process_linked(&LinkedHistoryNode::EliminateNulling {
+            rhs0: value.rhs0,
+            rhs1: value.rhs1,
+            which: value.which,
+        }, value.prev)
     }
 }
 
-impl From<HistoryNodeAssignPrecedence> for HistoryNode {
+impl From<HistoryNodeAssignPrecedence> for History {
     fn from(value: HistoryNodeAssignPrecedence) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::AssignPrecedence {
+        process_linked(&LinkedHistoryNode::AssignPrecedence {
                 looseness: value.looseness,
-            },
-        }
+            }, value.prev)
     }
 }
 
-impl From<HistoryNodeRewriteSequence> for HistoryNode {
+impl From<HistoryNodeRewriteSequence> for History {
     fn from(value: HistoryNodeRewriteSequence) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::RewriteSequence {
+        process_linked(&LinkedHistoryNode::RewriteSequence {
                 top: value.top,
                 rhs: value.rhs,
                 sep: value.sep,
-            },
-        }
+            }, value.prev)
     }
 }
 
-impl From<HistoryNodeSequenceRhs> for HistoryNode {
+impl From<HistoryNodeSequenceRhs> for History {
     fn from(value: HistoryNodeSequenceRhs) -> Self {
-        HistoryNode::Linked {
-            prev: value.prev,
-            node: LinkedHistoryNode::SequenceRhs {
+        process_linked(&LinkedHistoryNode::SequenceRhs {
                 rhs: value.rhs,
-            },
-        }
+            }, value.prev)
     }
 }
 

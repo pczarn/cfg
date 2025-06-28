@@ -1,15 +1,46 @@
 //! Source
 
-use std::{borrow::Cow, collections::HashMap, iter, num::NonZeroU32, rc::Rc};
+use std::{borrow::{Borrow, Cow}, collections::HashMap, iter, num::NonZeroU32, ops::Deref, rc::Rc};
 
 use crate::{symbol::SymbolPrimitive, *};
 
+#[derive(Clone, Debug, Default, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct SymbolName {
+    name: Rc<str>,
+}
+
+impl Deref for SymbolName {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.name[..]        
+    }
+}
+
+impl From<Cow<'_, str>> for SymbolName {
+    fn from(value: Cow<'_, str>) -> Self {
+        SymbolName { name: Rc::from(&*value) }
+    }
+}
+
+impl<'a> From<&'a str> for SymbolName {
+    fn from(value: &'a str) -> Self {
+        SymbolName { name: Rc::from(value) }
+    }
+}
+
+impl Borrow<str> for SymbolName {
+    fn borrow(&self) -> &str {
+        &self.name[..]
+    }
+}
+
 /// A source of numeric symbols.
-#[allow(missing_copy_implementations)]
+#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
 #[derive(Clone, Debug, Default)]
 pub struct SymbolSource<T: SymbolPrimitive = NonZeroU32> {
     next_symbol: Symbol<T>,
-    names: Vec<Option<Rc<str>>>,
+    names: Vec<Option<SymbolName>>,
 }
 
 #[macro_export]
@@ -21,7 +52,7 @@ macro_rules! syms {
 
 fn advance<T: SymbolPrimitive>(sym: &mut Symbol<T>) {
     let n: NonZeroU32 = sym.n.into();
-    let x: T = n.saturating_add(1).try_into().ok().expect("unreachable");
+    let x: T = n.saturating_add(1).try_into().ok().expect("unreachable: could not convert +1");
     *sym = Symbol { n: x };
     debug_assert_ne!(x.into().get(), T::MAX, "ran out of Symbol space?");
 }
@@ -53,13 +84,13 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
     pub fn next_sym(&mut self, name: Option<Cow<str>>) -> Symbol<T> {
         let ret = self.next_symbol;
         advance(&mut self.next_symbol);
-        self.names.push(name.map(|cow| Rc::<str>::from(&*cow)));
+        self.names.push(name.map(|cow| cow.into()));
         ret
     }
     pub fn name_of(&self, sym: Symbol) -> Cow<str> {
         match self.names.get(sym.usize()) {
             Some(Some(name)) => {
-                Cow::Borrowed(&name[..])
+                Cow::Borrowed(&name.name[..])
             }
             Some(None) | None => {
                 Cow::Owned(format!("g{}", sym.usize()))
@@ -67,11 +98,11 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
         }
     }
     pub fn original_name_of(&self, sym: Symbol) -> Option<&str> {
-        self.names.get(sym.usize()).map(|v| v.as_ref().map(|v| &v[..])).unwrap_or(None)
+        self.names.get(sym.usize()).map(|v| v.as_ref().map(|v| &v.name[..])).unwrap_or(None)
     }
     /// Returns the number of symbols in use.
     pub fn num_syms(&self) -> usize {
-        self.next_symbol.usize() + 1
+        self.next_symbol.usize()
     }
     /// Returns an iterator that generates symbols.
     pub fn generate(&mut self) -> impl Iterator<Item = Symbol<T>> + use<'_, T> {
@@ -112,15 +143,15 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
         assert_ne!(new_len, 0, "cannot truncate to zero length");
         assert!(new_len as u64 <= T::MAX as u64, "attempt to truncate to too high length");
         self.names.truncate(new_len);
-        self.next_symbol = Symbol { n: NonZeroU32::new(new_len as u32).expect("unreachable").try_into().ok().expect("unreachable") };
+        self.next_symbol = Symbol { n: NonZeroU32::new(new_len as u32 + 1).expect("cannot truncate to this length").try_into().ok().expect("cannot truncate to this length (2)") };
     }
 
-    pub fn names(&self) -> Vec<Option<Rc<str>>> {
+    pub fn names(&self) -> Vec<Option<SymbolName>> {
         self.names.clone()
     }
 
-    pub fn name_map(&self) -> HashMap<Rc<str>, Symbol> {
-        self.names.iter().zip(SymbolSource::generate_fresh()).filter_map(|(opt, i)| opt.clone().map(|rc| (rc, i))).collect::<HashMap<_, _>>()
+    pub fn name_map(&self) -> HashMap<SymbolName, Symbol> {
+        self.names.iter().zip(SymbolSource::generate_fresh()).filter_map(|(opt, i)| opt.clone().map(|name| (name, i))).collect::<HashMap<_, _>>()
     }
 }
 
@@ -134,5 +165,36 @@ impl<'a, T: SymbolPrimitive> Iterator for Generate<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.source.next_sym(None))
+    }
+}
+
+#[cfg(feature = "miniserde")]
+mod miniserde_impls {
+    use crate::{Symbol, SymbolSource, SymbolPrimitive};
+    use super::SymbolName;
+    use std::rc::Rc;
+    use miniserde::de::{Deserialize, Visitor};
+    use miniserde::{de, ser, Serialize};
+    use miniserde::{make_place, Error, Result};
+
+    make_place!(Place);
+
+    impl Visitor for Place<SymbolName> {
+        fn string(&mut self, s: &str) -> Result<()> {
+            self.out = Some(SymbolName { name: Rc::from(s) });
+            Ok(())
+        }
+    }
+
+    impl Deserialize for SymbolName {
+        fn begin(out: &mut Option<Self>) -> &mut dyn de::Visitor {
+            Place::new(out)
+        }
+    }
+
+    impl Serialize for SymbolName {
+        fn begin(&self) -> ser::Fragment {
+            ser::Fragment::Str(self.name.to_string().into())
+        }
     }
 }

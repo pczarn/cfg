@@ -5,7 +5,7 @@ use core::iter;
 use cfg_symbol::Symbol;
 
 use crate::{
-    BinarizedRhsRange, HistoryGraph, HistoryNode, LinkedHistoryNode, RootHistoryNode
+    BinarizedRhsRange, LinkedHistoryNode, RootHistoryNode
 };
 
 use rule_dot::RuleDot;
@@ -48,11 +48,11 @@ impl ExternalDottedRule {
 
 impl ExternalOrigin {
     pub fn null() -> Self {
-        ExternalOrigin { id: 0 }
+        ExternalOrigin { id: !0 }
     }
 
     pub fn is_null(&self) -> bool {
-        self.id == 0
+        self.id == !0
     }
 }
 
@@ -63,16 +63,16 @@ enum SymKind {
     Other,
 }
 
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct History {
     pub dots: [RuleDot; 3],
     pub origin: ExternalOrigin,
     pub nullable: NullingEliminated,
-    pub weight: Option<f64>,
+    pub weight: Option<u32>,
     pub sequence: Option<SequenceDetails>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SequenceDetails {
     top: bool,
     rhs: Symbol,
@@ -94,23 +94,7 @@ pub struct SequenceDetails {
 //     }
 // }
 
-pub(crate) fn process_node(node: &HistoryNode, prev_histories: &[History]) -> History {
-    match node {
-        &HistoryNode::Linked {
-            prev,
-            node: ref linked_node,
-        } => {
-            if let Some(prev_history) = prev_histories.get(prev.get()).cloned() {
-                process_linked(linked_node, prev_history)
-            } else {
-                panic!("incorrect history link: {:?} @ {:?}", prev, linked_node);
-            }
-        }
-        HistoryNode::Root(root) => process_root(*root),
-    }
-}
-
-fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
+pub fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
     match linked_node {
         LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
         &LinkedHistoryNode::Binarize { height, full_len, is_top, .. } => {
@@ -124,7 +108,7 @@ fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) ->
             prev_history
         }
         &LinkedHistoryNode::Weight { weight, .. } => {
-            prev_history.weight = Some(weight);
+            prev_history.weight = Some((weight * 1000f64) as u32);
             prev_history
         }
         &LinkedHistoryNode::SequenceRhs { rhs } => {
@@ -139,17 +123,23 @@ fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) ->
     }
 }
 
-fn process_root(root_node: RootHistoryNode) -> History {
+pub(crate) fn process_root(root_node: RootHistoryNode) -> History {
     match root_node {
-        RootHistoryNode::NoOp => History::new(0),
-        RootHistoryNode::Rule { lhs: _ } => History::new(0),
+        RootHistoryNode::NoOp => History::new(!0),
+        RootHistoryNode::Rule { lhs: _ } => History::new(!0),
         RootHistoryNode::Origin { origin } => History::new(origin as u32),
+    }
+}
+
+impl From<RootHistoryNode> for History {
+    fn from(value: RootHistoryNode) -> Self {
+        process_root(value)
     }
 }
 
 impl History {
     pub fn new(id: u32) -> Self {
-        assert!(!ExternalOrigin { id }.is_null());
+        // assert!(!ExternalOrigin { id }.is_null());
         History {
             origin: ExternalOrigin { id },
             ..History::default()
