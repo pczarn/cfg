@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use cfg_grammar::Cfg;
-use cfg_history::{HistoryNode, LinkedHistoryNode};
 use cfg_symbol::Symbol;
 
 use super::random::GenRange;

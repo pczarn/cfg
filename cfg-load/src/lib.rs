@@ -1,5 +1,6 @@
 #![deny(unsafe_code)]
 
+use cfg_history::RootHistoryNode;
 use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
 use cfg_grammar::Cfg;
@@ -347,7 +348,7 @@ impl CfgLoadExt for Cfg {
             let intern = StringInterner::new();
             let mut sym_map = HashMap::new();
             let mut intern_empty = true;
-            for rule in rules {
+            for (idx, rule) in rules.into_iter().enumerate() {
                 let lhs = intern.get_or_intern(&rule.lhs[..]);
                 let lhs_sym = *sym_map.entry(lhs).or_insert_with(|| cfg.sym_source_mut().next_sym(Some(rule.lhs[..].into())));
                 if intern_empty {
@@ -371,7 +372,7 @@ impl CfgLoadExt for Cfg {
                         }
                     }
                 }).collect();
-                cfg.rule(lhs_sym).rhs(rhs_syms);
+                cfg.rule(lhs_sym).history(RootHistoryNode::Origin { origin: idx + 1 }.into()).rhs(rhs_syms);
             }
             Ok(cfg)
         } else {

@@ -91,15 +91,6 @@ pub type HistoryId = NonZeroUsize;
 // }
 
 #[derive(Clone, Debug)]
-pub enum HistoryNode {
-    Linked {
-        prev: History,
-        node: LinkedHistoryNode,
-    },
-    Root(RootHistoryNode),
-}
-
-#[derive(Clone, Debug)]
 pub enum LinkedHistoryNode {
     Binarize {
         height: u32,
@@ -135,12 +126,6 @@ pub enum RootHistoryNode {
     NoOp,
     Rule { lhs: Symbol },
     Origin { origin: usize },
-}
-
-impl From<RootHistoryNode> for HistoryNode {
-    fn from(value: RootHistoryNode) -> Self {
-        HistoryNode::Root(value)
-    }
 }
 
 pub struct HistoryNodeRhs {

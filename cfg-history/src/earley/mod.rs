@@ -126,7 +126,7 @@ pub fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History
 pub(crate) fn process_root(root_node: RootHistoryNode) -> History {
     match root_node {
         RootHistoryNode::NoOp => History::new(!0),
-        RootHistoryNode::Rule { lhs: _ } => History::new(!0),
+        RootHistoryNode::Rule { lhs: _ } => History::new(0),
         RootHistoryNode::Origin { origin } => History::new(origin as u32),
     }
 }
