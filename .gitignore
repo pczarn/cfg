@@ -12,3 +12,5 @@
 
 # This project is a library.
 /Cargo.lock
+
+/tarpaulin-report.html

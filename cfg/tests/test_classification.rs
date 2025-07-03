@@ -201,7 +201,7 @@ fn test_recursive() {
     let rec_rule = CfgRule {
         lhs: foo,
         rhs: vec![foo, bar].into(),
-        history: RootHistoryNode::NoOp.into(),
+        history: RootHistoryNode::Rule { lhs: foo }.into(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
@@ -230,7 +230,7 @@ fn test_recursive_right_rec() {
     let rec_rule = CfgRule {
         lhs: foo,
         rhs: vec![bar, bar, buzz, foo].into(),
-        history: RootHistoryNode::NoOp.into(),
+        history: RootHistoryNode::Rule { lhs: foo }.into(),
     };
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {

@@ -1,0 +1,8 @@
+[package]
+name = "cfg-regexp"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+regex-syntax = "0.8"
+log = "0.4"

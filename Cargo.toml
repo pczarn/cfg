@@ -11,7 +11,7 @@ members = [
     "cfg-sequence",
     "cfg-history",
     "cfg-examples",
-    "cfg-load",
+    "cfg-load", "cfg-regexp",
 ]
 
 resolver = "2"
