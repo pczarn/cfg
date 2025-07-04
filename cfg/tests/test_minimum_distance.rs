@@ -1,7 +1,5 @@
 #![cfg(feature = "cfg-predict-distance")]
 
-use std::num::NonZeroUsize;
-
 use cfg::predict_distance::MinimalDistance;
 use cfg::Cfg;
 

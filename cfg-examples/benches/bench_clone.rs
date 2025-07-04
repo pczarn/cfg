@@ -11,7 +11,7 @@ use cfg_examples::c::grammar;
 fn bench_clone(bencher: &mut bench::Bencher) {
     let my_cfg = grammar();
     bencher.iter(|| {
-        let mut copied = black_box(&my_cfg).clone();
+        let copied = black_box(&my_cfg).clone();
         black_box(&copied);
     });
 }

@@ -8,6 +8,8 @@ use cfg_sequence::CfgSequenceExt;
 use std::{collections::HashMap, convert::AsRef, fmt::{self, Write}, str::Chars};
 
 use elsa::FrozenIndexSet;
+
+use crate::LoadError;
 pub struct StringInterner {
     set: FrozenIndexSet<String>,
 }
@@ -149,31 +151,6 @@ impl forest::Eval for Evaluator {
                 Value::Fragment(Fragment { ident, rep: Rep::None })
             }
             args => panic!("unknown rule id {:?} or args {:?}", action, args),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum LoadError {
-    Parse {
-        reason: String,
-        line: u32,
-        col: u32,
-    },
-    Eval {
-        reason: String,
-    }
-}
-
-impl fmt::Display for LoadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            LoadError::Parse { reason, line, col } => {
-                write!(f, "Parse error at line {} column {}: reason: {}", line, col, reason)
-            }
-            LoadError::Eval { reason } => {
-                write!(f, "Eval error. Reason: {}", reason)
-            }
         }
     }
 }
@@ -324,19 +301,19 @@ impl CfgLoadExt for Cfg {
                 Token::Plus => op_plus,
                 Token::Ident(_) => ident,
                 Token::Whitespace => continue,
-                &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32 }),
+                &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32, token: None }),
             };
             recognizer.scan(terminal, i as u32);
             let success = recognizer.end_earleme();
             if !success {
-                return Err(LoadError::Parse { reason: "parse failed".to_string(), line: 1, col: 1 });
+                return Err(LoadError::Parse { reason: "parse failed".to_string(), line: 1, col: 1, token: None });
             }
             // assert!(success, "parse failed at character {}", i);
         }
         let finished_node = if let Some(node) = recognizer.finished_node {
             node
         } else {
-            return Err(LoadError::Parse { reason: "parse failed: no result".to_string(), line: 1, col: 1 });
+            return Err(LoadError::Parse { reason: "parse failed: no result".to_string(), line: 1, col: 1, token: None });
         };
         let result = recognizer
             .forest

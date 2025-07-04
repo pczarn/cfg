@@ -2,47 +2,192 @@ pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
 
-use regex_syntax::hir::{self, Hir, HirKind};
+use std::collections::{BTreeMap, BTreeSet};
+use std::iter;
+
+use cfg_grammar::Cfg;
+use cfg_sequence::CfgSequenceExt;
+use cfg_symbol::Symbol;
+use regex_syntax::hir::{self, Class, Hir, HirKind};
 use regex_syntax::Parser;
 
-pub fn walk_hir(hir: &Hir, depth: usize) {
-    let indent = "  ".repeat(depth);
+pub trait CfgRegexpExt: Sized {
+    fn from_regexp(regexp: &str) -> Result<(Self, LexerMap), regex_syntax::Error>;
+}
 
-    match hir.kind() {
-        HirKind::Literal(lit) => {
-            println!("{indent}Literal: {:?}", lit);
-        }
-        HirKind::Class(class) => {
-            println!("{indent}Class: {:?}", class);
-        }
-        HirKind::Repetition(rep) => {
-            println!("{indent}Repetition: {:?}", rep.kind);
-            walk_hir(&rep.hir, depth + 1);
-        }
-        HirKind::Capture(group) => {
-            println!("{indent}Group (capturing={}):", group.name.is_some());
-            walk_hir(&group.sub, depth + 1);
-        }
-        HirKind::Concat(exprs) => {
-            println!("{indent}Concat:");
-            for expr in exprs {
-                walk_hir(expr, depth + 1);
+impl CfgRegexpExt for Cfg {
+    fn from_regexp(regexp: &str) -> Result<(Self, LexerMap), regex_syntax::Error> {
+        Parser::new().parse(regexp).map(Translator::cfg_from_hir)
+    }   
+}
+
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone)]
+pub struct LexerClasses {
+    set: BTreeSet<(char, char)>,
+}
+
+impl From<u8> for LexerClasses {
+    fn from(value: u8) -> Self {
+        LexerClasses { set: iter::once((value as char, (value + 1) as char)).collect() }
+    }
+}
+
+impl From<char> for LexerClasses {
+    fn from(value: char) -> Self {
+        LexerClasses { set: iter::once((value, char::from_u32(value as u32 + 1).unwrap())).collect() }
+    }
+}
+
+impl From<Class> for LexerClasses {
+    fn from(value: Class) -> Self {
+        let set: BTreeSet<(char, char)> = match value {
+            Class::Bytes(bytes) => {
+                bytes.ranges().iter().map(|range| (range.start() as char, range.end() as char)).collect()
             }
-        }
-        HirKind::Alternation(exprs) => {
-            println!("{indent}Alternation:");
-            for expr in exprs {
-                walk_hir(expr, depth + 1);
+            Class::Unicode(unicode) => {
+                unicode.ranges().iter().map(|range| (range.start(), range.end())).collect()
             }
-        }
-        HirKind::Anchor(anchor) => {
-            println!("{indent}Anchor: {:?}", anchor);
-        }
-        HirKind::WordBoundary(boundary) => {
-            println!("{indent}WordBoundary: {:?}", boundary);
-        }
-        HirKind::Empty => {
-            println!("{indent}Empty");
+        };
+        LexerClasses { set }
+    }
+}
+
+impl LexerClasses {
+    pub fn iter(&self) -> impl Iterator<Item = (char, char)> + use<'_> {
+        self.set.iter().copied()
+    }
+}
+
+struct Translator {
+    cfg: Cfg,
+    class_map: LexerMap,
+}
+
+#[derive(Debug, Clone)]
+pub struct LexerMap(pub BTreeMap<LexerClasses, Symbol>);
+
+impl LexerMap {
+    pub fn new() -> Self {
+        LexerMap(BTreeMap::new())
+    }
+}
+
+impl Translator {
+    fn cfg_from_hir(hir: Hir) -> (Cfg, LexerMap) {
+        let cfg = Cfg::new();
+        let class_map = LexerMap(BTreeMap::new());
+        let mut this = Self { cfg, class_map };
+        let x = this.walk_hir(&hir, 0);
+        let lhs = match (x.len(), x.get(0).map_or(0, |y| y.len())) {
+            (0, _) => {
+                let [nulling] = this.cfg.sym();
+                this.cfg.rule(nulling).rhs([]);
+                nulling
+            }
+            (1, 1) => {
+                x[0][0]
+            }
+            (1, _) => {
+                let [inner] = this.cfg.sym();
+                this.cfg.rule(inner).rhs(&x[0][..]);
+                inner
+            }
+            _ => {
+                let [inner] = this.cfg.sym();
+                for rule in x {
+                    this.cfg.rule(inner).rhs(&*rule);
+                }
+                inner
+            }
+        };
+        this.cfg.set_roots([lhs]);
+        (this.cfg, this.class_map)
+    }
+
+    fn walk_hir(&mut self, hir: &Hir, depth: usize) -> Vec<Vec<Symbol>> {
+        let indent = "  ".repeat(depth);
+
+        match hir.kind() {
+            HirKind::Literal(lit) => {
+                let mut syms = vec![];
+                for &byte in &lit.0 {
+                    syms.push(*self.class_map.0.entry(byte.into()).or_insert_with(|| self.cfg.next_sym(None)));
+                }
+                println!("{indent}Literal: {:?}", lit);
+                vec![syms]
+            }
+            HirKind::Class(class) => {
+                let sym = *self.class_map.0.entry(class.clone().into()).or_insert_with(|| self.cfg.next_sym(None));
+                println!("{indent}Class: {:?}", class);
+                vec![vec![sym]]
+            }
+            HirKind::Repetition(rep) => {
+                println!("{indent}Repetition: {:?}", (rep.min, rep.max, rep.greedy));
+                let [lhs] = self.cfg.sym();
+                let x = self.walk_hir(&rep.sub, depth + 1);
+                let rhs = match (x.len(), x.get(0).map_or(0, |y| y.len())) {
+                    (0, _) => {
+                        unreachable!()
+                    }
+                    (1, 1) => {
+                        x[0][0]
+                    }
+                    (1, _) => {
+                        let [inner] = self.cfg.sym();
+                        self.cfg.rule(inner).rhs(&x[0][..]);
+                        inner
+                    }
+                    _ => {
+                        let [inner] = self.cfg.sym();
+                        for rule in x {
+                            self.cfg.rule(inner).rhs(&*rule);
+                        }
+                        inner
+                    }
+                };
+                self.cfg.sequence(lhs).inclusive(rep.min, rep.max).rhs(rhs);
+                vec![vec![lhs]]
+            }
+            HirKind::Capture(group) => {
+                println!("{indent}Group (capturing={}):", group.name.is_some());
+                self.walk_hir(&group.sub, depth + 1)
+            }
+            HirKind::Concat(exprs) => {
+                println!("{indent}Concat:");
+                let mut result = vec![];
+                for expr in exprs {
+                    let mut x = self.walk_hir(expr, depth + 1);
+                    match x.len() {
+                        0 => {}
+                        1 => {
+                            result.extend(x.into_iter().next().unwrap());
+                        }
+                        _ => {
+                            let [lhs] = self.cfg.sym();
+                            for rule in x {
+                                self.cfg.rule(lhs).rhs(&*rule);
+                            }
+                            result.push(lhs);
+                        }
+                    }
+                }
+                vec![result]
+            }
+            HirKind::Alternation(exprs) => {
+                println!("{indent}Alternation:");
+                let mut alternatives = vec![];
+                for expr in exprs {
+                    alternatives.extend(self.walk_hir(expr, depth + 1));
+                }
+                alternatives
+            }
+            HirKind::Look(look) => {
+                unimplemented!()
+            }
+            HirKind::Empty => {
+                println!("{indent}Empty");
+                vec![vec![]]
+            }
         }
     }
 }
@@ -61,7 +206,8 @@ mod tests {
 
 
         let pattern = r"(?i)(foo|bar)\d+";
-        let hir = Parser::new().parse(pattern).unwrap();
-        walk_hir(&hir, 0);
+        let (result, map) = Cfg::from_regexp(pattern).unwrap();
+        assert_eq!(result.rules().count(), 4);
+        assert_eq!(map.0, BTreeMap::new());
     }
 }

@@ -1,7 +1,5 @@
 #![cfg(feature = "cfg-classify")]
 
-use std::num::NonZeroUsize;
-
 #[cfg(feature = "ll")]
 use cfg::classify::ll::{LlNonterminalClass, LlParseTable};
 #[cfg(feature = "lr")]

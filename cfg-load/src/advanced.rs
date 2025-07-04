@@ -1,13 +1,17 @@
 #![deny(unsafe_code)]
 
 use cfg_history::RootHistoryNode;
+use cfg_regexp::{CfgRegexpExt, LexerMap};
+use cfg_symbol_bit_matrix::Remap;
 use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
 use cfg_grammar::{Cfg, SymbolBitSet};
 use cfg_sequence::CfgSequenceExt;
-use std::{collections::{HashMap, HashSet}, convert::AsRef, fmt::{self, Write}, str::Chars};
+use std::{collections::{BTreeSet, HashMap, HashSet}, convert::AsRef, fmt, iter, str::Chars};
 
 use elsa::FrozenIndexSet;
+
+use crate::LoadError;
 pub struct StringInterner {
     set: FrozenIndexSet<String>,
 }
@@ -28,12 +32,12 @@ impl StringInterner {
         self.set.insert_full(value.as_ref().to_string()).0
     }
 
-    fn get<T>(&self, value: T) -> Option<usize>
-    where
-        T: AsRef<str>,
-    {
-        self.set.get_full(value.as_ref()).map(|(i, _r)| i)
-    }
+    // fn get<T>(&self, value: T) -> Option<usize>
+    // where
+    //     T: AsRef<str>,
+    // {
+    //     self.set.get_full(value.as_ref()).map(|(i, _r)| i)
+    // }
 
     // fn resolve(&self, index: usize) -> Option<&str> {
     //     self.set.get_index(index)
@@ -124,7 +128,7 @@ impl forest::Eval for Evaluator {
                 Value::Start(rules, lex)
             }
             // start ::= start decl;
-            (2, Value::Start(mut rules, None), Value::Lex(lex), _) => {
+            (2, Value::Start(rules, None), Value::Lex(lex), _) => {
                 Value::Start(rules, Some(lex))
             }
             // start ::= decl;
@@ -222,38 +226,6 @@ impl forest::Eval for Evaluator {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum LoadError {
-    Parse {
-        reason: String,
-        line: u32,
-        col: u32,
-        token: Option<Token>,
-    },
-    Eval {
-        reason: String,
-    },
-    Lex {
-        reason: String,
-    }
-}
-
-impl fmt::Display for LoadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            LoadError::Parse { reason, line, col, token } => {
-                write!(f, "Parse error at line {} column {}: reason: {} token: {:?}", line, col, reason, token)
-            }
-            LoadError::Eval { reason } => {
-                write!(f, "Eval error. Reason: {}", reason)
-            }
-            LoadError::Lex { reason } => {
-                write!(f, "Lexical grammar error. Reason: {}", reason)
-            }
-        }
-    }
-}
-
 struct Lexer<'a> {
     chars: Chars<'a>,
     line_no: usize,
@@ -261,7 +233,7 @@ struct Lexer<'a> {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-enum Token {
+pub enum Token {
     Ident(String),
     BnfOp,
     Semicolon,
@@ -435,8 +407,7 @@ impl<'a> Lexer<'a> {
 }
 
 pub trait CfgLoadAdvancedExt {
-    fn load_advanced(grammar: &str) -> Result<(Cfg, SymbolBitSet), LoadError>;
-    fn to_bnf(&self) -> String;
+    fn load_advanced(grammar: &str) -> Result<(Cfg, LexerMap, SymbolBitSet), LoadError>;
 }
 
 // fn lexeme_set(cfg: &Cfg, lexeme_origin: usize) -> Result<SymbolBitSet, LoadError> {
@@ -451,12 +422,8 @@ pub trait CfgLoadAdvancedExt {
 //     }
 // }
 
-fn check_for_lexical_error(rules: &Vec<Rule>, lexer: Option<&LexerVal>) {
-    // TODO
-}
-
 impl CfgLoadAdvancedExt for Cfg {
-    fn load_advanced(grammar: &str) -> Result<(Cfg, SymbolBitSet), LoadError> {
+    fn load_advanced(grammar: &str) -> Result<(Cfg, LexerMap, SymbolBitSet), LoadError> {
         use tiny_earley::Grammar;
         let bnf_grammar = grammar! {
             S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2]
@@ -524,20 +491,28 @@ impl CfgLoadAdvancedExt for Cfg {
             .forest
             .evaluator(Evaluator { symbols, tokens })
             .evaluate(finished_node);
-        #[derive(Hash, Eq, PartialEq, Debug)]
-        enum Place { CfgLhs, CfgRhs, LexLhs, LexRhs }
+        // #[derive(Hash, Eq, PartialEq, Debug)]
+        // enum Place { CfgLhs, CfgRhs, LexLhs, LexRhs }
 
         if let Value::Start(rules, lexer) = result {
-            let mut set_of_places: HashSet<(String, Place)> = HashSet::new();
+            let mut set_of_lexical: BTreeSet<_> = BTreeSet::new();
             let mut cfg = Cfg::new();
             let intern = StringInterner::new();
             let lex_string_intern = StringInterner::new();
             let mut sym_map = HashMap::new();
             let mut intern_empty = true;
-            let max_origin = rules.len();
-            check_for_lexical_error(&rules, lexer.as_ref());
-            for (idx, rule) in rules.into_iter().chain(lexer.unwrap_or(LexerVal(vec![])).0.into_iter()).enumerate() {
+            let mut lexer_classes = LexerMap::new();
+            let mut lhs_in_parser = HashSet::new();
+            // check_for_lexical_error(&rules, lexer.as_ref());
+            for (idx, (rule, is_lexer)) in rules.into_iter().zip(iter::repeat(false)).chain(lexer.unwrap_or(LexerVal(vec![])).0.into_iter().zip(iter::repeat(true))).enumerate() {
                 let lhs = intern.get_or_intern(&rule.lhs[..]);
+                if is_lexer {
+                    if lhs_in_parser.contains(&lhs) {
+                        return Err(LoadError::Lex { reason: format!("lhs shared between parser and lexer: {}", rule.lhs) });
+                    }
+                } else {
+                    lhs_in_parser.insert(lhs);
+                }
                 let lhs_sym = *sym_map.entry(lhs).or_insert_with(|| cfg.sym_source_mut().next_sym(Some(rule.lhs[..].into())));
                 if intern_empty {
                     cfg.set_roots([lhs_sym]);
@@ -551,13 +526,25 @@ impl CfgLoadAdvancedExt for Cfg {
                             }
                             match &*arg {
                                 &Fragment::Call { ref func, ref arg } => {
-                                    unreachable!()
+                                    return Err(LoadError::Lex { reason: format!("expected Regex(string)") });
                                 }
                                 &Fragment::Lex { ref string } => {
-                                    unimplemented!()
+                                    let (mut regexp_cfg, classes) = Cfg::from_regexp(string).map_err(|err| LoadError::Lex { reason: err.to_string() })?;
+                                    let mut remap = Remap::new(&mut regexp_cfg);
+                                    let mut sym_map = HashMap::new();
+                                    for (class, sym) in classes.0 {
+                                        let new_sym = *lexer_classes.0.entry(class).or_insert_with(|| cfg.next_sym(None));
+                                        sym_map.insert(sym, new_sym);
+                                    }
+                                    remap.remap_symbols(|sym| {
+                                        *sym_map.entry(sym).or_insert_with(|| cfg.next_sym(None))
+                                    });
+                                    cfg.extend(&regexp_cfg);
+                                    assert_eq!(regexp_cfg.roots().len(), 1);
+                                    Ok(regexp_cfg.roots()[0])
                                 }
                                 &Fragment::Rhs { ref ident, rep } => {
-                                    unreachable!()
+                                    return Err(LoadError::Lex { reason: format!("expected Regex(string)") });
                                 }
                             }
                         }
@@ -568,6 +555,9 @@ impl CfgLoadAdvancedExt for Cfg {
                             let rhs_sym = *sym_map.entry(id).or_insert_with(|| {
                                 cfg.sym_source_mut().next_sym(Some(name.clone().into()))
                             });
+                            let child: Vec<_> = string.chars().map(|ch| *lexer_classes.0.entry(ch.into()).or_insert_with(|| cfg.next_sym(None))).collect();
+                            cfg.rule(rhs_sym).rhs(&child[..]);
+                            set_of_lexical.insert(rhs_sym);
                             Ok(rhs_sym)
                         }
                         Fragment::Rhs { ident, rep } => {
@@ -589,23 +579,19 @@ impl CfgLoadAdvancedExt for Cfg {
                         }
                     }
                 }).collect();
+                if is_lexer {
+                    set_of_lexical.insert(lhs_sym);
+                }
                 cfg.rule(lhs_sym).history(RootHistoryNode::Origin { origin: idx + 1 }.into()).rhs(rhs_syms?);
             }
-            Ok((cfg, SymbolBitSet::new()))
+            let mut sbs = SymbolBitSet::new();
+            sbs.reset(cfg.sym_source());
+            for sym in set_of_lexical {
+                sbs.set(sym, true);
+            }
+            Ok((cfg, lexer_classes, sbs))
         } else {
             return Err(LoadError::Eval { reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result) });
         }
-    }
-
-    fn to_bnf(&self) -> String {
-        let mut result = String::new();
-        for rule in self.rules() {
-            let mut rhs = String::new();
-            for &sym in &rule.rhs[..] {
-                write!(rhs, "{} ", self.sym_source().name_of(sym)).unwrap();
-            }
-            writeln!(result, "{} ::= {};", self.sym_source().name_of(rule.lhs), rhs.trim()).unwrap();
-        }
-        result
     }
 }
