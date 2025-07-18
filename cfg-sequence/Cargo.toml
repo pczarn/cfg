@@ -18,4 +18,3 @@ cfg-history = { version = "0.0.1", path = "../cfg-history/" }
 
 [features]
 serde = ["cfg-symbol/serde"]
-miniserde = ["cfg-symbol/miniserde"]

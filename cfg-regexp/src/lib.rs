@@ -8,7 +8,7 @@ use std::iter;
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
 use cfg_symbol::Symbol;
-use regex_syntax::hir::{self, Class, Hir, HirKind};
+use regex_syntax::hir::{Class, Hir, HirKind};
 use regex_syntax::Parser;
 
 pub trait CfgRegexpExt: Sized {
@@ -64,18 +64,68 @@ struct Translator {
 }
 
 #[derive(Debug, Clone)]
-pub struct LexerMap(pub BTreeMap<LexerClasses, Symbol>);
+pub struct LexerMap {
+    pub classes: BTreeMap<LexerClasses, Symbol>,
+    ascii: Vec<Vec<Symbol>>,
+    ranges: BTreeMap<char, Vec<Symbol>>,
+}
 
 impl LexerMap {
     pub fn new() -> Self {
-        LexerMap(BTreeMap::new())
+        LexerMap {
+            classes: BTreeMap::new(),
+            ascii: vec![],
+            ranges: BTreeMap::new(),
+        }
+    }
+
+    pub fn compute(&mut self) {
+        let mut result = vec![vec![]; 256];
+        for (lexer_classes, &symbol) in &self.classes {
+            for &class in &lexer_classes.set {
+                if class.0.is_ascii() {
+                    for ascii in class.0 as u32 ..= (class.1 as u32).min(256) {
+                        result[ascii as usize].push(symbol);
+                    }
+                }
+            }
+        }
+        self.ascii = result;
+        let mut ranges = BTreeMap::new();
+        for (lexer_classes, &symbol) in &self.classes {
+            for &class in &lexer_classes.set {
+                ranges.entry(class.0).or_insert(vec![]).push((true, symbol));
+                ranges.entry(char::from_u32(class.1 as u32 + 1).unwrap()).or_insert(vec![]).push((false, symbol));
+            }
+        }
+        let mut result = BTreeMap::new();
+        let mut work = BTreeSet::new();
+        for (ch, changes) in ranges {
+            for (is_added, symbol) in changes {
+                if is_added {
+                    work.insert(symbol);
+                } else {
+                    work.remove(&symbol);
+                }
+            }
+            result.entry(ch).or_insert(vec![]).extend(work.iter().copied());
+        }
+        self.ranges = result;
+    }
+
+    pub fn get(&self, ch: char) -> &[Symbol] {
+        if ch.is_ascii() {
+            &self.ascii[ch as usize][..]
+        } else {
+            self.ranges.range(..=ch).next_back().map(|(_, v)| &v[..]).unwrap_or(&[])
+        }
     }
 }
 
 impl Translator {
     fn cfg_from_hir(hir: Hir) -> (Cfg, LexerMap) {
         let cfg = Cfg::new();
-        let class_map = LexerMap(BTreeMap::new());
+        let class_map = LexerMap::new();
         let mut this = Self { cfg, class_map };
         let x = this.walk_hir(&hir, 0);
         let lhs = match (x.len(), x.get(0).map_or(0, |y| y.len())) {
@@ -111,13 +161,13 @@ impl Translator {
             HirKind::Literal(lit) => {
                 let mut syms = vec![];
                 for &byte in &lit.0 {
-                    syms.push(*self.class_map.0.entry(byte.into()).or_insert_with(|| self.cfg.next_sym(None)));
+                    syms.push(*self.class_map.classes.entry(byte.into()).or_insert_with(|| self.cfg.next_sym(None)));
                 }
                 println!("{indent}Literal: {:?}", lit);
                 vec![syms]
             }
             HirKind::Class(class) => {
-                let sym = *self.class_map.0.entry(class.clone().into()).or_insert_with(|| self.cfg.next_sym(None));
+                let sym = *self.class_map.classes.entry(class.clone().into()).or_insert_with(|| self.cfg.next_sym(None));
                 println!("{indent}Class: {:?}", class);
                 vec![vec![sym]]
             }
@@ -156,7 +206,7 @@ impl Translator {
                 println!("{indent}Concat:");
                 let mut result = vec![];
                 for expr in exprs {
-                    let mut x = self.walk_hir(expr, depth + 1);
+                    let x = self.walk_hir(expr, depth + 1);
                     match x.len() {
                         0 => {}
                         1 => {
@@ -181,7 +231,7 @@ impl Translator {
                 }
                 alternatives
             }
-            HirKind::Look(look) => {
+            HirKind::Look(_look) => {
                 unimplemented!()
             }
             HirKind::Empty => {
@@ -196,9 +246,6 @@ impl Translator {
 mod tests {
     use super::*;
 
-    use regex_syntax::hir::{self, Hir, HirKind};
-    use regex_syntax::Parser;
-
     #[test]
     fn it_works() {
         let result = add(2, 2);
@@ -206,8 +253,15 @@ mod tests {
 
 
         let pattern = r"(?i)(foo|bar)\d+";
-        let (result, map) = Cfg::from_regexp(pattern).unwrap();
-        assert_eq!(result.rules().count(), 4);
-        assert_eq!(map.0, BTreeMap::new());
+        let (result, mut map) = Cfg::from_regexp(pattern).unwrap();
+        assert_eq!(result.rules().count(), 5);
+        map.compute();
+        assert_eq!(map.get('b').len(), 1);
+        assert_eq!(map.get('c').len(), 0);
+        assert_eq!(map.get('B').len(), 1);
+        assert_eq!(map.get('D').len(), 0);
+        assert_eq!(map.get('o').len(), 1);
+        assert_eq!(map.get('🯰').len(), 1);
+        assert_eq!(map.get('🯹').len(), 1);
     }
 }

@@ -5,7 +5,7 @@ use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
-use std::{collections::HashMap, convert::AsRef, fmt::{self, Write}, str::Chars};
+use std::{collections::HashMap, convert::AsRef, fmt::Write, str::Chars};
 
 use elsa::FrozenIndexSet;
 

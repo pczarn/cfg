@@ -38,7 +38,6 @@ test-case = "3.3"
 [features]
 default = ["cfg-classify", "cfg-generate", "cfg-predict-sets", "cfg-predict-distance", "cfg-generate", "cfg-sequence", "cfg-history", "cfg-symbol-bit-matrix"]
 serde = ["cfg-grammar/serde"]
-miniserde = ["cfg-grammar/miniserde", "cfg-history/miniserde"]
 ll = ["cfg-classify/ll"]
 lr = ["cfg-classify/lr"]
 weighted-generation = ["cfg-generate/weighted", "cfg-generate", "rand"]

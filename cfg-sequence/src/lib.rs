@@ -11,7 +11,7 @@ pub use crate::ext::CfgSequenceExt;
 
 use std::ops::{Bound, RangeBounds};
 
-use cfg_history::{earley::History, HistoryId};
+use cfg_history::earley::History;
 use cfg_symbol::Symbol;
 
 use self::Separator::*;

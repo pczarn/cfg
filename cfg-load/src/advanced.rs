@@ -1,15 +1,17 @@
 #![deny(unsafe_code)]
 
 use cfg_history::RootHistoryNode;
-use cfg_regexp::{CfgRegexpExt, LexerMap};
+use cfg_regexp::CfgRegexpExt;
 use cfg_symbol_bit_matrix::Remap;
 use tiny_earley::{grammar, forest, Recognizer, Symbol};
 
 use cfg_grammar::{Cfg, SymbolBitSet};
 use cfg_sequence::CfgSequenceExt;
-use std::{collections::{BTreeSet, HashMap, HashSet}, convert::AsRef, fmt, iter, str::Chars};
+use std::{collections::{BTreeMap, BTreeSet, HashMap, HashSet}, convert::AsRef, iter, str::Chars};
 
 use elsa::FrozenIndexSet;
+
+pub use cfg_regexp::LexerMap;
 
 use crate::LoadError;
 pub struct StringInterner {
@@ -91,7 +93,7 @@ enum Value {
 struct LexerVal(Vec<Rule>);
 
 struct Evaluator {
-    symbols: [Symbol; 23],
+    symbols: [Symbol; 24],
     tokens: Vec<(Token, usize, usize)>,
 }
 
@@ -100,7 +102,7 @@ impl forest::Eval for Evaluator {
 
     fn leaf(&self, terminal: Symbol, values: u32) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2, tilde_op] =
             self.symbols;
         if terminal == ident {
             self.tokens[values as usize].0.ident()
@@ -113,7 +115,7 @@ impl forest::Eval for Evaluator {
 
     fn product(&self, action_num: u32, args: Vec<Self::Elem>) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2, tilde_op] =
             self.symbols;
         // let mut iter = args.into_iter();
         match (
@@ -175,8 +177,8 @@ impl forest::Eval for Evaluator {
             (12, Value::Alt(alt), Value::Ident(action), _) => {
                 Value::Alt2(alt, Some(action))
             }
-            // alt ::= alt fragment;
-            (13, Value::Alt(mut alt), Value::Fragment(fragment), _) => {
+            // alt ::= alt tilde_op fragment;
+            (13, Value::Alt(mut alt), _, Value::Fragment(fragment)) => {
                 alt.push(fragment);
                 Value::Alt(alt)
             }
@@ -248,6 +250,7 @@ pub enum Token {
     RParen,
     GtOp,
     LexerKeyword,
+    TildeOp,
     Error(usize, usize),
 }
 
@@ -332,6 +335,10 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 Token::Mul
             }
+            '~' => {
+                self.advance();
+                Token::TildeOp
+            }
             '(' => {
                 self.advance();
                 Token::LParen
@@ -407,7 +414,7 @@ impl<'a> Lexer<'a> {
 }
 
 pub trait CfgLoadAdvancedExt {
-    fn load_advanced(grammar: &str) -> Result<(Cfg, LexerMap, SymbolBitSet), LoadError>;
+    fn load_advanced(grammar: &str) -> Result<AdvancedGrammar, LoadError>;
 }
 
 // fn lexeme_set(cfg: &Cfg, lexeme_origin: usize) -> Result<SymbolBitSet, LoadError> {
@@ -422,11 +429,18 @@ pub trait CfgLoadAdvancedExt {
 //     }
 // }
 
+pub struct AdvancedGrammar {
+    pub cfg: Cfg,
+    pub lexer_map: LexerMap,
+    pub sbs: SymbolBitSet,
+    pub actions: BTreeMap<usize, Option<String>>,
+}
+
 impl CfgLoadAdvancedExt for Cfg {
-    fn load_advanced(grammar: &str) -> Result<(Cfg, LexerMap, SymbolBitSet), LoadError> {
+    fn load_advanced(grammar: &str) -> Result<AdvancedGrammar, LoadError> {
         use tiny_earley::Grammar;
         let bnf_grammar = grammar! {
-            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2]
+            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2, tilde_op]
             R = {
                 start ::= start decl; // 2
                 start ::= decl; // 3
@@ -439,7 +453,7 @@ impl CfgLoadAdvancedExt for Cfg {
                 rhs ::= alt2; // 10
                 alt2 ::= alt; // 11
                 alt2 ::= alt action; // 12
-                alt ::= alt fragment; // 13
+            alt ::= alt tilde_op fragment; // 13
                 alt ::= fragment; // 14
                 fragment ::= ident op_plus; // 15
                 fragment ::= ident op_mul; // 16
@@ -454,7 +468,7 @@ impl CfgLoadAdvancedExt for Cfg {
         };
         let symbols = bnf_grammar.symbols();
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2] = bnf_grammar.symbols();
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, string, decl, action, lexer_keyword, lexer, lbrace, rbrace, rules, gt_op, lparen, rparen, alt2, tilde_op] = bnf_grammar.symbols();
         let mut recognizer = Recognizer::new(&bnf_grammar);
         let tokens = Lexer::tokenize(grammar);
         for (i, &(ref ch, line, col)) in tokens.iter().enumerate() {
@@ -471,6 +485,7 @@ impl CfgLoadAdvancedExt for Cfg {
                 Token::LParen => lparen,
                 Token::RParen => rparen,
                 Token::GtOp => gt_op,
+                Token::TildeOp => tilde_op,
                 Token::LexerKeyword => lexer_keyword,
                 Token::Whitespace => continue,
                 &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32, token: None }),
@@ -503,6 +518,7 @@ impl CfgLoadAdvancedExt for Cfg {
             let mut intern_empty = true;
             let mut lexer_classes = LexerMap::new();
             let mut lhs_in_parser = HashSet::new();
+            let mut actions = BTreeMap::new();
             // check_for_lexical_error(&rules, lexer.as_ref());
             for (idx, (rule, is_lexer)) in rules.into_iter().zip(iter::repeat(false)).chain(lexer.unwrap_or(LexerVal(vec![])).0.into_iter().zip(iter::repeat(true))).enumerate() {
                 let lhs = intern.get_or_intern(&rule.lhs[..]);
@@ -526,14 +542,14 @@ impl CfgLoadAdvancedExt for Cfg {
                             }
                             match &*arg {
                                 &Fragment::Call { ref func, ref arg } => {
-                                    return Err(LoadError::Lex { reason: format!("expected Regex(string)") });
+                                    return Err(LoadError::Lex { reason: format!("expected Regex(string), found {:?}({:?})", func, arg) });
                                 }
                                 &Fragment::Lex { ref string } => {
                                     let (mut regexp_cfg, classes) = Cfg::from_regexp(string).map_err(|err| LoadError::Lex { reason: err.to_string() })?;
                                     let mut remap = Remap::new(&mut regexp_cfg);
                                     let mut sym_map = HashMap::new();
-                                    for (class, sym) in classes.0 {
-                                        let new_sym = *lexer_classes.0.entry(class).or_insert_with(|| cfg.next_sym(None));
+                                    for (class, sym) in classes.classes {
+                                        let new_sym = *lexer_classes.classes.entry(class).or_insert_with(|| cfg.next_sym(None));
                                         sym_map.insert(sym, new_sym);
                                     }
                                     remap.remap_symbols(|sym| {
@@ -544,7 +560,7 @@ impl CfgLoadAdvancedExt for Cfg {
                                     Ok(regexp_cfg.roots()[0])
                                 }
                                 &Fragment::Rhs { ref ident, rep } => {
-                                    return Err(LoadError::Lex { reason: format!("expected Regex(string)") });
+                                    return Err(LoadError::Lex { reason: format!("expected Regex(string), found {:?} repeated {:?}", ident, rep) });
                                 }
                             }
                         }
@@ -555,7 +571,7 @@ impl CfgLoadAdvancedExt for Cfg {
                             let rhs_sym = *sym_map.entry(id).or_insert_with(|| {
                                 cfg.sym_source_mut().next_sym(Some(name.clone().into()))
                             });
-                            let child: Vec<_> = string.chars().map(|ch| *lexer_classes.0.entry(ch.into()).or_insert_with(|| cfg.next_sym(None))).collect();
+                            let child: Vec<_> = string.chars().map(|ch| *lexer_classes.classes.entry(ch.into()).or_insert_with(|| cfg.next_sym(None))).collect();
                             cfg.rule(rhs_sym).rhs(&child[..]);
                             set_of_lexical.insert(rhs_sym);
                             Ok(rhs_sym)
@@ -583,13 +599,19 @@ impl CfgLoadAdvancedExt for Cfg {
                     set_of_lexical.insert(lhs_sym);
                 }
                 cfg.rule(lhs_sym).history(RootHistoryNode::Origin { origin: idx + 1 }.into()).rhs(rhs_syms?);
+                actions.insert(idx + 1, rule.action);
             }
             let mut sbs = SymbolBitSet::new();
             sbs.reset(cfg.sym_source());
             for sym in set_of_lexical {
                 sbs.set(sym, true);
             }
-            Ok((cfg, lexer_classes, sbs))
+            Ok(AdvancedGrammar {
+                cfg,
+                lexer_map: lexer_classes,
+                sbs,
+                actions,
+            })
         } else {
             return Err(LoadError::Eval { reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result) });
         }

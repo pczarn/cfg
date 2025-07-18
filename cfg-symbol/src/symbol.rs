@@ -57,7 +57,6 @@ impl<T: SymbolPrimitive> Into<u32> for Symbol<T> {
     }
 }
 
-#[cfg(feature = "miniserde")]
 mod miniserde_impls {
     use super::{Symbol, SymbolPrimitive};
     use std::num::NonZeroU32;
@@ -70,7 +69,7 @@ mod miniserde_impls {
     impl<T: SymbolPrimitive> Visitor for Place<Symbol<T>> {
         fn nonnegative(&mut self, n: u64) -> Result<()> {
             if n < T::MAX as u64 {
-                if let Some(Ok(nonzero_num)) = NonZeroU32::new(n as u32).map(|n| TryInto::<T>::try_into(n)) {
+                if let Some(Ok(nonzero_num)) = NonZeroU32::new((n + 1) as u32).map(|n| TryInto::<T>::try_into(n)) {
                     self.out = Some(Symbol { n: nonzero_num });
                     Ok(())
                 } else {
@@ -89,9 +88,25 @@ mod miniserde_impls {
     }
 
     impl<T: SymbolPrimitive> Serialize for Symbol<T> {
-        fn begin(&self) -> ser::Fragment {
+        fn begin(&self) -> ser::Fragment<'_> {
             let n: u32 = (*self).into();
             ser::Fragment::U64(n as u64)
         }
+    }
+}
+
+#[cfg(feature = "nanoserde")]
+impl nanoserde::DeBin for Symbol<NonZeroU32> {
+    fn de_bin(offset: &mut usize, bytes: &[u8]) -> Result<Self, nanoserde::DeBinErr> {
+        Ok(Symbol {
+            n: u32::de_bin(offset, bytes)?.try_into().unwrap()
+        })
+    }
+}
+
+#[cfg(feature = "nanoserde")]
+impl nanoserde::SerBin for Symbol<NonZeroU32> {
+    fn ser_bin(&self, output: &mut Vec<u8>) {
+        u32::ser_bin(&self.n.get(), output);
     }
 }

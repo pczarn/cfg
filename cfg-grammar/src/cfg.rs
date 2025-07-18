@@ -410,12 +410,12 @@ impl Cfg {
     }
 
     /// Starts building a new rule.
-    pub fn rule(&mut self, lhs: Symbol) -> RuleBuilder {
+    pub fn rule(&mut self, lhs: Symbol) -> RuleBuilder<'_> {
         RuleBuilder::new(self).rule(lhs)
     }
 
     /// Starts building a new precedenced rule.
-    pub fn precedenced_rule(&mut self, lhs: Symbol) -> PrecedencedRuleBuilder {
+    pub fn precedenced_rule(&mut self, lhs: Symbol) -> PrecedencedRuleBuilder<'_> {
         PrecedencedRuleBuilder::new(self, lhs)
     }
 

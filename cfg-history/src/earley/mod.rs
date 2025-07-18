@@ -10,18 +10,22 @@ use crate::{
 
 use rule_dot::RuleDot;
 
-#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
-#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
+#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct ExternalOrigin { pub id: u32 }
-#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
-#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
+#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct EventId { pub id: u32 }
-#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
-#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
+#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct MinimalDistance { pub distance: u32 }
 pub type NullingEliminated = Option<(Symbol, bool)>;
-#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
-#[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
+#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct ExternalDottedRule {
     id: u32,
     pos: u32,

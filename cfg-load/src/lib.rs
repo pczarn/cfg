@@ -3,8 +3,8 @@ pub mod advanced;
 
 use std::fmt;
 
-pub use crate::basic::{CfgLoadExt};
-pub use crate::advanced::{CfgLoadAdvancedExt};
+pub use crate::basic::CfgLoadExt;
+pub use crate::advanced::CfgLoadAdvancedExt;
 
 #[derive(Debug, Clone)]
 pub enum LoadError {

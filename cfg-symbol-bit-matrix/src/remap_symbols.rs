@@ -120,11 +120,11 @@ impl<'a> Remap<'a> {
 }
 
 pub trait CfgRemapSymbolsExt {
-    fn remap(&mut self) -> Remap;
+    fn remap(&mut self) -> Remap<'_>;
 }
 
 impl CfgRemapSymbolsExt for Cfg {
-    fn remap(&mut self) -> Remap {
+    fn remap(&mut self) -> Remap<'_> {
         Remap::new(self)
     }
 }

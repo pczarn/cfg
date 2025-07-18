@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 regex-syntax = "0.8"
+regex-automata = "0.4"
 log = "0.4"
 cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
 cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/" }

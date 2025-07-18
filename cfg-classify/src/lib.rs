@@ -16,13 +16,13 @@ pub mod regular;
 pub mod useful;
 
 pub trait CfgClassifyExt {
-#[cfg(feature = "ll")]
-    fn ll_parse_table(&self) -> ll::LlParseTable;
-#[cfg(feature = "lr")]
-    fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder;
-#[cfg(feature = "lr")]
-    fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder;
-    fn recursion(&self) -> recursive::Recursion;
+    #[cfg(feature = "ll")]
+    fn ll_parse_table(&self) -> ll::LlParseTable<'_>;
+    #[cfg(feature = "lr")]
+    fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder<'_>;
+    #[cfg(feature = "lr")]
+    fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder<'_>;
+    fn recursion(&self) -> recursive::Recursion<'_>;
     fn make_proper(&mut self) -> bool;
     fn usefulness(&mut self) -> useful::Usefulness;
     fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> useful::Usefulness;
@@ -30,21 +30,21 @@ pub trait CfgClassifyExt {
 
 impl CfgClassifyExt for Cfg {
     #[cfg(feature = "ll")]
-    fn ll_parse_table(&self) -> ll::LlParseTable {
+    fn ll_parse_table(&self) -> ll::LlParseTable<'_> {
         ll::LlParseTable::new(self)
     }
 
-    fn recursion(&self) -> recursive::Recursion {
+    fn recursion(&self) -> recursive::Recursion<'_> {
         recursive::Recursion::new(self)
     }
 
     #[cfg(feature = "lr")]
-    fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder {
+    fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder<'_> {
         lr::Lr0FsmBuilder::new(self)
     }
 
     #[cfg(feature = "lr")]
-    fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder {
+    fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder<'_> {
         lr::Lr0ClosureBuilder::new(self)
     }
 

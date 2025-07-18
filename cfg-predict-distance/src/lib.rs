@@ -1,7 +1,6 @@
 //! Calculation of minimum distance from one part of the grammar to another.
 
 use cfg_grammar::*;
-use cfg_history::{earley::History, HistoryId};
 use cfg_symbol::Symbol;
 
 /// Calculation of minimum distance from one part of the grammar to another.

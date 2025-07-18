@@ -36,7 +36,7 @@ impl Borrow<str> for SymbolName {
 }
 
 /// A source of numeric symbols.
-#[cfg_attr(feature = "miniserde", derive(miniserde::Serialize, miniserde::Deserialize))]
+#[derive(miniserde::Serialize, miniserde::Deserialize)]
 #[derive(Clone, Debug, Default)]
 pub struct SymbolSource<T: SymbolPrimitive = NonZeroU32> {
     next_symbol: Symbol<T>,
@@ -87,7 +87,7 @@ impl<T: SymbolPrimitive> SymbolSource<T> {
         self.names.push(name.map(|cow| cow.into()));
         ret
     }
-    pub fn name_of(&self, sym: Symbol) -> Cow<str> {
+    pub fn name_of(&self, sym: Symbol) -> Cow<'_, str> {
         match self.names.get(sym.usize()) {
             Some(Some(name)) => {
                 Cow::Borrowed(&name.name[..])
@@ -168,14 +168,12 @@ impl<'a, T: SymbolPrimitive> Iterator for Generate<'a, T> {
     }
 }
 
-#[cfg(feature = "miniserde")]
 mod miniserde_impls {
-    use crate::{Symbol, SymbolSource, SymbolPrimitive};
     use super::SymbolName;
     use std::rc::Rc;
     use miniserde::de::{Deserialize, Visitor};
     use miniserde::{de, ser, Serialize};
-    use miniserde::{make_place, Error, Result};
+    use miniserde::{make_place, Result};
 
     make_place!(Place);
 
@@ -193,7 +191,7 @@ mod miniserde_impls {
     }
 
     impl Serialize for SymbolName {
-        fn begin(&self) -> ser::Fragment {
+        fn begin(&self) -> ser::Fragment<'_> {
             ser::Fragment::Str(self.name.to_string().into())
         }
     }
