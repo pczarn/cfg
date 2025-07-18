@@ -1,15 +1,15 @@
 #[cfg(feature = "weighted-generation")]
 use std::collections::BTreeMap;
 
-use cfg::earley::Grammar;
+use cfg::Cfg;
 
 #[cfg(feature = "weighted-generation")]
-use cfg::history::node::LinkedHistoryNode;
+use cfg::history::LinkedHistoryNode;
 #[cfg(feature = "weighted-generation")]
-use cfg::{Cfg, RuleContainer, Symbol};
+use cfg::Symbol;
 
-pub fn grammar() -> Grammar {
-    let mut bnf = Grammar::new();
+pub fn grammar() -> Cfg {
+    let mut bnf = Cfg::new();
     let [sum, product, factor, number, plus, minus, mul, div, lparen, rparen] = bnf.sym();
     bnf.rule(sum)
         .rhs([sum, plus, product])
@@ -25,7 +25,7 @@ pub fn grammar() -> Grammar {
     for sym in bnf.sym::<10>() {
         bnf.rule(number).rhs(&[sym, number]).rhs(&[sym]);
     }
-    bnf.set_start(sum);
+    bnf.set_roots(&[sum]);
     bnf
 }
 

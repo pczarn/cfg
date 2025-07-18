@@ -2,44 +2,18 @@
 
 use crate::*;
 
-#[cfg(feature = "serialize")]
-use miniserde::{Deserialize, Serialize};
-
-/// Populates maps with new symbols.
-pub struct Intern {
-    pub source: SymbolSource,
-    pub mapping: Mapping,
-}
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// Contains maps for translation between internal and external symbols.
 #[derive(Clone, Default, Debug)]
-#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(miniserde::Serialize, miniserde::Deserialize)]
 pub struct Mapping {
     /// An array of internal symbols, indexed by external symbol ID.
     pub to_internal: Vec<Option<Symbol>>,
     /// An array of external symbols, indexed by internal symbol ID.
     pub to_external: Vec<Symbol>,
-}
-
-impl Intern {
-    pub fn new(num_external: usize) -> Self {
-        Intern {
-            source: SymbolSource::new(),
-            mapping: Mapping::new(num_external),
-        }
-    }
-
-    pub fn intern(&mut self, symbol: Symbol) -> Symbol {
-        if let Some(internal) = self.mapping.to_internal[symbol.usize()] {
-            internal
-        } else {
-            let [new_sym] = self.source.sym();
-            self.mapping.to_internal[symbol.usize()] = Some(new_sym);
-            assert_eq!(self.mapping.to_external.len(), new_sym.usize());
-            self.mapping.to_external.push(symbol);
-            new_sym
-        }
-    }
 }
 
 impl Mapping {
@@ -57,7 +31,7 @@ impl Mapping {
         // For mapping to internal.
         for internal in &mut self.to_internal[..] {
             *internal = if let Some(sym) = *internal {
-                other.to_internal[sym.usize()]
+                other.to_internal.get(sym.usize()).and_then(|&x| x)
             } else {
                 None
             };

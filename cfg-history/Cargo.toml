@@ -1,0 +1,15 @@
+[package]
+name = "cfg-history"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+smallvec = { version = "1.15", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+miniserde = { workspace = true }
+nanoserde = { version = "0.2", optional = true }
+
+[features]
+default = ["earley"]
+earley = []

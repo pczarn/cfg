@@ -5,9 +5,9 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
-use cfg_grammar::history::node::RootHistoryNode;
-use cfg_grammar::symbol::set::SymbolBitSet;
-use cfg_grammar::RuleContainer;
+use cfg_grammar::symbol_bit_set::SymbolBitSet;
+use cfg_grammar::Cfg;
+use cfg_history::RootHistoryNode;
 use cfg_symbol::Symbol;
 
 type Dot = u32;
@@ -27,15 +27,15 @@ pub struct Lr0Item {
 }
 
 /// A builder for an LR(0) item closure.
-pub struct Lr0ClosureBuilder<'a, G> {
-    grammar: &'a mut G,
+pub struct Lr0ClosureBuilder<'a> {
+    grammar: &'a mut Cfg,
     queue: VecDeque<Lr0Item>,
     terminal_set: SymbolBitSet,
 }
 
 /// Builder of LR(0) Finite State Machine.
-pub struct Lr0FsmBuilder<'a, G> {
-    closure: Lr0ClosureBuilder<'a, G>,
+pub struct Lr0FsmBuilder<'a> {
+    closure: Lr0ClosureBuilder<'a>,
     sets_queue: VecDeque<Rc<Lr0Items>>,
     cached_sets: BTreeMap<Rc<Lr0Items>, u32>,
 }
@@ -57,15 +57,12 @@ impl Lr0Items {
     }
 }
 
-impl<'a, G> Lr0ClosureBuilder<'a, G>
-where
-    G: RuleContainer,
-{
+impl<'a> Lr0ClosureBuilder<'a> {
     /// Creates a builder for an LR(0) item closure.
-    pub fn new(grammar: &'a mut G) -> Self {
+    pub fn new(grammar: &'a mut Cfg) -> Self {
         Lr0ClosureBuilder {
             queue: VecDeque::new(),
-            terminal_set: SymbolBitSet::terminal_set(&grammar),
+            terminal_set: grammar.terminal_symbols(),
             grammar,
         }
     }
@@ -127,7 +124,7 @@ where
     fn nonterminal_postdot(&self, item: &Lr0Item) -> Option<Symbol> {
         match item.rhs.get(item.dot as usize) {
             Some(&postdot) => {
-                if !self.terminal_set.has_sym(postdot) {
+                if !self.terminal_set[postdot] {
                     Some(postdot)
                 } else {
                     None
@@ -138,12 +135,9 @@ where
     }
 }
 
-impl<'a, G> Lr0FsmBuilder<'a, G>
-where
-    G: RuleContainer,
-{
+impl<'a> Lr0FsmBuilder<'a> {
     /// Creates a new LR(0) Finite State Machine builder.
-    pub fn new(grammar: &'a mut G) -> Self {
+    pub fn new(grammar: &'a mut Cfg) -> Self {
         Lr0FsmBuilder {
             closure: Lr0ClosureBuilder::new(grammar),
             sets_queue: VecDeque::new(),
@@ -186,16 +180,13 @@ where
     }
 
     fn augment_grammar(&mut self, start_sym: Symbol) -> (Symbol, RuleId) {
-        let new_start = self.closure.grammar.next_sym();
+        let new_start = self.closure.grammar.next_sym(None);
         let rule_id = self.closure.grammar.rules().count() as RuleId;
-        let history_id = self
-            .closure
-            .grammar
-            .add_history_node(RootHistoryNode::NoOp.into());
+        let history = RootHistoryNode::NoOp.into();
         self.closure
             .grammar
             .rule(new_start)
-            .rhs_with_history(&[start_sym], history_id);
+            .rhs_with_history([start_sym], history);
         (new_start, rule_id)
     }
 

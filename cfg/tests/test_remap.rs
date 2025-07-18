@@ -2,9 +2,9 @@
 
 mod support;
 
-use cfg::classify::useful::Usefulness;
-use cfg::symbol::remap::Remap;
-use cfg::{Cfg, RuleContainer};
+use cfg::classify::CfgClassifyExt;
+use cfg::Cfg;
+use cfg_symbol_bit_matrix::CfgRemapSymbolsExt;
 
 #[test]
 fn test_remap_unused_symbols() {
@@ -23,7 +23,9 @@ fn test_remap_unused_symbols() {
         .rule(a)
         .rhs([]);
 
-    Remap::new(&mut cfg).remove_unused_symbols();
+    cfg.set_roots([start]);
+
+    cfg.remap().remove_unused_symbols();
 
     {
         let mut equivalent: Cfg = Cfg::new();
@@ -44,7 +46,7 @@ fn test_remap_unused_symbols() {
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
     };
 
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+    assert!(cfg.usefulness().all_useful());
 }
 
 #[test]
@@ -65,12 +67,13 @@ fn test_reorder_symbols() {
         .rule(a)
         .rhs([]);
 
+    cfg.set_roots([start]);
+
     let ordering = &[
         /* start => */ 1, /* a => */ 2, /* x => */ 5, /* b => */ 3,
         /* c => */ 4, /* y => */ 6,
     ];
-    Remap::new(&mut cfg)
-        .reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
+    cfg.remap().reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
 
     {
         let mut equivalent: Cfg = Cfg::new();
@@ -90,7 +93,7 @@ fn test_reorder_symbols() {
             .rhs([y]);
         support::assert_eq_rules(equivalent.rules(), cfg.rules());
     };
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+    assert!(cfg.usefulness().all_useful());
 }
 
 #[test]
@@ -110,14 +113,17 @@ fn test_maps() {
         .rhs([y])
         .rule(a)
         .rhs([]);
-    assert!(Usefulness::new(&mut cfg).reachable([start]).all_useful());
+
+    cfg.set_roots([start]);
+
+    assert!(cfg.usefulness().all_useful());
 
     let ordering = &[
         /* start => */ 1, /* a => */ 2, /* x => */ 5, /* b => */ 3,
         /* c => */ 4, /* y => */ 6,
     ];
 
-    let mut remap = Remap::new(&mut cfg);
+    let mut remap = cfg.remap();
     remap.reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
     let maps = remap.get_mapping();
 

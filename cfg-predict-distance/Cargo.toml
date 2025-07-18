@@ -1,0 +1,17 @@
+[package]
+name = "cfg-predict-distance"
+version = "0.0.1"
+edition = "2021"
+
+authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
+description = "Library for manipulating context-free grammars."
+keywords = ["grammar", "parsing", "language"]
+documentation = "https://docs.rs/cfg/latest/cfg-predict/"
+homepage = "https://github.com/pczarn/cfg"
+repository = "https://github.com/pczarn/cfg"
+license = "Apache-2.0 OR MIT"
+
+[dependencies]
+cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
+cfg-history = { version = "0.0.1", path = "../cfg-history/" }
+cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }

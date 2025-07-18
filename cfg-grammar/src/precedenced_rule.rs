@@ -1,12 +1,10 @@
 //! Precedenced rules are built with the builder pattern.
 
-use std::convert::AsRef;
+use std::{convert::AsRef, rc::Rc};
 
-use crate::history::node::{HistoryNodeAssignPrecedence, HistoryNodeRhs, RootHistoryNode};
-use crate::rule::builder::RuleBuilder;
-use crate::rule::cfg_rule::CfgRule;
-use crate::rule::RuleRef;
-use crate::{local_prelude::*, AsRuleRef};
+use crate::local_prelude::*;
+use crate::rule_builder::RuleBuilder;
+use cfg_history::{earley::History, HistoryNodeAssignPrecedence, RootHistoryNode};
 
 use self::Associativity::*;
 
@@ -25,30 +23,24 @@ pub enum Associativity {
 pub const DEFAULT_ASSOC: Associativity = Left;
 
 /// Precedenced rules are built in series of rule alternatives with equal precedence.
-pub struct PrecedencedRuleBuilder<D>
-where
-    D: RuleContainer,
-{
-    rules: D,
+pub struct PrecedencedRuleBuilder<'a> {
+    grammar: &'a mut Cfg,
     lhs: Symbol,
     tighter_lhs: Symbol,
     current_lhs: Symbol,
-    history: Option<HistoryId>,
+    history: Option<History>,
     assoc: Associativity,
     looseness: u32,
     rules_with_group_assoc: Vec<CfgRule>,
 }
 
-impl<D> PrecedencedRuleBuilder<D>
-where
-    D: RuleContainer,
-{
+impl<'a> PrecedencedRuleBuilder<'a> {
     /// Returns a precedenced rule builder.
-    pub fn new(mut rules: D, lhs: Symbol) -> Self {
-        let tightest_lhs = rules.next_sym();
+    pub fn new(grammar: &'a mut Cfg, lhs: Symbol) -> Self {
+        let tightest_lhs = grammar.next_sym(None);
         PrecedencedRuleBuilder {
-            rules,
-            lhs: lhs,
+            grammar,
+            lhs,
             tighter_lhs: tightest_lhs,
             current_lhs: tightest_lhs,
             history: None,
@@ -57,27 +49,22 @@ where
             rules_with_group_assoc: vec![],
         }
     }
-}
 
-impl<D> PrecedencedRuleBuilder<D>
-where
-    D: RuleContainer,
-{
     /// Starts building a new precedenced rule. The differences in precedence among rules only
     /// matter within a particular precedenced rule.
-    pub fn precedenced_rule(self, lhs: Symbol) -> PrecedencedRuleBuilder<D> {
+    pub fn precedenced_rule(self, lhs: Symbol) -> PrecedencedRuleBuilder<'a> {
         self.finalize().precedenced_rule(lhs)
     }
 
     /// Starts building a new grammar rule.
-    pub fn rule(self, lhs: Symbol) -> RuleBuilder<D> {
+    pub fn rule(self, lhs: Symbol) -> RuleBuilder<'a> {
         self.finalize().rule(lhs)
     }
 
     /// Assigns the rule history, which is used on the next call to `rhs`, unless overwritten by
     /// a call to `rhs_with_history`.
     #[must_use]
-    pub fn history(mut self, history: HistoryId) -> Self {
+    pub fn history(mut self, history: History) -> Self {
         self.history = Some(history);
         self
     }
@@ -88,34 +75,24 @@ where
     where
         S: AsRef<[Symbol]>,
     {
-        let history_id = self.history.take().unwrap_or_else(|| {
-            self.rules
-                .add_history_node(RootHistoryNode::Rule { lhs: self.lhs }.into())
+        let history = self.history.take().unwrap_or_else(|| {
+            RootHistoryNode::Rule { lhs: self.lhs }.into()
         });
-        let history_id = self.rules.add_history_node(
-            HistoryNodeRhs {
-                prev: history_id,
-                rhs: syms.as_ref().to_vec(),
-            }
-            .into(),
-        );
-        self.rhs_with_history(syms.as_ref(), history_id)
+        self.rhs_with_history(syms.as_ref(), history)
     }
 
     /// Creates a rule alternative with the given RHS and history.
     #[must_use]
-    pub fn rhs_with_history<S>(mut self, syms: S, history_id: HistoryId) -> Self
+    pub fn rhs_with_history<S>(mut self, syms: S, history: History) -> Self
     where
         S: AsRef<[Symbol]>,
     {
         let syms = syms.as_ref();
-        let history_assign_precedence = self.rules.add_history_node(
-            HistoryNodeAssignPrecedence {
-                prev: history_id,
+        let history_assign_precedence = HistoryNodeAssignPrecedence {
+                prev: history,
                 looseness: self.looseness,
             }
-            .into(),
-        );
+            .into();
         let lhs = self.lhs;
         let mut syms = syms.to_vec();
         if self.assoc == Group {
@@ -142,10 +119,10 @@ where
                     *sym = self.tighter_lhs;
                 }
             };
-            self.rules.add_rule(RuleRef {
+            self.grammar.add_rule(CfgRule {
                 lhs: self.current_lhs,
-                rhs: &syms[..],
-                history_id: history_assign_precedence,
+                rhs: syms.into(),
+                history: history_assign_precedence,
             });
         }
         // Reset to default associativity and no history.
@@ -167,30 +144,30 @@ where
         self.looseness += 1;
 
         self.tighter_lhs = self.current_lhs;
-        self.current_lhs = self.rules.next_sym();
+        self.current_lhs = self.grammar.next_sym(None);
 
-        let history_id = self.rules.add_history_node(RootHistoryNode::NoOp.into());
-        RuleBuilder::new(&mut self.rules)
+        let history = RootHistoryNode::NoOp.into();
+        RuleBuilder::new(self.grammar)
             .rule(self.current_lhs)
-            .rhs_with_history(&[self.tighter_lhs], history_id);
+            .rhs_with_history([self.tighter_lhs], history);
         self
     }
 
     /// This internal method must be called to finalize the precedenced rule construction.
-    pub fn finalize(mut self) -> RuleBuilder<D> {
+    pub fn finalize(mut self) -> RuleBuilder<'a> {
         let loosest_lhs = self.current_lhs;
-        for mut rule in self.rules_with_group_assoc.drain(..) {
-            for sym in &mut rule.rhs {
-                if *sym == self.lhs {
-                    *sym = loosest_lhs;
-                }
-            }
-            self.rules.add_rule(rule.as_rule_ref());
+        for rule in self.rules_with_group_assoc.drain(..) {
+            let rhs: Rc<[Symbol]> = rule
+                .rhs
+                .iter()
+                .map(|&sym| if sym == self.lhs { loosest_lhs } else { sym })
+                .collect();
+            self.grammar.add_rule(CfgRule { rhs, ..rule });
         }
-        let history_id = self.rules.add_history_node(RootHistoryNode::NoOp.into());
+        let history = RootHistoryNode::NoOp.into();
         // The associativity is not reset in the call to `rhs`.
-        RuleBuilder::new(self.rules)
+        RuleBuilder::new(self.grammar)
             .rule(self.lhs)
-            .rhs_with_history(&[loosest_lhs], history_id)
+            .rhs_with_history([loosest_lhs], history)
     }
 }

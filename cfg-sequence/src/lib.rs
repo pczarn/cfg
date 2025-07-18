@@ -1,18 +1,23 @@
 //! Sequences are similar to regex repetitions with numbering.
 
+#![deny(unsafe_code)]
+
 pub mod builder;
 pub mod destination;
 pub mod rewrite;
+mod ext;
+
+pub use crate::ext::CfgSequenceExt;
 
 use std::ops::{Bound, RangeBounds};
 
-use cfg_grammar::HistoryId;
+use cfg_history::earley::History;
 use cfg_symbol::Symbol;
 
 use self::Separator::*;
 
 /// Sequence rule representation.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Sequence {
     /// The rule's left-hand side.
     pub lhs: Symbol,
@@ -26,7 +31,7 @@ pub struct Sequence {
     /// The way elements are separated in a sequence, or `Null`.
     pub separator: Separator,
     /// The history carried with the sequence rule.
-    pub history_id: Option<HistoryId>,
+    pub history: Option<History>,
 }
 
 /// The separator symbol and mode of separation in a sequence, or `Null` for no separation.
@@ -82,9 +87,9 @@ impl Separator {
     }
 }
 
-impl Into<Option<Symbol>> for Separator {
-    fn into(self) -> Option<Symbol> {
-        match self {
+impl From<Separator> for Option<Symbol> {
+    fn from(val: Separator) -> Option<Symbol> {
+        match val {
             Trailing(sep) => Some(sep),
             _ => None,
         }

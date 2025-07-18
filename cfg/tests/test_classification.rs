@@ -1,18 +1,20 @@
 #![cfg(feature = "cfg-classify")]
 
-use std::rc::Rc;
-
 #[cfg(feature = "ll")]
 use cfg::classify::ll::{LlNonterminalClass, LlParseTable};
+#[cfg(feature = "lr")]
 use cfg::classify::lr::{Lr0FsmBuilder, Lr0Item, Lr0Items, Lr0Node};
-use cfg::{Cfg, RuleContainer};
-
-use std::collections::BTreeMap;
+use cfg::{Cfg, CfgRule};
+use cfg_classify::CfgClassifyExt;
+use cfg_classify::recursive::RecursiveRule;
+use cfg_history::RootHistoryNode;
 
 #[cfg(feature = "ll")]
 #[test]
 fn test_ll_classification() {
-    let mut cfg: Cfg = Cfg::new();
+    use std::collections::BTreeMap;
+
+    let mut cfg = Cfg::new();
     let [start, a, x, b, c, y] = cfg.sym();
 
     cfg.rule(start)
@@ -27,7 +29,7 @@ fn test_ll_classification() {
         .rule(a)
         .rhs([]);
 
-    let classification = LlParseTable::new(&cfg, start).classify();
+    let classification = LlParseTable::new(&cfg).classify();
     let classes = classification.classes();
 
     let mut map = BTreeMap::new();
@@ -43,6 +45,8 @@ fn test_ll_classification() {
 #[cfg(feature = "ll")]
 #[test]
 fn test_ll_transitive_classification() {
+    use std::collections::BTreeMap;
+
     let mut cfg: Cfg = Cfg::new();
     let [start, a, b, x, y] = cfg.sym();
 
@@ -54,7 +58,7 @@ fn test_ll_transitive_classification() {
         .rhs([x, y])
         .rhs([x]);
 
-    let classification = LlParseTable::new(&cfg, start).classify();
+    let classification = LlParseTable::new(&cfg).classify();
     let classes = classification.classes();
 
     let mut map = BTreeMap::new();
@@ -66,8 +70,11 @@ fn test_ll_transitive_classification() {
     assert_eq!(classes, &map);
 }
 
+#[cfg(feature = "lr")]
 #[test]
 fn test_lr0() {
+    use std::{collections::BTreeMap, rc::Rc};
+
     let mut cfg: Cfg = Cfg::new();
     let [start, a, x, b, c, y] = cfg.sym();
 
@@ -177,4 +184,62 @@ fn test_lr0() {
     let nodes = vec![node_0, node_1, node_2];
 
     assert_eq!(nodes, lr0_fsm);
+}
+
+#[test]
+fn test_recursive() {
+    let mut cfg = Cfg::new();
+
+    let [start, foo, bar] = cfg.sym();
+
+    cfg.rule(start).rhs([foo, foo]);
+
+    cfg.rule(foo).rhs([bar]).rhs([foo, bar]);
+
+    let rec_rule = CfgRule {
+        lhs: foo,
+        rhs: vec![foo, bar].into(),
+        history: RootHistoryNode::Rule { lhs: foo }.into(),
+    };
+
+    let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
+        rule: &rec_rule,
+        recursion: cfg_classify::recursive::RecursionKind::Left,
+        distances: None,
+    }];
+
+    let recursion = cfg.recursion();
+
+    let actual_recursive_rules = recursion.recursive_rules().collect::<Vec<_>>();
+
+    assert_eq!(actual_recursive_rules, expected_recursive_rules);
+}
+
+#[test]
+fn test_recursive_right_rec() {
+    let mut cfg = Cfg::new();
+
+    let [start, foo, bar, buzz] = cfg.sym();
+
+    cfg.rule(start).rhs([foo, foo]);
+
+    cfg.rule(foo).rhs([bar]).rhs([bar, bar, buzz, foo]);
+
+    let rec_rule = CfgRule {
+        lhs: foo,
+        rhs: vec![bar, bar, buzz, foo].into(),
+        history: RootHistoryNode::Rule { lhs: foo }.into(),
+    };
+
+    let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
+        rule: &rec_rule,
+        recursion: cfg_classify::recursive::RecursionKind::Right,
+        distances: None,
+    }];
+
+    let recursion = cfg.recursion();
+
+    let actual_recursive_rules = recursion.recursive_rules().collect::<Vec<_>>();
+
+    assert_eq!(actual_recursive_rules, expected_recursive_rules);
 }

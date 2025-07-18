@@ -1,9 +1,9 @@
-#![cfg(feature = "cfg-predict")]
+#![cfg(feature = "cfg-predict-sets")]
 
-use cfg::{Cfg, RuleContainer};
-use cfg_predict::{LastSets, PredictSets};
+use cfg::Cfg;
+use cfg_predict_sets::{sets::PerSymbolSetVal, LastSets, PredictSets};
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 #[test]
 fn test_simple_last_sets() {
@@ -25,18 +25,22 @@ fn test_simple_last_sets() {
     let sets = sets.predict_sets();
 
     let mut map = BTreeMap::new();
-    let mut start_set = BTreeSet::new();
-    start_set.insert(Some(x));
-    start_set.insert(Some(y));
-    let mut a_set = BTreeSet::new();
-    a_set.insert(None);
-    let mut b_set = BTreeSet::new();
-    b_set.insert(None);
-    b_set.insert(Some(x));
-    b_set.insert(Some(y));
-    let mut c_set = BTreeSet::new();
-    c_set.insert(Some(x));
-    c_set.insert(Some(y));
+    let start_set = PerSymbolSetVal {
+        has_none: false,
+        list: vec![x, y],
+    };
+    let a_set = PerSymbolSetVal {
+        has_none: true,
+        list: vec![],
+    };
+    let b_set = PerSymbolSetVal {
+        has_none: true,
+        list: vec![x, y],
+    };
+    let c_set = PerSymbolSetVal {
+        has_none: false,
+        list: vec![x, y],
+    };
 
     map.insert(start, start_set);
     map.insert(a, a_set);
@@ -65,18 +69,22 @@ fn test_simple_last_sets_altered() {
     let sets = sets.predict_sets();
 
     let mut map = BTreeMap::new();
-    let mut start_set = BTreeSet::new();
-    start_set.insert(Some(x));
-    start_set.insert(Some(y));
-    let mut a_set = BTreeSet::new();
-    a_set.insert(None);
-    let mut b_set = BTreeSet::new();
-    b_set.insert(None);
-    b_set.insert(Some(x));
-    b_set.insert(Some(y));
-    let mut c_set = BTreeSet::new();
-    c_set.insert(Some(x));
-    c_set.insert(Some(y));
+    let start_set = PerSymbolSetVal {
+        has_none: false,
+        list: vec![x, y],
+    };
+    let a_set = PerSymbolSetVal {
+        has_none: true,
+        list: vec![],
+    };
+    let b_set = PerSymbolSetVal {
+        has_none: true,
+        list: vec![x, y],
+    };
+    let c_set = PerSymbolSetVal {
+        has_none: false,
+        list: vec![x, y],
+    };
 
     map.insert(start, start_set);
     map.insert(a, a_set);

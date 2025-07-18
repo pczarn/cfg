@@ -10,19 +10,16 @@ use crate::destination::SequenceDestination;
 use crate::Separator::{self, Liberal, Proper, Trailing};
 use crate::Sequence;
 use crate::Symbol;
-use cfg_grammar::history::node::{HistoryId, HistoryNodeRewriteSequence, RootHistoryNode};
-use cfg_grammar::rule::builder::RuleBuilder;
-use cfg_grammar::rule_container::RuleContainer;
+use cfg_grammar::rule_builder::RuleBuilder;
+use cfg_grammar::Cfg;
+use cfg_history::{earley::History, HistoryNodeRewriteSequence, HistoryNodeSequenceRhs, RootHistoryNode};
 
 /// Rewrites sequence rules into production rules.
-pub struct SequencesToProductions<'a, D>
-where
-    D: RuleContainer,
-{
-    destination: &'a mut D,
+pub struct SequencesToProductions<'a> {
+    destination: &'a mut Cfg,
     stack: Vec<Sequence>,
     map: HashMap<PartialSequence, Symbol>,
-    top: Option<HistoryId>,
+    top: Option<History>,
     lhs: Option<Symbol>,
 }
 
@@ -35,10 +32,7 @@ struct PartialSequence {
     separator: Separator,
 }
 
-impl<'a, D> SequenceDestination for SequencesToProductions<'a, D>
-where
-    D: RuleContainer,
-{
+impl<'a> SequenceDestination for SequencesToProductions<'a> {
     fn add_sequence(&mut self, seq: Sequence) {
         self.rewrite(seq);
     }
@@ -55,12 +49,9 @@ impl From<Sequence> for PartialSequence {
     }
 }
 
-impl<'a, D> SequencesToProductions<'a, D>
-where
-    D: RuleContainer,
-{
+impl<'a> SequencesToProductions<'a> {
     /// Initializes a rewrite.
-    pub fn new(destination: &'a mut D) -> Self {
+    pub fn new(destination: &'a mut Cfg) -> Self {
         SequencesToProductions {
             destination,
             stack: vec![],
@@ -71,7 +62,7 @@ where
     }
 
     /// Rewrites sequence rules.
-    pub fn rewrite_sequences(sequence_rules: &[Sequence], rule_container: &'a mut D) {
+    pub fn rewrite_sequences(sequence_rules: &[Sequence], rule_container: &'a mut Cfg) {
         let sequences = SequencesToProductions::new(rule_container);
         let mut rewrite = SequenceRuleBuilder::new(sequences);
         for rule in sequence_rules {
@@ -79,7 +70,7 @@ where
                 .sequence(rule.lhs)
                 .separator(rule.separator)
                 .inclusive(rule.start, rule.end)
-                .rhs_with_history(rule.rhs, rule.history_id);
+                .rhs_with_history(rule.rhs, rule.history);
         }
     }
 
@@ -87,35 +78,29 @@ where
     pub fn rewrite(&mut self, top: Sequence) {
         self.stack.clear();
         self.map.clear();
-        let prev = top.history_id.unwrap_or_else(|| {
-            self.destination
-                .add_history_node(RootHistoryNode::NoOp.into())
+        let prev = top.history.unwrap_or_else(|| {
+            RootHistoryNode::NoOp.into()
         });
-        let history_id_top = self.destination.add_history_node(
-            HistoryNodeRewriteSequence {
+        let history_top = HistoryNodeRewriteSequence {
                 top: true,
                 rhs: top.rhs,
                 sep: top.separator.into(),
                 prev,
             }
-            .into(),
-        );
-        self.top = Some(history_id_top);
+            .into();
+        self.top = Some(history_top);
         self.reduce(top);
-        let prev = top.history_id.unwrap_or_else(|| {
-            self.destination
-                .add_history_node(RootHistoryNode::NoOp.into())
+        let prev = top.history.unwrap_or_else(|| {
+            RootHistoryNode::NoOp.into()
         });
-        let history_id_bottom = self.destination.add_history_node(
-            HistoryNodeRewriteSequence {
+        let history_bottom = HistoryNodeRewriteSequence {
                 top: false,
                 rhs: top.rhs,
                 sep: top.separator.into(),
                 prev,
             }
-            .into(),
-        );
-        *self.top.as_mut().unwrap() = history_id_bottom;
+            .into();
+        *self.top.as_mut().unwrap() = history_bottom;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
             self.reduce(seq);
@@ -129,7 +114,7 @@ where
 
         match self.map.entry(partial) {
             Entry::Vacant(vacant) => {
-                let lhs = sym_source.next_sym();
+                let lhs = sym_source.next_sym(None);
                 vacant.insert(lhs);
                 self.stack.push(Sequence { lhs, ..*seq });
                 lhs
@@ -139,9 +124,14 @@ where
     }
 
     fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
-        RuleBuilder::new(&mut self.destination)
+        assert!(rhs.as_ref().len() <= 3);
+        let history = HistoryNodeSequenceRhs {
+                prev: self.top.unwrap(),
+                rhs: [rhs.as_ref().get(0).copied(), rhs.as_ref().get(1).copied(), rhs.as_ref().get(2).copied()]
+            }.into();
+        RuleBuilder::new(self.destination)
             .rule(self.lhs.unwrap())
-            .history(self.top.unwrap())
+            .history(history)
             .rhs(rhs);
     }
 
@@ -158,8 +148,8 @@ where
         // TODO optimize reductions
         match (separator, start, end) {
             (Liberal(sep), _, _) => {
-                let sym1 = self.recurse(&sequence.clone().separator(Proper(sep)));
-                let sym2 = self.recurse(&sequence.clone().separator(Trailing(sep)));
+                let sym1 = self.recurse(&sequence.separator(Proper(sep)));
+                let sym2 = self.recurse(&sequence.separator(Trailing(sep)));
                 // seq ::= sym1 | sym2
                 self.rhs([sym1]);
                 self.rhs([sym2]);
@@ -195,8 +185,8 @@ where
                 self.rhs([rhs]);
             }
             (_, 1, Some(2)) => {
-                let sym1 = self.recurse(&sequence.clone().range(1..=1));
-                let sym2 = self.recurse(&sequence.clone().range(2..=2));
+                let sym1 = self.recurse(&sequence.range(1..=1));
+                let sym2 = self.recurse(&sequence.range(2..=2));
                 // seq ::= sym1 | sym2
                 self.rhs([sym1]);
                 self.rhs([sym2]);
@@ -205,9 +195,9 @@ where
                 // end >= 3
                 let pow2 = end.next_power_of_two() / 2;
                 let (seq1, block, seq2) = (
-                    sequence.clone().range(1..=pow2),
-                    sequence.clone().range(pow2..=pow2),
-                    sequence.clone().range(1..=end - pow2),
+                    sequence.range(1..=pow2),
+                    sequence.range(pow2..=pow2),
+                    sequence.range(1..=end - pow2),
                 );
                 let rhs1 = self.recurse(&seq1);
                 let block = self.recurse(&block.separator(separator.prefix_separator()));
@@ -228,16 +218,14 @@ where
                     // A "block"
                     let pow2 = start.next_power_of_two() / 2;
                     (
-                        sequence.clone().range(pow2..=pow2),
-                        sequence.clone().range(start - pow2..=start - pow2),
+                        sequence.range(pow2..=pow2),
+                        sequence.range(start - pow2..=start - pow2),
                     )
                 } else {
                     // A "span"
                     (
-                        sequence.clone().range(start - 1..=start - 1),
-                        sequence
-                            .clone()
-                            .inclusive(1, end.map(|end| end - start + 1)),
+                        sequence.range(start - 1..=start - 1),
+                        sequence.inclusive(1, end.map(|end| end - start + 1)),
                     )
                 };
                 let (rhs1, rhs2) = (

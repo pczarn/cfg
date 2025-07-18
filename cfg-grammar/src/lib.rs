@@ -1,7 +1,6 @@
 //! Library for manipulations on context-free grammars. Most transformations are abstracted over
 //! grammar representations.
 
-#![recursion_limit = "512"]
 #![deny(unsafe_code)]
 #![deny(
     missing_copy_implementations,
@@ -13,27 +12,28 @@
 #![cfg_attr(test, deny(warnings))]
 #![cfg_attr(test, allow(missing_docs))]
 
-pub mod binarized_cfg;
+#[cfg(feature = "smallvec")]
+use smallvec::SmallVec;
+
 pub mod cfg;
-pub mod history;
+mod occurence_map;
 pub mod precedenced_rule;
-pub mod rhs_closure;
-pub mod rule;
-pub mod rule_container;
-pub mod symbol;
+pub mod rule_builder;
+pub mod symbol_bit_set;
+mod compare;
 
-pub use crate::binarized_cfg::BinarizedCfg;
-pub use crate::cfg::Cfg;
-pub use crate::history::node::{HistoryId, HistoryNode};
-pub use crate::rule::AsRuleRef;
-pub use crate::rule_container::RuleContainer;
-pub use cfg_symbol::source::SymbolSource;
-pub use cfg_symbol::Symbol;
+pub use crate::cfg::*;
+pub use crate::symbol_bit_set::SymbolBitSet;
 
-pub(crate) mod local_prelude {
-    pub use crate::history::node::{HistoryId, HistoryNode};
-    pub use crate::rule_container::RuleContainer;
-    // pub use crate::rule::AsRuleRef;
-    pub use cfg_symbol::source::SymbolSource;
+#[cfg(not(feature = "smallvec"))]
+type MaybeSmallVec<T, const N: usize = 0> = Vec<T>;
+#[cfg(feature = "smallvec")]
+type MaybeSmallVec<T, const N: usize = 8> = SmallVec<[T; N]>;
+
+mod local_prelude {
+    pub use crate::precedenced_rule::PrecedencedRuleBuilder;
+    pub use crate::*;
+    pub use cfg_history::earley;
+    pub use cfg_symbol::SymbolSource;
     pub use cfg_symbol::Symbol;
 }
