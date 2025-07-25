@@ -68,11 +68,12 @@ enum Value {
     Rhs(Vec<Vec<Fragment>>),
     Fragment(Fragment),
     Alt(Vec<Fragment>),
+    Nulling,
     None,
 }
 
 struct Evaluator {
-    symbols: [Symbol; 11],
+    symbols: [Symbol; 13],
     tokens: Vec<Token>,
 }
 
@@ -81,7 +82,7 @@ impl forest::Eval for Evaluator {
 
     fn leaf(&self, terminal: Symbol, values: u32) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] =
             self.symbols;
         if terminal == ident {
             self.tokens[values as usize].ident()
@@ -92,7 +93,7 @@ impl forest::Eval for Evaluator {
 
     fn product(&self, action: u32, args: Vec<Self::Elem>) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] =
             self.symbols;
         // let mut iter = args.into_iter();
         match (
@@ -138,6 +139,10 @@ impl forest::Eval for Evaluator {
             (9, Value::Fragment(fragment), _, _) => {
                 Value::Alt(vec![fragment])
             }
+            // alt ::= fragment;
+            (9, Value::Nulling, _, _) => {
+                Value::Alt(vec![])
+            }
             // fragment ::= ident op_plus;
             (10, Value::Ident(ident), _, _) => {
                 Value::Fragment(Fragment { ident, rep: Rep::OneOrMore })
@@ -149,6 +154,10 @@ impl forest::Eval for Evaluator {
             // fragment ::= ident;
             (12, Value::Ident(ident), _, _) => {
                 Value::Fragment(Fragment { ident, rep: Rep::None })
+            }
+            // fragment ::= lparen rparen;
+            (13, _, _, _) => {
+                Value::Nulling
             }
             args => panic!("unknown rule id {:?} or args {:?}", action, args),
         }
@@ -170,6 +179,8 @@ enum Token {
     Plus,
     Mul,
     Whitespace,
+    LParen,
+    RParen,
     Error(usize, usize),
 }
 
@@ -188,8 +199,12 @@ impl<'a> Lexer<'a> {
         let mut lexer = Lexer { chars: bnf.chars(), line_no: 1, col_no: 1 };
         let mut result = vec![];
         while let Some(token) = lexer.eat_token() {
+            let err  = matches!(token, Token::Error(..));
             if token != Token::Whitespace {
                 result.push(token);
+            }
+            if err {
+                return result;   
             }
         }
         result
@@ -237,6 +252,14 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 Token::Mul
             }
+            '(' => {
+                self.advance();
+                Token::LParen
+            }
+            ')' => {
+                self.advance();
+                Token::RParen
+            }
             ' ' | '\n' | '\t' => {
                 self.advance();
                 Token::Whitespace
@@ -272,7 +295,7 @@ impl CfgLoadExt for Cfg {
     fn load(bnf: &str) -> Result<Cfg, LoadError> {
         use tiny_earley::Grammar;
         let bnf_grammar = grammar! {
-            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment]
+            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen]
             R = {
                 start ::= start rule; // 2
                 start ::= rule; // 3
@@ -285,11 +308,12 @@ impl CfgLoadExt for Cfg {
                 fragment ::= ident op_plus; // 10
                 fragment ::= ident op_mul; // 11
                 fragment ::= ident; // 12
+                fragment ::= lparen rparen; // 13
             }
         };
         let symbols = bnf_grammar.symbols();
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] = bnf_grammar.symbols();
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] = bnf_grammar.symbols();
         let mut recognizer = Recognizer::new(&bnf_grammar);
         let tokens = Lexer::tokenize(bnf);
         for (i, ch) in tokens.iter().enumerate() {
@@ -300,6 +324,8 @@ impl CfgLoadExt for Cfg {
                 Token::Mul => op_mul,
                 Token::Plus => op_plus,
                 Token::Ident(_) => ident,
+                Token::LParen => lparen,
+                Token::RParen => rparen,
                 Token::Whitespace => continue,
                 &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32, token: None }),
             };

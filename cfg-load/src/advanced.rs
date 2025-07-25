@@ -453,7 +453,7 @@ impl CfgLoadAdvancedExt for Cfg {
                 rhs ::= alt2; // 10
                 alt2 ::= alt; // 11
                 alt2 ::= alt action; // 12
-            alt ::= alt tilde_op fragment; // 13
+                alt ::= alt tilde_op fragment; // 13
                 alt ::= fragment; // 14
                 fragment ::= ident op_plus; // 15
                 fragment ::= ident op_mul; // 16
