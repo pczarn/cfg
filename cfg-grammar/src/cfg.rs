@@ -7,7 +7,6 @@ use std::{mem, ops};
 
 use cfg_history::earley::History;
 use cfg_symbol::SymbolName;
-use log::trace;
 
 use occurence_map::OccurenceMap;
 use rule_builder::RuleBuilder;
@@ -254,12 +253,12 @@ impl Cfg {
                                 .into();
                             rewritten_work
                                 .rule(rule.lhs)
-                                .rhs(&rule.rhs[0..1])
-                                .history(history);
+                                .history(history)
+                                .rhs(&rule.rhs[0..1]);
                             rewritten_work
                                 .rule(rule.lhs)
-                                .rhs(&rule.rhs[1..2])
-                                .history(history);
+                                .history(history)
+                                .rhs(&rule.rhs[1..2]);
                         }
                         let history = HistoryNodeEliminateNulling {
                                 prev: rule.history,
@@ -270,21 +269,22 @@ impl Cfg {
                             .into();
                         result
                             .rule(rule.lhs)
-                            .rhs(&rule.rhs[which.as_range()])
-                            .history(history);
+                            .history(history)
+                            .rhs(&rule.rhs[which.as_range()]);
                     }
                     Left | Right => {
-                        let history = HistoryNodeEliminateNulling {
+                        let history: History = HistoryNodeEliminateNulling {
                                 prev: rule.history,
                                 rhs0: rule.rhs.get(0).cloned(),
                                 rhs1: rule.rhs.get(1).cloned(),
                                 which,
                             }
                             .into();
+                        println!("{:?}", history.nullable());
                         rewritten_work
                             .rule(rule.lhs)
-                            .rhs(&rule.rhs[which.as_range()])
-                            .history(history);
+                            .history(history)
+                            .rhs(&rule.rhs[which.as_range()]);
                     }
                 }
             }
@@ -292,9 +292,13 @@ impl Cfg {
 
         self.extend(&rewritten_work);
 
+        self.rules.retain(|rule| {
+            rule.rhs.len() != 0
+        });
+
         let mut productive = SymbolBitSet::new();
         // TODO check if correct
-        productive.productive(&*self);
+        productive.terminal(&*self);
         productive.subtract_productive(&result);
 
         self.rhs_closure_for_all(&mut productive);
@@ -302,7 +306,7 @@ impl Cfg {
             // Retain the rule only if it's productive. We have to, in order to remove rules
             // that were made unproductive as a result of `A ::= epsilon` rule elimination.
             // Otherwise, some of our nonterminal symbols might be terminal.
-            productive[rule.lhs] && rule.rhs.len() != 0
+            productive[rule.lhs]
         });
 
         result
@@ -357,7 +361,6 @@ impl Cfg {
         rhs_rev.reverse();
         let mut tail = Vec::new();
         let mut i: u32 = 0;
-        trace!("RULE_LHS_LEN_ALLOWED_RANGE: {}", self.rule_rhs_len_allowed_range().end);
         while !rhs_rev.is_empty() {
             let tail_idx = rhs_rev
                 .len()
