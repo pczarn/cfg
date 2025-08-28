@@ -161,7 +161,7 @@ impl Translator {
             HirKind::Literal(lit) => {
                 let mut syms = vec![];
                 for &byte in &lit.0 {
-                    syms.push(*self.class_map.classes.entry(byte.into()).or_insert_with(|| self.cfg.next_sym(None)));
+                    syms.push(*self.class_map.classes.entry(byte.into()).or_insert_with(|| self.cfg.next_sym(Some(format!("__byte{}", byte).into()))));
                 }
                 println!("{indent}Literal: {:?}", lit);
                 vec![syms]
