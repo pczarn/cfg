@@ -50,6 +50,12 @@ impl<T: SymbolPrimitive> Symbol<T> {
     }
 }
 
+impl Symbol {
+    pub fn from_raw(n: u32) -> Self {
+        Symbol { n: (n + 1).try_into().unwrap() }
+    }
+}
+
 impl<T: SymbolPrimitive> Into<u32> for Symbol<T> {
     fn into(self) -> u32 {
         let nzu32: NonZeroU32 = self.n.into();
