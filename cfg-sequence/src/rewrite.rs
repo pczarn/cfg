@@ -61,19 +61,6 @@ impl<'a> SequencesToProductions<'a> {
         }
     }
 
-    /// Rewrites sequence rules.
-    pub fn rewrite_sequences(sequence_rules: &[Sequence], rule_container: &'a mut Cfg) {
-        let sequences = SequencesToProductions::new(rule_container);
-        let mut rewrite = SequenceRuleBuilder::new(sequences);
-        for rule in sequence_rules {
-            rewrite = rewrite
-                .sequence(rule.lhs)
-                .separator(rule.separator)
-                .inclusive(rule.start, rule.end)
-                .rhs_with_history(rule.rhs, rule.history);
-        }
-    }
-
     /// Rewrites a sequence rule.
     pub fn rewrite(&mut self, top: Sequence) {
         self.stack.clear();
