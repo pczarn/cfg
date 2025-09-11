@@ -5,7 +5,6 @@
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
-use crate::builder::SequenceRuleBuilder;
 use crate::destination::SequenceDestination;
 use crate::Separator::{self, Liberal, Proper, Trailing};
 use crate::Sequence;
