@@ -5,6 +5,7 @@ use std::ops::{Bound, RangeBounds};
 use crate::destination::SequenceDestination;
 use crate::{Separator, Sequence};
 use cfg_history::earley::History;
+use cfg_history::RootHistoryNode;
 use cfg_symbol::Symbol;
 
 /// Sequence rule builder.
@@ -13,7 +14,6 @@ pub struct SequenceRuleBuilder<D: SequenceDestination> {
     range: Option<(u32, Option<u32>)>,
     separator: Separator,
     history: Option<History>,
-    default_history: Option<History>,
     destination: D,
 }
 
@@ -27,21 +27,8 @@ where
             lhs: None,
             range: None,
             history: None,
-            default_history: None,
             separator: Separator::Null,
             destination,
-        }
-    }
-
-    /// Sets the default history source.
-    pub fn default_history(self, default_history: History) -> Self {
-        SequenceRuleBuilder {
-            lhs: self.lhs,
-            range: self.range,
-            history: self.history,
-            default_history: Some(default_history),
-            separator: self.separator,
-            destination: self.destination,
         }
     }
 
@@ -78,7 +65,7 @@ where
 
     /// Adds a sequence rule to the grammar.
     pub fn rhs(mut self, rhs: Symbol) -> Self {
-        let history = self.history.take().or(self.default_history);
+        let history = self.history.take();
         self.rhs_with_history(rhs, history)
     }
 

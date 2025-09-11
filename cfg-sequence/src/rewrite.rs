@@ -66,7 +66,9 @@ impl<'a> SequencesToProductions<'a> {
         self.stack.clear();
         self.map.clear();
         let prev = top.history.unwrap_or_else(|| {
-            RootHistoryNode::NoOp.into()
+            RootHistoryNode::Rule {
+                lhs: top.lhs,
+            }.into()
         });
         let history_top = HistoryNodeRewriteSequence {
                 top: true,

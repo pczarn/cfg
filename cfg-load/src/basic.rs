@@ -66,13 +66,13 @@ enum Value {
     Ident(String),
     Rules(Vec<Rule>),
     Rhs(Vec<Vec<Fragment>>),
-    Fragment(Fragment),
+    Fragment(Option<Fragment>),
     Alt(Vec<Fragment>),
     None,
 }
 
 struct Evaluator {
-    symbols: [Symbol; 11],
+    symbols: [Symbol; 13],
     tokens: Vec<Token>,
 }
 
@@ -81,7 +81,7 @@ impl forest::Eval for Evaluator {
 
     fn leaf(&self, terminal: Symbol, values: u32) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] =
             self.symbols;
         if terminal == ident {
             self.tokens[values as usize].ident()
@@ -92,7 +92,7 @@ impl forest::Eval for Evaluator {
 
     fn product(&self, action: u32, args: Vec<Self::Elem>) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] =
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] =
             self.symbols;
         // let mut iter = args.into_iter();
         match (
@@ -131,24 +131,28 @@ impl forest::Eval for Evaluator {
             }
             // alt ::= alt fragment;
             (8, Value::Alt(mut alt), Value::Fragment(fragment), _) => {
-                alt.push(fragment);
+                alt.extend(fragment);
                 Value::Alt(alt)
             }
             // alt ::= fragment;
             (9, Value::Fragment(fragment), _, _) => {
-                Value::Alt(vec![fragment])
+                Value::Alt(fragment.into_iter().collect())
             }
             // fragment ::= ident op_plus;
             (10, Value::Ident(ident), _, _) => {
-                Value::Fragment(Fragment { ident, rep: Rep::OneOrMore })
+                Value::Fragment(Some(Fragment { ident, rep: Rep::OneOrMore }))
             }
             // fragment ::= ident op_mul;
             (11, Value::Ident(ident), _, _) => {
-                Value::Fragment(Fragment { ident, rep: Rep::ZeroOrMore })
+                Value::Fragment(Some(Fragment { ident, rep: Rep::ZeroOrMore }))
             }
             // fragment ::= ident;
             (12, Value::Ident(ident), _, _) => {
-                Value::Fragment(Fragment { ident, rep: Rep::None })
+                Value::Fragment(Some(Fragment { ident, rep: Rep::None }))
+            }
+            // fragment ::= lparen rparen;
+            (13, _, _, _) => {
+                Value::Fragment(None)
             }
             args => panic!("unknown rule id {:?} or args {:?}", action, args),
         }
@@ -170,6 +174,8 @@ enum Token {
     Plus,
     Mul,
     Whitespace,
+    LParen,
+    RParen,
     Error(usize, usize),
 }
 
@@ -184,15 +190,18 @@ impl Token {
 }
 
 impl<'a> Lexer<'a> {
-    fn tokenize(bnf: &str) -> Vec<Token> {
+    fn tokenize(bnf: &str) -> Result<Vec<Token>, (usize, usize)> {
         let mut lexer = Lexer { chars: bnf.chars(), line_no: 1, col_no: 1 };
         let mut result = vec![];
         while let Some(token) = lexer.eat_token() {
+            if let Token::Error(line, col) = token {
+                return Err((line, col));
+            }
             if token != Token::Whitespace {
                 result.push(token);
             }
         }
-        result
+        Ok(result)
     }
 
     fn eat_token(&mut self) -> Option<Token> {
@@ -206,6 +215,7 @@ impl<'a> Lexer<'a> {
         match ch {
             'a'..='z' | 'A'..='Z' | '_' => {
                 let substring = self.chars.as_str();
+                self.advance();
                 while let Some('a'..='z' | 'A'..='Z' | '_' | '0'..='9') = self.peek() {
                     self.advance();
                 }
@@ -236,6 +246,14 @@ impl<'a> Lexer<'a> {
             '*' => {
                 self.advance();
                 Token::Mul
+            }
+            '(' => {
+                self.advance();
+                Token::LParen
+            }
+            ')' => {
+                self.advance();
+                Token::RParen
             }
             ' ' | '\n' | '\t' => {
                 self.advance();
@@ -272,7 +290,7 @@ impl CfgLoadExt for Cfg {
     fn load(bnf: &str) -> Result<Cfg, LoadError> {
         use tiny_earley::Grammar;
         let bnf_grammar = grammar! {
-            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment]
+            S = [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen]
             R = {
                 start ::= start rule; // 2
                 start ::= rule; // 3
@@ -285,13 +303,14 @@ impl CfgLoadExt for Cfg {
                 fragment ::= ident op_plus; // 10
                 fragment ::= ident op_mul; // 11
                 fragment ::= ident; // 12
+                fragment ::= lparen rparen;
             }
         };
         let symbols = bnf_grammar.symbols();
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment] = bnf_grammar.symbols();
+        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] = bnf_grammar.symbols();
         let mut recognizer = Recognizer::new(&bnf_grammar);
-        let tokens = Lexer::tokenize(bnf);
+        let tokens = Lexer::tokenize(bnf).unwrap();
         for (i, ch) in tokens.iter().enumerate() {
             let terminal = match ch {
                 Token::BnfOp => bnf_op,
@@ -300,6 +319,8 @@ impl CfgLoadExt for Cfg {
                 Token::Mul => op_mul,
                 Token::Plus => op_plus,
                 Token::Ident(_) => ident,
+                Token::LParen => lparen,
+                Token::RParen => rparen,
                 Token::Whitespace => continue,
                 &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32, token: None }),
             };
