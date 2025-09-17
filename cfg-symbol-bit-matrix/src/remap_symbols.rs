@@ -6,8 +6,8 @@ use cfg_symbol::SymbolSource;
 use log::trace;
 
 use cfg_grammar::{Cfg, CfgRule};
-use cfg_symbol::intern::Mapping;
 use cfg_symbol::Symbol;
+use cfg_symbol::intern::Mapping;
 
 /// Remaps symbols and removes unused symbols.
 pub struct Remap<'a> {
@@ -22,7 +22,10 @@ impl<'a> Remap<'a> {
         Remap {
             grammar,
             mapping: Mapping {
-                to_internal: SymbolSource::generate_fresh().take(num_syms).map(Some).collect(),
+                to_internal: SymbolSource::generate_fresh()
+                    .take(num_syms)
+                    .map(Some)
+                    .collect(),
                 to_external: SymbolSource::generate_fresh().take(num_syms).collect(),
             },
         }
@@ -31,11 +34,11 @@ impl<'a> Remap<'a> {
     /// Removes unused symbols.
     pub fn remove_unused_symbols(&mut self) {
         let unused_symbols = self.grammar.unused_symbols();
-        self.reorder_symbols(|sym0, sym1| {
-            unused_symbols[sym0].cmp(&unused_symbols[sym1])
-        });
+        self.reorder_symbols(|sym0, sym1| unused_symbols[sym0].cmp(&unused_symbols[sym1]));
         let num_syms = self.grammar.num_syms();
-        self.grammar.sym_source_mut().truncate(num_syms - unused_symbols.iter().count());
+        self.grammar
+            .sym_source_mut()
+            .truncate(num_syms - unused_symbols.iter().count());
     }
 
     /// Remaps symbols to satisfy given ordering constraints. The argument
@@ -46,12 +49,19 @@ impl<'a> Remap<'a> {
     {
         // Create a new map from N to N symbols.
         let mut new_mapping = Mapping::new(self.grammar.num_syms());
-        new_mapping.to_external = SymbolSource::generate_fresh().take(self.grammar.num_syms()).collect();
+        new_mapping.to_external = SymbolSource::generate_fresh()
+            .take(self.grammar.num_syms())
+            .collect();
         // Sort its external symbols (corresponding to internal symbols of self.maps)
         // according to the given order.
         new_mapping.to_external.sort_by(|&a, &b| f(a, b));
         // Update its internal symbol map based on external symbol map.
-        for (before, after) in new_mapping.to_external.iter().cloned().zip(SymbolSource::generate_fresh()) {
+        for (before, after) in new_mapping
+            .to_external
+            .iter()
+            .cloned()
+            .zip(SymbolSource::generate_fresh())
+        {
             new_mapping.to_internal[before.usize()] = Some(after);
         }
         self.mapping.translate(&new_mapping);
@@ -65,7 +75,13 @@ impl<'a> Remap<'a> {
     {
         let mut added_rules = vec![];
         self.grammar.retain(|rule| {
-            trace!("REMAP {:?} -> {:?} ::= {:?} -> {:?}", rule.lhs, map(rule.lhs), rule.rhs, rule.rhs.iter().map(|&sym| map(sym)).collect::<Vec<_>>());
+            trace!(
+                "REMAP {:?} -> {:?} ::= {:?} -> {:?}",
+                rule.lhs,
+                map(rule.lhs),
+                rule.rhs,
+                rule.rhs.iter().map(|&sym| map(sym)).collect::<Vec<_>>()
+            );
             if map(rule.lhs) == rule.lhs && rule.rhs.iter().all(|&sym| map(sym) == sym) {
                 true
             } else {
@@ -94,21 +110,30 @@ impl<'a> Remap<'a> {
         //         internal_start
         //     }
         // };
-        let roots: Vec<_> = self.grammar
-            .roots()
+        let roots: Vec<_> = self.grammar.roots().iter().copied().map(&mut map).collect();
+        self.grammar.set_roots(&roots[..]);
+        let wrapped_roots: Vec<_> = self
+            .grammar
+            .wrapped_roots()
             .iter()
             .copied()
-            .map(&mut map)
+            .map(|mut wrapped_root| {
+                trace!(
+                    "REMAP WRAPPED ROOT {:?}",
+                    (
+                        wrapped_root.inner_root,
+                        wrapped_root.root,
+                        wrapped_root.start_of_input,
+                        wrapped_root.end_of_input
+                    )
+                );
+                wrapped_root.inner_root = map(wrapped_root.inner_root);
+                wrapped_root.root = map(wrapped_root.root);
+                wrapped_root.start_of_input = map(wrapped_root.start_of_input);
+                wrapped_root.end_of_input = map(wrapped_root.end_of_input);
+                wrapped_root
+            })
             .collect();
-        self.grammar.set_roots(&roots[..]);
-        let wrapped_roots: Vec<_> = self.grammar.wrapped_roots().iter().copied().map(|mut wrapped_root| {
-            trace!("REMAP WRAPPED ROOT {:?}", (wrapped_root.inner_root, wrapped_root.root, wrapped_root.start_of_input, wrapped_root.end_of_input));
-            wrapped_root.inner_root = map(wrapped_root.inner_root);
-            wrapped_root.root = map(wrapped_root.root);
-            wrapped_root.start_of_input = map(wrapped_root.start_of_input);
-            wrapped_root.end_of_input = map(wrapped_root.end_of_input);
-            wrapped_root
-        }).collect();
         self.grammar.set_wrapped_roots(&wrapped_roots[..]);
         self.grammar.sym_source_mut().remap_symbols(map);
     }

@@ -3,7 +3,10 @@
 use std::convert::AsRef;
 
 use crate::local_prelude::*;
-use cfg_history::{earley::{process_linked, History}, LinkedHistoryNode, RootHistoryNode};
+use cfg_history::{
+    LinkedHistoryNode, RootHistoryNode,
+    earley::{History, process_linked},
+};
 
 /// The rule builder.
 pub struct RuleBuilder<'a> {
@@ -43,12 +46,10 @@ impl<'a> RuleBuilder<'a> {
     pub fn rhs(mut self, syms: impl AsRef<[Symbol]>) -> Self {
         let new_history = match self.history.take() {
             Some(history) => history,
-            None => {
-                RootHistoryNode::Rule {
-                    lhs: self.lhs.unwrap(),
-                }
-                .into()
+            None => RootHistoryNode::Rule {
+                lhs: self.lhs.unwrap(),
             }
+            .into(),
         };
         self.rhs_with_history(syms, new_history)
     }
@@ -57,11 +58,7 @@ impl<'a> RuleBuilder<'a> {
     pub fn rhs_with_history(self, syms: impl AsRef<[Symbol]>, history: History) -> Self {
         let lhs = self.lhs.unwrap();
         let rhs = syms.as_ref().into();
-        self.grammar.add_rule(CfgRule {
-            lhs,
-            rhs,
-            history,
-        });
+        self.grammar.add_rule(CfgRule { lhs, rhs, history });
         self
     }
 
@@ -71,7 +68,13 @@ impl<'a> RuleBuilder<'a> {
         syms: impl AsRef<[Symbol]>,
         linked_history: LinkedHistoryNode,
     ) -> Self {
-        let history = process_linked(&linked_history, RootHistoryNode::Rule { lhs: self.lhs.unwrap() }.into());
+        let history = process_linked(
+            &linked_history,
+            RootHistoryNode::Rule {
+                lhs: self.lhs.unwrap(),
+            }
+            .into(),
+        );
         self.rhs_with_history(syms, history)
     }
 

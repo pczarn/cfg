@@ -1,15 +1,22 @@
 [package]
 name = "cfg-load"
-version = "0.0.1"
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
+description = "Library for manipulating context-free grammars."
+keywords = ["grammar", "parsing", "language"]
+rust-version = "1.87"
 edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
-cfg-symbol-bit-matrix = { version = "0.0.1", path = "../cfg-symbol-bit-matrix/" }
-cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/" }
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-cfg-history = { version = "0.0.1", path = "../cfg-history/" }
-cfg-regexp = { version = "0.0.1", path = "../cfg-regexp/" }
+cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
+cfg-symbol-bit-matrix = { version = "0.1.0", path = "../cfg-symbol-bit-matrix/" }
+cfg-sequence = { version = "0.1.0", path = "../cfg-sequence/" }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
+cfg-history = { version = "0.1.0", path = "../cfg-history/" }
+cfg-regexp = { version = "0.1.0", path = "../cfg-regexp/" }
 tiny-earley = { version = "0.2", features = ["debug"] }
 elsa = { version = "1.11", features = ["indexmap"] }
-log = "0.4"
+log = { workspace = true }

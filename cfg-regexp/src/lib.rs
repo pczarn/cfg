@@ -8,8 +8,8 @@ use std::iter;
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
 use cfg_symbol::Symbol;
-use regex_syntax::hir::{Class, Hir, HirKind};
 use regex_syntax::Parser;
+use regex_syntax::hir::{Class, Hir, HirKind};
 
 pub trait CfgRegexpExt: Sized {
     fn from_regexp(regexp: &str) -> Result<(Self, LexerMap), regex_syntax::Error>;
@@ -18,7 +18,7 @@ pub trait CfgRegexpExt: Sized {
 impl CfgRegexpExt for Cfg {
     fn from_regexp(regexp: &str) -> Result<(Self, LexerMap), regex_syntax::Error> {
         Parser::new().parse(regexp).map(Translator::cfg_from_hir)
-    }   
+    }
 }
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone)]
@@ -28,25 +28,33 @@ pub struct LexerClasses {
 
 impl From<u8> for LexerClasses {
     fn from(value: u8) -> Self {
-        LexerClasses { set: iter::once((value as char, (value + 1) as char)).collect() }
+        LexerClasses {
+            set: iter::once((value as char, (value + 1) as char)).collect(),
+        }
     }
 }
 
 impl From<char> for LexerClasses {
     fn from(value: char) -> Self {
-        LexerClasses { set: iter::once((value, char::from_u32(value as u32 + 1).unwrap())).collect() }
+        LexerClasses {
+            set: iter::once((value, char::from_u32(value as u32 + 1).unwrap())).collect(),
+        }
     }
 }
 
 impl From<Class> for LexerClasses {
     fn from(value: Class) -> Self {
         let set: BTreeSet<(char, char)> = match value {
-            Class::Bytes(bytes) => {
-                bytes.ranges().iter().map(|range| (range.start() as char, range.end() as char)).collect()
-            }
-            Class::Unicode(unicode) => {
-                unicode.ranges().iter().map(|range| (range.start(), range.end())).collect()
-            }
+            Class::Bytes(bytes) => bytes
+                .ranges()
+                .iter()
+                .map(|range| (range.start() as char, range.end() as char))
+                .collect(),
+            Class::Unicode(unicode) => unicode
+                .ranges()
+                .iter()
+                .map(|range| (range.start(), range.end()))
+                .collect(),
         };
         LexerClasses { set }
     }
@@ -84,7 +92,7 @@ impl LexerMap {
         for (lexer_classes, &symbol) in &self.classes {
             for &class in &lexer_classes.set {
                 if class.0.is_ascii() {
-                    for ascii in class.0 as u32 ..= (class.1 as u32).min(256) {
+                    for ascii in class.0 as u32..=(class.1 as u32).min(256) {
                         result[ascii as usize].push(symbol);
                     }
                 }
@@ -95,7 +103,10 @@ impl LexerMap {
         for (lexer_classes, &symbol) in &self.classes {
             for &class in &lexer_classes.set {
                 ranges.entry(class.0).or_insert(vec![]).push((true, symbol));
-                ranges.entry(char::from_u32(class.1 as u32 + 1).unwrap()).or_insert(vec![]).push((false, symbol));
+                ranges
+                    .entry(char::from_u32(class.1 as u32 + 1).unwrap())
+                    .or_insert(vec![])
+                    .push((false, symbol));
             }
         }
         let mut result = BTreeMap::new();
@@ -108,7 +119,10 @@ impl LexerMap {
                     work.remove(&symbol);
                 }
             }
-            result.entry(ch).or_insert(vec![]).extend(work.iter().copied());
+            result
+                .entry(ch)
+                .or_insert(vec![])
+                .extend(work.iter().copied());
         }
         self.ranges = result;
     }
@@ -117,7 +131,11 @@ impl LexerMap {
         if ch.is_ascii() {
             &self.ascii[ch as usize][..]
         } else {
-            self.ranges.range(..=ch).next_back().map(|(_, v)| &v[..]).unwrap_or(&[])
+            self.ranges
+                .range(..=ch)
+                .next_back()
+                .map(|(_, v)| &v[..])
+                .unwrap_or(&[])
         }
     }
 }
@@ -134,9 +152,7 @@ impl Translator {
                 this.cfg.rule(nulling).rhs([]);
                 nulling
             }
-            (1, 1) => {
-                x[0][0]
-            }
+            (1, 1) => x[0][0],
             (1, _) => {
                 let [inner] = this.cfg.sym();
                 this.cfg.rule(inner).rhs(&x[0][..]);
@@ -161,13 +177,25 @@ impl Translator {
             HirKind::Literal(lit) => {
                 let mut syms = vec![];
                 for &byte in &lit.0 {
-                    syms.push(*self.class_map.classes.entry(byte.into()).or_insert_with(|| self.cfg.next_sym(Some(format!("__byte{}", byte).into()))));
+                    syms.push(
+                        *self
+                            .class_map
+                            .classes
+                            .entry(byte.into())
+                            .or_insert_with(|| {
+                                self.cfg.next_sym(Some(format!("__byte{}", byte).into()))
+                            }),
+                    );
                 }
                 println!("{indent}Literal: {:?}", lit);
                 vec![syms]
             }
             HirKind::Class(class) => {
-                let sym = *self.class_map.classes.entry(class.clone().into()).or_insert_with(|| self.cfg.next_sym(None));
+                let sym = *self
+                    .class_map
+                    .classes
+                    .entry(class.clone().into())
+                    .or_insert_with(|| self.cfg.next_sym(None));
                 println!("{indent}Class: {:?}", class);
                 vec![vec![sym]]
             }
@@ -179,9 +207,7 @@ impl Translator {
                     (0, _) => {
                         unreachable!()
                     }
-                    (1, 1) => {
-                        x[0][0]
-                    }
+                    (1, 1) => x[0][0],
                     (1, _) => {
                         let [inner] = self.cfg.sym();
                         self.cfg.rule(inner).rhs(&x[0][..]);
@@ -250,7 +276,6 @@ mod tests {
     fn it_works() {
         let result = add(2, 2);
         assert_eq!(result, 4);
-
 
         let pattern = r"(?i)(foo|bar)\d+";
         let (result, mut map) = Cfg::from_regexp(pattern).unwrap();

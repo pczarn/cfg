@@ -5,8 +5,8 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::rc::Rc;
 
-use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use cfg_grammar::Cfg;
+use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use cfg_history::RootHistoryNode;
 use cfg_symbol::Symbol;
 

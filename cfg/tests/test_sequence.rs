@@ -2,8 +2,8 @@
 
 mod support;
 
-use cfg::sequence::Separator::*;
 use cfg::Cfg;
+use cfg::sequence::Separator::*;
 use cfg_classify::CfgClassifyExt;
 use cfg_sequence::CfgSequenceExt;
 
@@ -12,8 +12,7 @@ fn test_sequence() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem, sep] = cfg.sym();
 
-    cfg
-        .sequence(start)
+    cfg.sequence(start)
         .separator(Trailing(sep))
         .inclusive(1, Some(1))
         .rhs(elem);
@@ -36,10 +35,7 @@ fn test_nulling_sequence() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem] = cfg.sym();
 
-    cfg
-        .sequence(start)
-        .inclusive(0, Some(0))
-        .rhs(elem);
+    cfg.sequence(start).inclusive(0, Some(0)).rhs(elem);
 
     cfg.set_roots([start]);
 
@@ -57,8 +53,7 @@ fn test_sequence_1_4() {
     let mut cfg: Cfg = Cfg::new();
     let [start, elem, sep] = cfg.sym();
 
-    cfg
-        .sequence(start)
+    cfg.sequence(start)
         .separator(Trailing(sep))
         .inclusive(1, Some(4))
         .rhs(elem);
@@ -94,10 +89,7 @@ fn test_sequence_combinations() {
         let mut cfg: Cfg = Cfg::new();
         let [start, elem] = cfg.sym();
 
-        cfg
-            .sequence(start)
-            .inclusive(i, Some(99))
-            .rhs(elem);
+        cfg.sequence(start).inclusive(i, Some(99)).rhs(elem);
 
         cfg.set_roots([start]);
 

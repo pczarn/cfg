@@ -1,4 +1,6 @@
 //! FOLLOW sets.
+//!
+//! Based on LALRPOP's code by Niko Matsakis.
 
 use std::collections::BTreeMap;
 

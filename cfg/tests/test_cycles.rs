@@ -2,8 +2,8 @@
 
 mod support;
 
-use cfg::classify::cyclical::Cycles;
 use cfg::Cfg;
+use cfg::classify::cyclical::Cycles;
 
 #[test]
 fn test_remove_cycles() {

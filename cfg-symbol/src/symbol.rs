@@ -1,7 +1,7 @@
 //! TODO: Allow choice between u8, u16 and u32 for symbols
-//! 
+//!
 
-use std::num::{NonZeroU16, NonZeroU32, NonZeroU8};
+use std::num::{NonZeroU8, NonZeroU16, NonZeroU32};
 
 pub trait SymbolPrimitive: TryFrom<NonZeroU32> + Into<NonZeroU32> + Copy {
     type BasePrimitive: From<Self> + TryInto<Self> + From<u8>;
@@ -41,7 +41,10 @@ impl<T: SymbolPrimitive> Symbol<T> {
     pub fn first() -> Self {
         let one: T::BasePrimitive = 1u8.into();
         Symbol {
-            n: one.try_into().ok().expect("unreachable: could not convert 1u8"),
+            n: one
+                .try_into()
+                .ok()
+                .expect("unreachable: could not convert 1u8"),
         }
     }
 
@@ -52,7 +55,9 @@ impl<T: SymbolPrimitive> Symbol<T> {
 
 impl Symbol {
     pub fn from_raw(n: u32) -> Self {
-        Symbol { n: (n + 1).try_into().unwrap() }
+        Symbol {
+            n: (n + 1).try_into().unwrap(),
+        }
     }
 }
 
@@ -65,17 +70,19 @@ impl<T: SymbolPrimitive> Into<u32> for Symbol<T> {
 
 mod miniserde_impls {
     use super::{Symbol, SymbolPrimitive};
-    use std::num::NonZeroU32;
     use miniserde::de::{Deserialize, Visitor};
-    use miniserde::{de, ser, Serialize};
-    use miniserde::{make_place, Error, Result};
+    use miniserde::{Error, Result, make_place};
+    use miniserde::{Serialize, de, ser};
+    use std::num::NonZeroU32;
 
     make_place!(Place);
 
     impl<T: SymbolPrimitive> Visitor for Place<Symbol<T>> {
         fn nonnegative(&mut self, n: u64) -> Result<()> {
             if n < T::MAX as u64 {
-                if let Some(Ok(nonzero_num)) = NonZeroU32::new((n + 1) as u32).map(|n| TryInto::<T>::try_into(n)) {
+                if let Some(Ok(nonzero_num)) =
+                    NonZeroU32::new((n + 1) as u32).map(|n| TryInto::<T>::try_into(n))
+                {
                     self.out = Some(Symbol { n: nonzero_num });
                     Ok(())
                 } else {
@@ -105,7 +112,7 @@ mod miniserde_impls {
 impl nanoserde::DeBin for Symbol<NonZeroU32> {
     fn de_bin(offset: &mut usize, bytes: &[u8]) -> Result<Self, nanoserde::DeBinErr> {
         Ok(Symbol {
-            n: u32::de_bin(offset, bytes)?.try_into().unwrap()
+            n: u32::de_bin(offset, bytes)?.try_into().unwrap(),
         })
     }
 }

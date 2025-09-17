@@ -1,11 +1,18 @@
 [package]
 name = "cfg-examples"
-version = "0.0.1"
-edition = "2021"
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
+description = "Library for manipulating context-free grammars."
+keywords = ["grammar", "parsing", "language"]
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg = { path = "../cfg/" }
-cfg-load = { path = "../cfg-load/" }
+cfg = { version = "0.10.0", path = "../cfg/" }
+cfg-load = { version = "0.1.0", path = "../cfg-load/" }
 
 [features]
 nightly = []

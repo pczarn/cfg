@@ -13,7 +13,7 @@ use rule_builder::RuleBuilder;
 
 use crate::local_prelude::*;
 use cfg_history::{
-    BinarizedRhsRange::*, HistoryNodeBinarize, HistoryNodeEliminateNulling, RootHistoryNode
+    BinarizedRhsRange::*, HistoryNodeBinarize, HistoryNodeEliminateNulling, RootHistoryNode,
 };
 
 /// Representation of context-free grammars.
@@ -92,9 +92,7 @@ impl Cfg {
         Self::default()
     }
 
-    pub fn with_sym_source(
-        sym_source: SymbolSource,
-    ) -> Self {
+    pub fn with_sym_source(sym_source: SymbolSource) -> Self {
         Cfg {
             sym_source,
             lexemes: SymbolBitSet::new(),
@@ -193,8 +191,7 @@ impl Cfg {
     }
 
     pub fn extend(&mut self, other: &Cfg) {
-        self.rules
-            .extend(other.rules.iter().cloned());
+        self.rules.extend(other.rules.iter().cloned());
     }
 
     /// Ensures the grammar is binarized and eliminates all nulling rules, which have the
@@ -214,9 +211,7 @@ impl Cfg {
     pub fn binarize_and_eliminate_nulling_rules(&mut self) -> Cfg {
         self.limit_rhs_len(Some(2));
 
-        let mut result = Cfg::with_sym_source(
-            self.sym_source.clone(),
-        );
+        let mut result = Cfg::with_sym_source(self.sym_source.clone());
 
         let mut nullable = self.nulling_symbols();
         self.rhs_closure_for_all(&mut nullable);
@@ -243,14 +238,13 @@ impl Cfg {
                     All(num) => {
                         // nulling
                         if num == 2 {
-                            let history = 
-                                HistoryNodeEliminateNulling {
-                                    prev: rule.history,
-                                    rhs0: rule.rhs.get(0).cloned(),
-                                    rhs1: rule.rhs.get(1).cloned(),
-                                    which,
-                                }
-                                .into();
+                            let history = HistoryNodeEliminateNulling {
+                                prev: rule.history,
+                                rhs0: rule.rhs.get(0).cloned(),
+                                rhs1: rule.rhs.get(1).cloned(),
+                                which,
+                            }
+                            .into();
                             rewritten_work
                                 .rule(rule.lhs)
                                 .history(history)
@@ -261,12 +255,12 @@ impl Cfg {
                                 .rhs(&rule.rhs[1..2]);
                         }
                         let history = HistoryNodeEliminateNulling {
-                                prev: rule.history,
-                                rhs0: rule.rhs.get(0).cloned(),
-                                rhs1: rule.rhs.get(1).cloned(),
-                                which,
-                            }
-                            .into();
+                            prev: rule.history,
+                            rhs0: rule.rhs.get(0).cloned(),
+                            rhs1: rule.rhs.get(1).cloned(),
+                            which,
+                        }
+                        .into();
                         result
                             .rule(rule.lhs)
                             .history(history)
@@ -274,12 +268,12 @@ impl Cfg {
                     }
                     Left | Right => {
                         let history: History = HistoryNodeEliminateNulling {
-                                prev: rule.history,
-                                rhs0: rule.rhs.get(0).cloned(),
-                                rhs1: rule.rhs.get(1).cloned(),
-                                which,
-                            }
-                            .into();
+                            prev: rule.history,
+                            rhs0: rule.rhs.get(0).cloned(),
+                            rhs1: rule.rhs.get(1).cloned(),
+                            which,
+                        }
+                        .into();
                         println!("{:?}", history.nullable());
                         rewritten_work
                             .rule(rule.lhs)
@@ -292,9 +286,7 @@ impl Cfg {
 
         self.extend(&rewritten_work);
 
-        self.rules.retain(|rule| {
-            rule.rhs.len() != 0
-        });
+        self.rules.retain(|rule| rule.rhs.len() != 0);
 
         let mut productive = SymbolBitSet::new();
         // TODO check if correct
@@ -320,13 +312,11 @@ impl Cfg {
     }
 
     pub fn column(&self, col: usize) -> impl Iterator<Item = DotInfo> + '_ {
-        let mapper = move |rule: &CfgRule| {
-            DotInfo {
-                lhs: rule.lhs,
-                predot: rule.rhs.get(col.wrapping_sub(1)).copied(),
-                postdot: rule.rhs.get(col).copied(),
-                earley: Some(rule.history.dot(col)),
-            }
+        let mapper = move |rule: &CfgRule| DotInfo {
+            lhs: rule.lhs,
+            predot: rule.rhs.get(col.wrapping_sub(1)).copied(),
+            postdot: rule.rhs.get(col).copied(),
+            earley: Some(rule.history.dot(col)),
         };
         self.rules().map(mapper)
     }
@@ -496,7 +486,11 @@ impl Cfg {
         let roots_len = self.roots.len();
         let roots = mem::replace(&mut self.roots, MaybeSmallVec::with_capacity(roots_len));
         for inner_root in roots {
-            let [root, start_of_input, end_of_input] = self.sym_source.with_names([Some("root"), Some("start_of_input"), Some("end_of_input")]);
+            let [root, start_of_input, end_of_input] = self.sym_source.with_names([
+                Some("root"),
+                Some("start_of_input"),
+                Some("end_of_input"),
+            ]);
             self.add_rule(CfgRule {
                 lhs: root,
                 rhs: [start_of_input, inner_root, end_of_input].into(),
@@ -531,7 +525,19 @@ impl Cfg {
             let rhs = if rule.rhs.is_empty() {
                 "()".into()
             } else {
-                rule.rhs.iter().copied().map(stringify_sym).enumerate().map(|(i, elem)| if i == 0 { elem.to_string() } else { format!(" ~ {}", elem) }).collect::<String>()
+                rule.rhs
+                    .iter()
+                    .copied()
+                    .map(stringify_sym)
+                    .enumerate()
+                    .map(|(i, elem)| {
+                        if i == 0 {
+                            elem.to_string()
+                        } else {
+                            format!(" ~ {}", elem)
+                        }
+                    })
+                    .collect::<String>()
             };
             writeln!(&mut result, "{} ::= {};", lhs, rhs).expect("writing to String failed");
         }
@@ -564,9 +570,7 @@ impl NamedCfgRule {
         let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
             lhs: iter.next().unwrap(),
-            rhs: iter.take(names.len() - 1)
-                .collect::<Vec<_>>()
-                .into(),
+            rhs: iter.take(names.len() - 1).collect::<Vec<_>>().into(),
             history: None,
             names,
         }
@@ -576,9 +580,7 @@ impl NamedCfgRule {
         let mut iter = SymbolSource::generate_fresh();
         NamedCfgRule {
             lhs: iter.next().unwrap(),
-            rhs: iter.take(names.len() - 1)
-                .collect::<Vec<_>>()
-                .into(),
+            rhs: iter.take(names.len() - 1).collect::<Vec<_>>().into(),
             history: Some(history),
             names,
         }

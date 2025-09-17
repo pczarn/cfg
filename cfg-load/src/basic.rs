@@ -1,7 +1,7 @@
 #![deny(unsafe_code)]
 
 use cfg_history::RootHistoryNode;
-use tiny_earley::{grammar, forest, Recognizer, Symbol};
+use tiny_earley::{Recognizer, Symbol, forest, grammar};
 
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
@@ -81,8 +81,21 @@ impl forest::Eval for Evaluator {
 
     fn leaf(&self, terminal: Symbol, values: u32) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] =
-            self.symbols;
+        let [
+            start,
+            rule,
+            alt,
+            rhs,
+            bnf_op,
+            ident,
+            pipe,
+            op_mul,
+            op_plus,
+            semicolon,
+            fragment,
+            lparen,
+            rparen,
+        ] = self.symbols;
         if terminal == ident {
             self.tokens[values as usize].ident()
         } else {
@@ -92,8 +105,21 @@ impl forest::Eval for Evaluator {
 
     fn product(&self, action: u32, args: Vec<Self::Elem>) -> Self::Elem {
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] =
-            self.symbols;
+        let [
+            start,
+            rule,
+            alt,
+            rhs,
+            bnf_op,
+            ident,
+            pipe,
+            op_mul,
+            op_plus,
+            semicolon,
+            fragment,
+            lparen,
+            rparen,
+        ] = self.symbols;
         // let mut iter = args.into_iter();
         match (
             action,
@@ -107,17 +133,24 @@ impl forest::Eval for Evaluator {
                 Value::Rules(rules)
             }
             // start ::= rule;
-            (3, Value::Rules(rule), _, _) => {
-                Value::Rules(rule)
-            }
+            (3, Value::Rules(rule), _, _) => Value::Rules(rule),
             // rule ::= lhs bnf_op semicolon;
             (4, Value::Ident(lhs), ..) => {
-                let rules = vec![Rule { lhs: lhs.clone(), rhs: vec![] }];
+                let rules = vec![Rule {
+                    lhs: lhs.clone(),
+                    rhs: vec![],
+                }];
                 Value::Rules(rules)
             }
             // rule ::= lhs bnf_op rhs semicolon;
             (5, Value::Ident(lhs), _, Value::Rhs(rhs)) => {
-                let rules = rhs.into_iter().map(|rhs| Rule { lhs: lhs.clone(), rhs }).collect();
+                let rules = rhs
+                    .into_iter()
+                    .map(|rhs| Rule {
+                        lhs: lhs.clone(),
+                        rhs,
+                    })
+                    .collect();
                 Value::Rules(rules)
             }
             // rhs ::= rhs pipe alt;
@@ -126,34 +159,31 @@ impl forest::Eval for Evaluator {
                 Value::Rhs(rhs)
             }
             // rhs ::= alt;
-            (7, Value::Alt(alt), _, _) => {
-                Value::Rhs(vec![alt])
-            }
+            (7, Value::Alt(alt), _, _) => Value::Rhs(vec![alt]),
             // alt ::= alt fragment;
             (8, Value::Alt(mut alt), Value::Fragment(fragment), _) => {
                 alt.extend(fragment);
                 Value::Alt(alt)
             }
             // alt ::= fragment;
-            (9, Value::Fragment(fragment), _, _) => {
-                Value::Alt(fragment.into_iter().collect())
-            }
+            (9, Value::Fragment(fragment), _, _) => Value::Alt(fragment.into_iter().collect()),
             // fragment ::= ident op_plus;
-            (10, Value::Ident(ident), _, _) => {
-                Value::Fragment(Some(Fragment { ident, rep: Rep::OneOrMore }))
-            }
+            (10, Value::Ident(ident), _, _) => Value::Fragment(Some(Fragment {
+                ident,
+                rep: Rep::OneOrMore,
+            })),
             // fragment ::= ident op_mul;
-            (11, Value::Ident(ident), _, _) => {
-                Value::Fragment(Some(Fragment { ident, rep: Rep::ZeroOrMore }))
-            }
+            (11, Value::Ident(ident), _, _) => Value::Fragment(Some(Fragment {
+                ident,
+                rep: Rep::ZeroOrMore,
+            })),
             // fragment ::= ident;
-            (12, Value::Ident(ident), _, _) => {
-                Value::Fragment(Some(Fragment { ident, rep: Rep::None }))
-            }
+            (12, Value::Ident(ident), _, _) => Value::Fragment(Some(Fragment {
+                ident,
+                rep: Rep::None,
+            })),
             // fragment ::= lparen rparen;
-            (13, _, _, _) => {
-                Value::Fragment(None)
-            }
+            (13, _, _, _) => Value::Fragment(None),
             args => panic!("unknown rule id {:?} or args {:?}", action, args),
         }
     }
@@ -191,7 +221,11 @@ impl Token {
 
 impl<'a> Lexer<'a> {
     fn tokenize(bnf: &str) -> Result<Vec<Token>, (usize, usize)> {
-        let mut lexer = Lexer { chars: bnf.chars(), line_no: 1, col_no: 1 };
+        let mut lexer = Lexer {
+            chars: bnf.chars(),
+            line_no: 1,
+            col_no: 1,
+        };
         let mut result = vec![];
         while let Some(token) = lexer.eat_token() {
             if let Token::Error(line, col) = token {
@@ -259,7 +293,7 @@ impl<'a> Lexer<'a> {
                 self.advance();
                 Token::Whitespace
             }
-            _ => Token::Error(self.line_no, self.col_no)
+            _ => Token::Error(self.line_no, self.col_no),
         }
     }
 
@@ -308,7 +342,21 @@ impl CfgLoadExt for Cfg {
         };
         let symbols = bnf_grammar.symbols();
         #[allow(unused_variables)]
-        let [start, rule, alt, rhs, bnf_op, ident, pipe, op_mul, op_plus, semicolon, fragment, lparen, rparen] = bnf_grammar.symbols();
+        let [
+            start,
+            rule,
+            alt,
+            rhs,
+            bnf_op,
+            ident,
+            pipe,
+            op_mul,
+            op_plus,
+            semicolon,
+            fragment,
+            lparen,
+            rparen,
+        ] = bnf_grammar.symbols();
         let mut recognizer = Recognizer::new(&bnf_grammar);
         let tokens = Lexer::tokenize(bnf).unwrap();
         for (i, ch) in tokens.iter().enumerate() {
@@ -322,19 +370,36 @@ impl CfgLoadExt for Cfg {
                 Token::LParen => lparen,
                 Token::RParen => rparen,
                 Token::Whitespace => continue,
-                &Token::Error(line_no, col_no) => return Err(LoadError::Parse { reason: "failed to tokenize".to_string(), line: line_no as u32, col: col_no as u32, token: None }),
+                &Token::Error(line_no, col_no) => {
+                    return Err(LoadError::Parse {
+                        reason: "failed to tokenize".to_string(),
+                        line: line_no as u32,
+                        col: col_no as u32,
+                        token: None,
+                    });
+                }
             };
             recognizer.scan(terminal, i as u32);
             let success = recognizer.end_earleme();
             if !success {
-                return Err(LoadError::Parse { reason: "parse failed".to_string(), line: 1, col: 1, token: None });
+                return Err(LoadError::Parse {
+                    reason: "parse failed".to_string(),
+                    line: 1,
+                    col: 1,
+                    token: None,
+                });
             }
             // assert!(success, "parse failed at character {}", i);
         }
         let finished_node = if let Some(node) = recognizer.finished_node {
             node
         } else {
-            return Err(LoadError::Parse { reason: "parse failed: no result".to_string(), line: 1, col: 1, token: None });
+            return Err(LoadError::Parse {
+                reason: "parse failed: no result".to_string(),
+                line: 1,
+                col: 1,
+                token: None,
+            });
         };
         let result = recognizer
             .forest
@@ -347,33 +412,46 @@ impl CfgLoadExt for Cfg {
             let mut intern_empty = true;
             for (idx, rule) in rules.into_iter().enumerate() {
                 let lhs = intern.get_or_intern(&rule.lhs[..]);
-                let lhs_sym = *sym_map.entry(lhs).or_insert_with(|| cfg.sym_source_mut().next_sym(Some(rule.lhs[..].into())));
+                let lhs_sym = *sym_map
+                    .entry(lhs)
+                    .or_insert_with(|| cfg.sym_source_mut().next_sym(Some(rule.lhs[..].into())));
                 if intern_empty {
                     cfg.set_roots([lhs_sym]);
                     intern_empty = false;
                 }
-                let rhs_syms: Vec<_> = rule.rhs.into_iter().map(|fragment| {
-                    let id = intern.get_or_intern(&fragment.ident[..]);
-                    let rhs_sym = *sym_map.entry(id).or_insert_with(|| cfg.sym_source_mut().next_sym(Some(fragment.ident[..].into())));
-                    match fragment.rep {
-                        Rep::None => rhs_sym,
-                        Rep::ZeroOrMore => {
-                            let [new_sym] = cfg.sym();
-                            cfg.sequence(new_sym).inclusive(0, None).rhs(rhs_sym);
-                            new_sym
+                let rhs_syms: Vec<_> = rule
+                    .rhs
+                    .into_iter()
+                    .map(|fragment| {
+                        let id = intern.get_or_intern(&fragment.ident[..]);
+                        let rhs_sym = *sym_map.entry(id).or_insert_with(|| {
+                            cfg.sym_source_mut()
+                                .next_sym(Some(fragment.ident[..].into()))
+                        });
+                        match fragment.rep {
+                            Rep::None => rhs_sym,
+                            Rep::ZeroOrMore => {
+                                let [new_sym] = cfg.sym();
+                                cfg.sequence(new_sym).inclusive(0, None).rhs(rhs_sym);
+                                new_sym
+                            }
+                            Rep::OneOrMore => {
+                                let [new_sym] = cfg.sym();
+                                cfg.sequence(new_sym).range(1..).rhs(rhs_sym);
+                                new_sym
+                            }
                         }
-                        Rep::OneOrMore => {
-                            let [new_sym] = cfg.sym();
-                            cfg.sequence(new_sym).range(1..).rhs(rhs_sym);
-                            new_sym
-                        }
-                    }
-                }).collect();
-                cfg.rule(lhs_sym).history(RootHistoryNode::Origin { origin: idx + 1 }.into()).rhs(rhs_syms);
+                    })
+                    .collect();
+                cfg.rule(lhs_sym)
+                    .history(RootHistoryNode::Origin { origin: idx + 1 }.into())
+                    .rhs(rhs_syms);
             }
             Ok(cfg)
         } else {
-            return Err(LoadError::Eval { reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result) });
+            return Err(LoadError::Eval {
+                reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result),
+            });
         }
     }
 
@@ -384,7 +462,13 @@ impl CfgLoadExt for Cfg {
             for &sym in &rule.rhs[..] {
                 write!(rhs, "{} ", self.sym_source().name_of(sym)).unwrap();
             }
-            writeln!(result, "{} ::= {};", self.sym_source().name_of(rule.lhs), rhs.trim()).unwrap();
+            writeln!(
+                result,
+                "{} ::= {};",
+                self.sym_source().name_of(rule.lhs),
+                rhs.trim()
+            )
+            .unwrap();
         }
         result
     }

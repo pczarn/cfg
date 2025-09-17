@@ -9,7 +9,7 @@ use rpds::List;
 
 use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use rand::rngs::ThreadRng;
-use rand::{thread_rng, Rng};
+use rand::{Rng, rng};
 
 use crate::weighted::weighted_rhs_by_lhs::Weighted;
 
@@ -36,7 +36,7 @@ pub trait Random {
         negative_rules: &[NegativeRule],
         to_char: F,
     ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
-        let mut thread_rng = thread_rng();
+        let mut thread_rng = rng();
         self.random(start, limit, &mut thread_rng, negative_rules, to_char)
     }
 }
@@ -45,7 +45,7 @@ pub trait Random {
 pub struct ByteSource<I: Iterator<Item = u8>>(I, Vec<u8>);
 
 pub trait GenRange {
-    fn gen(&mut self, limit: f64) -> f64;
+    fn generate(&mut self, limit: f64) -> f64;
 
     fn mutate_start(&mut self, attempt_number: u64);
 }
@@ -57,19 +57,19 @@ impl<I: Iterator<Item = u8>> ByteSource<I> {
 }
 
 impl<R: Rng> GenRange for R {
-    fn gen(&mut self, limit: f64) -> f64 {
-        self.gen_range(0.0..limit)
+    fn generate(&mut self, limit: f64) -> f64 {
+        self.random_range(0.0..limit)
     }
 
     fn mutate_start(&mut self, attempt_number: u64) {
         for _ in 0..=attempt_number {
-            let _: u8 = self.gen();
+            let _: u8 = self.random();
         }
     }
 }
 
 impl<I: Iterator<Item = u8> + Clone> GenRange for ByteSource<I> {
-    fn gen(&mut self, limit: f64) -> f64 {
+    fn generate(&mut self, limit: f64) -> f64 {
         let byte = match self.1.pop() {
             Some(ahead) => ahead,
             None => self.0.next().unwrap_or(0),

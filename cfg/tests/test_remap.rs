@@ -2,8 +2,8 @@
 
 mod support;
 
-use cfg::classify::CfgClassifyExt;
 use cfg::Cfg;
+use cfg::classify::CfgClassifyExt;
 use cfg_symbol_bit_matrix::CfgRemapSymbolsExt;
 
 #[test]
@@ -73,7 +73,8 @@ fn test_reorder_symbols() {
         /* start => */ 1, /* a => */ 2, /* x => */ 5, /* b => */ 3,
         /* c => */ 4, /* y => */ 6,
     ];
-    cfg.remap().reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
+    cfg.remap()
+        .reorder_symbols(|left, right| ordering[left.usize()].cmp(&ordering[right.usize()]));
 
     {
         let mut equivalent: Cfg = Cfg::new();

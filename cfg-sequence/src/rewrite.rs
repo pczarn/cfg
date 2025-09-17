@@ -2,16 +2,18 @@
 
 // #[cfg(feature = "nightly")]
 // use collections::range::RangeArgument;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
-use crate::destination::SequenceDestination;
 use crate::Separator::{self, Liberal, Proper, Trailing};
 use crate::Sequence;
 use crate::Symbol;
-use cfg_grammar::rule_builder::RuleBuilder;
+use crate::destination::SequenceDestination;
 use cfg_grammar::Cfg;
-use cfg_history::{earley::History, HistoryNodeRewriteSequence, HistoryNodeSequenceRhs, RootHistoryNode};
+use cfg_grammar::rule_builder::RuleBuilder;
+use cfg_history::{
+    HistoryNodeRewriteSequence, HistoryNodeSequenceRhs, RootHistoryNode, earley::History,
+};
 
 /// Rewrites sequence rules into production rules.
 pub struct SequencesToProductions<'a> {
@@ -64,30 +66,26 @@ impl<'a> SequencesToProductions<'a> {
     pub fn rewrite(&mut self, top: Sequence) {
         self.stack.clear();
         self.map.clear();
-        let prev = top.history.unwrap_or_else(|| {
-            RootHistoryNode::Rule {
-                lhs: top.lhs,
-            }.into()
-        });
+        let prev = top
+            .history
+            .unwrap_or_else(|| RootHistoryNode::Rule { lhs: top.lhs }.into());
         let history_top = HistoryNodeRewriteSequence {
-                top: true,
-                rhs: top.rhs,
-                sep: top.separator.into(),
-                prev,
-            }
-            .into();
+            top: true,
+            rhs: top.rhs,
+            sep: top.separator.into(),
+            prev,
+        }
+        .into();
         self.top = Some(history_top);
         self.reduce(top);
-        let prev = top.history.unwrap_or_else(|| {
-            RootHistoryNode::NoOp.into()
-        });
+        let prev = top.history.unwrap_or_else(|| RootHistoryNode::NoOp.into());
         let history_bottom = HistoryNodeRewriteSequence {
-                top: false,
-                rhs: top.rhs,
-                sep: top.separator.into(),
-                prev,
-            }
-            .into();
+            top: false,
+            rhs: top.rhs,
+            sep: top.separator.into(),
+            prev,
+        }
+        .into();
         *self.top.as_mut().unwrap() = history_bottom;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
@@ -114,9 +112,14 @@ impl<'a> SequencesToProductions<'a> {
     fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
         assert!(rhs.as_ref().len() <= 3);
         let history = HistoryNodeSequenceRhs {
-                prev: self.top.unwrap(),
-                rhs: [rhs.as_ref().get(0).copied(), rhs.as_ref().get(1).copied(), rhs.as_ref().get(2).copied()]
-            }.into();
+            prev: self.top.unwrap(),
+            rhs: [
+                rhs.as_ref().get(0).copied(),
+                rhs.as_ref().get(1).copied(),
+                rhs.as_ref().get(2).copied(),
+            ],
+        }
+        .into();
         RuleBuilder::new(self.destination)
             .rule(self.lhs.unwrap())
             .history(history)

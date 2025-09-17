@@ -4,7 +4,7 @@ use std::{convert::AsRef, rc::Rc};
 
 use crate::local_prelude::*;
 use crate::rule_builder::RuleBuilder;
-use cfg_history::{earley::History, HistoryNodeAssignPrecedence, RootHistoryNode};
+use cfg_history::{HistoryNodeAssignPrecedence, RootHistoryNode, earley::History};
 
 use self::Associativity::*;
 
@@ -75,9 +75,10 @@ impl<'a> PrecedencedRuleBuilder<'a> {
     where
         S: AsRef<[Symbol]>,
     {
-        let history = self.history.take().unwrap_or_else(|| {
-            RootHistoryNode::Rule { lhs: self.lhs }.into()
-        });
+        let history = self
+            .history
+            .take()
+            .unwrap_or_else(|| RootHistoryNode::Rule { lhs: self.lhs }.into());
         self.rhs_with_history(syms.as_ref(), history)
     }
 
@@ -89,10 +90,10 @@ impl<'a> PrecedencedRuleBuilder<'a> {
     {
         let syms = syms.as_ref();
         let history_assign_precedence = HistoryNodeAssignPrecedence {
-                prev: history,
-                looseness: self.looseness,
-            }
-            .into();
+            prev: history,
+            looseness: self.looseness,
+        }
+        .into();
         let lhs = self.lhs;
         let mut syms = syms.to_vec();
         if self.assoc == Group {

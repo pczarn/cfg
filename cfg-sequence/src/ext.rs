@@ -1,7 +1,9 @@
 use cfg_grammar::Cfg;
 use cfg_symbol::Symbol;
 
-use crate::{builder::SequenceRuleBuilder, destination::SequenceDestination, rewrite::SequencesToProductions};
+use crate::{
+    builder::SequenceRuleBuilder, destination::SequenceDestination, rewrite::SequencesToProductions,
+};
 
 pub trait CfgSequenceExt {
     fn sequence(&mut self, lhs: Symbol) -> SequenceRuleBuilder<SequencesToProductions<'_>>;

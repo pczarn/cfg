@@ -1,12 +1,19 @@
 [package]
 name = "cfg-regexp"
-version = "0.0.1"
-edition = "2021"
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
+description = "Library for manipulating context-free grammars."
+keywords = ["grammar", "parsing", "language"]
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
 regex-syntax = "0.8"
 regex-automata = "0.4"
-log = "0.4"
-cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
-cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/" }
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+log = { workspace = true }
+cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
+cfg-sequence = { version = "0.1.0", path = "../cfg-sequence/" }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }

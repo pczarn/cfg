@@ -2,10 +2,10 @@
 //! IDs.
 
 pub mod intern;
-mod symbol;
 mod source;
+mod symbol;
 
+pub use self::source::SymbolName;
+pub use self::source::SymbolSource;
 pub use self::symbol::Symbol;
 pub use self::symbol::SymbolPrimitive;
-pub use self::source::SymbolSource;
-pub use self::source::SymbolName;

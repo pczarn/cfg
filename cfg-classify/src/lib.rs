@@ -2,8 +2,8 @@
 
 #![deny(unsafe_code)]
 
-use cfg_symbol::Symbol;
 use cfg_grammar::Cfg;
+use cfg_symbol::Symbol;
 
 pub mod cyclical;
 pub mod linear;

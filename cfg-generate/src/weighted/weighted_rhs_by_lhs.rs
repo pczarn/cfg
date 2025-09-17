@@ -62,7 +62,7 @@ impl<W: Weight> WeightedRhsByLhs<W> {
             if weighted_rhs_list.rhs_list.len() == 1 {
                 return &weighted_rhs_list.rhs_list[0].rhs[..];
             }
-            let value = rng.gen(weighted_rhs_list.total_weight.into());
+            let value = rng.generate(weighted_rhs_list.total_weight.into());
             match weighted_rhs_list.rhs_list.binary_search_by(|weighted_rhs| {
                 weighted_rhs
                     .weight

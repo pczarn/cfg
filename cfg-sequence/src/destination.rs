@@ -2,7 +2,7 @@
 
 use cfg_symbol::Symbol;
 
-use super::{builder::SequenceRuleBuilder, Sequence};
+use super::{Sequence, builder::SequenceRuleBuilder};
 
 /// Trait for storing sequence rules in containers, with potential rewrites.
 pub trait SequenceDestination: Sized {

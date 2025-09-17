@@ -4,8 +4,8 @@
 
 pub mod builder;
 pub mod destination;
-pub mod rewrite;
 mod ext;
+pub mod rewrite;
 
 pub use crate::ext::CfgSequenceExt;
 

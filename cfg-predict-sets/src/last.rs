@@ -2,9 +2,9 @@
 
 use cfg_grammar::Cfg;
 
-use crate::cfg_sets_ext::CfgSetsExt;
 use crate::PerSymbolSets;
 use crate::PredictSets;
+use crate::cfg_sets_ext::CfgSetsExt;
 
 /// FIRST sets.
 pub struct LastSets {

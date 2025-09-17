@@ -2,8 +2,8 @@
 
 mod support;
 
-use cfg::precedenced_rule::Associativity::*;
 use cfg::Cfg;
+use cfg::precedenced_rule::Associativity::*;
 use cfg_classify::CfgClassifyExt;
 
 #[test]

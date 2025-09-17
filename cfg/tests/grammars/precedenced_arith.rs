@@ -4,13 +4,24 @@ use std::collections::BTreeMap;
 use cfg::Cfg;
 
 #[cfg(feature = "weighted-generation")]
-use cfg::history::LinkedHistoryNode;
-#[cfg(feature = "weighted-generation")]
 use cfg::Symbol;
+#[cfg(feature = "weighted-generation")]
+use cfg::history::LinkedHistoryNode;
 
 pub fn grammar() -> Cfg {
     let mut bnf = Cfg::new();
-    let [sum, product, factor, number, plus, minus, mul, div, lparen, rparen] = bnf.sym();
+    let [
+        sum,
+        product,
+        factor,
+        number,
+        plus,
+        minus,
+        mul,
+        div,
+        lparen,
+        rparen,
+    ] = bnf.sym();
     bnf.rule(sum)
         .rhs([sum, plus, product])
         .rhs([sum, minus, product])
@@ -33,7 +44,19 @@ pub fn grammar() -> Cfg {
 pub fn weighted_grammar() -> (Cfg, Symbol, BTreeMap<Symbol, char>, Symbol) {
     let mut bnf = Cfg::new();
     let mut map = BTreeMap::new();
-    let [sum, product, factor, number, plus, minus, mul, div, lparen, rparen, neg] = bnf.sym();
+    let [
+        sum,
+        product,
+        factor,
+        number,
+        plus,
+        minus,
+        mul,
+        div,
+        lparen,
+        rparen,
+        neg,
+    ] = bnf.sym();
     let weight = |w| LinkedHistoryNode::Weight { weight: w };
     map.insert(plus, '+');
     map.insert(minus, '-');

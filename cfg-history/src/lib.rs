@@ -4,7 +4,7 @@
 use std::{num::NonZeroUsize, ops};
 
 use cfg_symbol::Symbol;
-use earley::{process_linked, History};
+use earley::{History, process_linked};
 
 use self::BinarizedRhsRange::*;
 
@@ -16,7 +16,7 @@ pub type HistoryId = NonZeroUsize;
 // pub enum HistoryGraph {
 //     Nodes {
 //         nodes: Vec<HistoryNode>,
-//     }, 
+//     },
 //     Earley {
 //         earley: Vec<earley::History>,
 //     },
@@ -186,55 +186,71 @@ pub struct HistoryNodeSequenceRhs {
 
 impl From<HistoryNodeBinarize> for History {
     fn from(value: HistoryNodeBinarize) -> Self {
-        process_linked(&LinkedHistoryNode::Binarize {
+        process_linked(
+            &LinkedHistoryNode::Binarize {
                 height: value.height,
                 full_len: value.full_len,
                 is_top: value.is_top,
-            }, value.prev)
+            },
+            value.prev,
+        )
     }
 }
 
 impl From<HistoryNodeWeight> for History {
     fn from(value: HistoryNodeWeight) -> Self {
-        process_linked(&LinkedHistoryNode::Weight {
-            weight: value.weight,
-        }, value.prev)
+        process_linked(
+            &LinkedHistoryNode::Weight {
+                weight: value.weight,
+            },
+            value.prev,
+        )
     }
 }
 
 impl From<HistoryNodeEliminateNulling> for History {
     fn from(value: HistoryNodeEliminateNulling) -> Self {
-        process_linked(&LinkedHistoryNode::EliminateNulling {
-            rhs0: value.rhs0,
-            rhs1: value.rhs1,
-            which: value.which,
-        }, value.prev)
+        process_linked(
+            &LinkedHistoryNode::EliminateNulling {
+                rhs0: value.rhs0,
+                rhs1: value.rhs1,
+                which: value.which,
+            },
+            value.prev,
+        )
     }
 }
 
 impl From<HistoryNodeAssignPrecedence> for History {
     fn from(value: HistoryNodeAssignPrecedence) -> Self {
-        process_linked(&LinkedHistoryNode::AssignPrecedence {
+        process_linked(
+            &LinkedHistoryNode::AssignPrecedence {
                 looseness: value.looseness,
-            }, value.prev)
+            },
+            value.prev,
+        )
     }
 }
 
 impl From<HistoryNodeRewriteSequence> for History {
     fn from(value: HistoryNodeRewriteSequence) -> Self {
-        process_linked(&LinkedHistoryNode::RewriteSequence {
+        process_linked(
+            &LinkedHistoryNode::RewriteSequence {
                 top: value.top,
                 rhs: value.rhs,
                 sep: value.sep,
-            }, value.prev)
+            },
+            value.prev,
+        )
     }
 }
 
 impl From<HistoryNodeSequenceRhs> for History {
     fn from(value: HistoryNodeSequenceRhs) -> Self {
-        process_linked(&LinkedHistoryNode::SequenceRhs {
-                rhs: value.rhs,
-            }, value.prev)
+        process_linked(
+            &LinkedHistoryNode::SequenceRhs { rhs: value.rhs },
+            value.prev,
+        )
     }
 }
 

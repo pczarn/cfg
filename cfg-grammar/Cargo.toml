@@ -1,23 +1,22 @@
 [package]
 name = "cfg-grammar"
-version = "0.0.1"
-edition = "2021"
-
-authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
 keywords = ["grammar", "parsing", "language"]
-documentation = "https://docs.rs/cfg/latest/cfg/"
-homepage = "https://github.com/pczarn/cfg"
-repository = "https://github.com/pczarn/cfg"
-license = "MIT/Apache-2.0"
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [lib]
 name = "cfg_grammar"
 
 [dependencies]
 bit-vec = { version = "0.8", features = ["miniserde"] }
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-cfg-history = { version = "0.0.1", path = "../cfg-history/" }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
+cfg-history = { version = "0.1.0", path = "../cfg-history/" }
 smallvec = { version = "1.13", features = ["const_generics"], optional = true }
 log = "0.4"
 

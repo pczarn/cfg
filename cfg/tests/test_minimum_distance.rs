@@ -1,7 +1,7 @@
 #![cfg(feature = "cfg-predict-distance")]
 
-use cfg::predict_distance::MinimalDistance;
 use cfg::Cfg;
+use cfg::predict_distance::MinimalDistance;
 
 #[test]
 fn test_minimum_distance() {

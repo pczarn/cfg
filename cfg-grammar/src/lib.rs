@@ -16,11 +16,11 @@
 use smallvec::SmallVec;
 
 pub mod cfg;
+mod compare;
 mod occurence_map;
 pub mod precedenced_rule;
 pub mod rule_builder;
 pub mod symbol_bit_set;
-mod compare;
 
 pub use crate::cfg::*;
 pub use crate::symbol_bit_set::SymbolBitSet;
@@ -34,6 +34,6 @@ mod local_prelude {
     pub use crate::precedenced_rule::PrecedencedRuleBuilder;
     pub use crate::*;
     pub use cfg_history::earley;
-    pub use cfg_symbol::SymbolSource;
     pub use cfg_symbol::Symbol;
+    pub use cfg_symbol::SymbolSource;
 }

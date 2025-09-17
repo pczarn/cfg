@@ -28,7 +28,8 @@ impl<G: Borrow<Cfg>> Cycles<G> {
     /// Checks whether the grammar is cycle-free.
     pub fn cycle_free(&mut self) -> bool {
         *self.cycle_free.get_or_insert_with(|| {
-            SymbolSource::generate_fresh().take(self.grammar.borrow().num_syms())
+            SymbolSource::generate_fresh()
+                .take(self.grammar.borrow().num_syms())
                 .all(|i| !self.unit_derivation[(i, i)])
         })
     }
@@ -80,13 +81,11 @@ impl<G: BorrowMut<Cfg>> Cycles<G> {
                     if !translation.contains_key(&rule.lhs) {
                         // Start rewrite. Check which symbols participate in this cycle.
                         // Get the union of `n`th row and column.
-                        for (lhs_derives, s) in
-                            unit_derivation.iter_row(rule.lhs.usize()).zip(SymbolSource::generate_fresh())
+                        for (lhs_derives, s) in unit_derivation
+                            .iter_row(rule.lhs.usize())
+                            .zip(SymbolSource::generate_fresh())
                         {
-                            row.set(
-                                s,
-                                lhs_derives && unit_derivation[(s, rule.lhs)],
-                            )
+                            row.set(s, lhs_derives && unit_derivation[(s, rule.lhs)])
                         }
                         for sym in row.iter() {
                             translation.insert(sym, Some(rule.lhs));

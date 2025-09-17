@@ -1,10 +1,10 @@
-pub mod basic;
 pub mod advanced;
+pub mod basic;
 
 use std::fmt;
 
-pub use crate::basic::CfgLoadExt;
 pub use crate::advanced::CfgLoadAdvancedExt;
+pub use crate::basic::CfgLoadExt;
 
 #[derive(Debug, Clone)]
 pub enum LoadError {
@@ -19,14 +19,23 @@ pub enum LoadError {
     },
     Lex {
         reason: String,
-    }
+    },
 }
 
 impl fmt::Display for LoadError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            LoadError::Parse { reason, line, col, token } => {
-                write!(f, "Parse error at line {} column {}: reason: {} token: {:?}", line, col, reason, token)
+            LoadError::Parse {
+                reason,
+                line,
+                col,
+                token,
+            } => {
+                write!(
+                    f,
+                    "Parse error at line {} column {}: reason: {} token: {:?}",
+                    line, col, reason, token
+                )
             }
             LoadError::Eval { reason } => {
                 write!(f, "Eval error. Reason: {}", reason)

@@ -1,10 +1,17 @@
 [package]
 name = "cfg-history"
-version = "0.0.1"
-edition = "2021"
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
+description = "Library for manipulating context-free grammars."
+keywords = ["grammar", "parsing", "language"]
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
 smallvec = { version = "1.15", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 miniserde = { workspace = true }

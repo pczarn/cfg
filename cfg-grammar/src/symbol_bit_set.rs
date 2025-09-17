@@ -133,7 +133,10 @@ impl SymbolBitSet {
 
     /// Iterates over symbols in the set.
     pub fn iter(&self) -> impl Iterator<Item = Symbol> + use<'_> {
-        self.bit_vec.iter().zip(SymbolSource::generate_fresh()).filter_map(|(is_present, sym)| if is_present { Some(sym) } else { None })
+        self.bit_vec
+            .iter()
+            .zip(SymbolSource::generate_fresh())
+            .filter_map(|(is_present, sym)| if is_present { Some(sym) } else { None })
     }
 
     pub fn union(&mut self, other: &SymbolBitSet) {
@@ -153,7 +156,8 @@ impl SymbolBitSet {
     }
 
     pub fn reserve(&mut self, len: usize) {
-        self.bit_vec.extend(iter::repeat(false).take(len.saturating_sub(self.bit_vec.len())));
+        self.bit_vec
+            .extend(iter::repeat(false).take(len.saturating_sub(self.bit_vec.len())));
     }
 }
 

@@ -1,25 +1,24 @@
 [package]
 name = "cfg-classify"
-version = "0.0.1"
-edition = "2021"
-
-authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
 keywords = ["grammar", "parsing", "language"]
-documentation = "https://docs.rs/cfg/latest/cfg-classify/"
-homepage = "https://github.com/pczarn/cfg"
-repository = "https://github.com/pczarn/cfg"
-license = "Apache-2.0 OR MIT"
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
 bit-matrix = "0.8.1"
 bit-vec = "0.8"
-cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-cfg-predict-distance = { version = "0.0.1", path = "../cfg-predict-distance/" }
-cfg-predict-sets = { version = "0.0.1", path = "../cfg-predict-sets/", optional = true }
-cfg-symbol-bit-matrix = { version = "0.0.1", path = "../cfg-symbol-bit-matrix/" }
-cfg-history = { version = "0.0.1", path = "../cfg-history/", optional = true }
+cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
+cfg-predict-distance = { version = "0.1.0", path = "../cfg-predict-distance/" }
+cfg-predict-sets = { version = "0.1.0", path = "../cfg-predict-sets/", optional = true }
+cfg-symbol-bit-matrix = { version = "0.1.0", path = "../cfg-symbol-bit-matrix/" }
+cfg-history = { version = "0.1.0", path = "../cfg-history/", optional = true }
 
 [features]
 default = []

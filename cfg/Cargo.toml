@@ -1,33 +1,32 @@
 [package]
 name = "cfg"
 version = "0.10.0"
-edition = "2021"
-
-authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
 keywords = ["grammar", "parsing", "language"]
-documentation = "https://docs.rs/cfg/latest/cfg/"
-homepage = "https://pczarn.github.io/"
-repository = "https://github.com/pczarn/cfg"
-license = "Apache-2.0 OR MIT"
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [lib]
 name = "cfg"
 
 [dependencies]
-bit-matrix = "0.8.1"
-bit-vec = "0.8"
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/" }
-cfg-classify = { version = "0.0.1", path = "../cfg-classify/", optional = true }
-cfg-generate = { version = "0.0.1", path = "../cfg-generate/", optional = true }
-cfg-predict-distance = { version = "0.0.1", path = "../cfg-predict-distance/", optional = true }
-cfg-predict-sets = { version = "0.0.1", path = "../cfg-predict-sets/", optional = true }
-cfg-symbol-bit-matrix = { version = "0.0.1", path = "../cfg-symbol-bit-matrix/", optional = true }
-cfg-history = { version = "0.0.1", path = "../cfg-history/", optional = true }
-cfg-sequence = { version = "0.0.1", path = "../cfg-sequence/", optional = true }
+bit-matrix = { workspace = true }
+bit-vec = { workspace = true }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
+cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
+cfg-classify = { version = "0.1.0", path = "../cfg-classify/", optional = true }
+cfg-generate = { version = "0.1.0", path = "../cfg-generate/", optional = true }
+cfg-predict-distance = { version = "0.1.0", path = "../cfg-predict-distance/", optional = true }
+cfg-predict-sets = { version = "0.1.0", path = "../cfg-predict-sets/", optional = true }
+cfg-symbol-bit-matrix = { version = "0.1.0", path = "../cfg-symbol-bit-matrix/", optional = true }
+cfg-history = { version = "0.1.0", path = "../cfg-history/", optional = true }
+cfg-sequence = { version = "0.1.0", path = "../cfg-sequence/", optional = true }
 
-rand = { version = "0.8", optional = true, features = ["small_rng"] }
+rand = { version = "0.9", optional = true, features = ["small_rng"] }
 
 # # serialize
 # miniserde = { version = "0.1", optional = true }

@@ -1,23 +1,22 @@
 [package]
 name = "cfg-generate"
-version = "0.0.1"
-edition = "2021"
-
-authors = [ "Piotr Czarnecki <pioczarn@gmail.com>" ]
+version = "0.1.0"
+authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
 keywords = ["grammar", "parsing", "language"]
-documentation = "https://docs.rs/cfg/latest/cfg-generate/"
-homepage = "https://github.com/pczarn/cfg"
-repository = "https://github.com/pczarn/cfg"
-license = "Apache-2.0 OR MIT"
+rust-version = "1.87"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/pczarn/cfg/"
+repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg-symbol = { version = "0.0.1", path = "../cfg-symbol/" }
-cfg-grammar = { version = "0.0.1", path = "../cfg-grammar/", optional = true }
-cfg-history = { version = "0.0.1", path = "../cfg-history/", optional = true }
+cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
+cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/", optional = true }
+cfg-history = { version = "0.1.0", path = "../cfg-history/", optional = true }
 
 # generation
-rand = { version = "0.8", optional = true, features = ["small_rng"] }
+rand = { version = "0.9", optional = true, features = ["small_rng"] }
 num = { version = "0.4", optional = true }
 rpds = { version = "1.1.0", optional = true }
 

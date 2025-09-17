@@ -16,8 +16,8 @@ use grammars::*;
 #[cfg(feature = "weighted-generation")]
 #[test]
 fn test_precedenced_arith() {
-    use rand::rngs::SmallRng;
     use rand::SeedableRng;
+    use rand::rngs::SmallRng;
 
     let (mut grammar, start, sym_map, _) = precedenced_arith::weighted_grammar();
     grammar.limit_rhs_len(Some(2));
@@ -42,8 +42,8 @@ fn test_precedenced_arith() {
 #[test]
 fn test_precedenced_arith_with_negative_lookahead() {
     use cfg::generate::weighted::NegativeRule;
-    use rand::rngs::SmallRng;
     use rand::SeedableRng;
+    use rand::rngs::SmallRng;
 
     let (mut grammar, start, sym_map, neg) = precedenced_arith::weighted_grammar();
     grammar.limit_rhs_len(Some(2));

@@ -5,7 +5,6 @@ use std::ops::{Bound, RangeBounds};
 use crate::destination::SequenceDestination;
 use crate::{Separator, Sequence};
 use cfg_history::earley::History;
-use cfg_history::RootHistoryNode;
 use cfg_symbol::Symbol;
 
 /// Sequence rule builder.

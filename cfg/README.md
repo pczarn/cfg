@@ -8,7 +8,7 @@
 [![crates.io][crates.io shield]][crates.io link]
 [![Documentation][docs.rs badge]][docs.rs link]
 ![Rust CI][github ci badge]
-![MSRV][rustc 1.80+]
+![MSRV][rustc 1.87+]
 <br />
 <br />
 [![Dependency Status][deps.rs status]][deps.rs link]
@@ -22,7 +22,7 @@
 [docs.rs badge]: https://docs.rs/cfg/badge.svg?version=0.9.0
 [docs.rs link]: https://docs.rs/cfg/0.9.0/cfg/
 [github ci badge]: https://github.com/pczarn/cfg/workflows/CI/badge.svg?branch=master
-[rustc 1.80+]: https://img.shields.io/badge/rustc-1.80%2B-blue.svg
+[rustc 1.87+]: https://img.shields.io/badge/rustc-1.87%2B-blue.svg
 [deps.rs status]: https://deps.rs/crate/cfg/0.9.0/status.svg
 [deps.rs link]: https://deps.rs/crate/cfg/0.9.0
 [shields.io download count]: https://img.shields.io/crates/d/cfg.svg
@@ -36,29 +36,19 @@ Add this to your Cargo.toml:
 
 ```toml
 [dependencies]
-cfg = "0.9"
+cfg = "0.10"
 ```
 
 If you want grammar serialization support with `miniserde`, include the feature like this:
 
 ```toml
 [dependencies]
-cfg = { version = "0.9", features = ["serialize"] }
+cfg = { version = "0.10", features = ["serialize"] }
 ```
 
-If you want weighted generation support, include the feature like this:
+If you want weighted generation support, include the `weighted-generation` feature.
 
-```toml
-[dependencies]
-cfg = { version = "0.9", features = ["weighted-generation"] }
-```
-
-If you want LL(1) classification support, include the feature like this:
-
-```toml
-[dependencies]
-cfg = { version = "0.9", features = ["ll"] }
-```
+If you want LL(1) classification support, include the `ll` feature.
 
 ## Analyzing and modifying grammars
 
@@ -87,13 +77,18 @@ The following features are implemented thus far:
 
 ### Generating symbols
 
-The easiest way of generating symbols is with the `sym` method. The library is unaware
-of the start symbol.
+The easiest way of generating symbols is with the `sym` method.
 
 ```rust
-let mut grammar: Cfg = Cfg::new();
-let (start, expr, identifier, number,
-     plus, multiply, power, l_paren, r_paren, digit) = grammar.sym();
+let mut grammar = Cfg::new();
+let [start, expr, identifier, number,
+     plus, multiply, power, l_paren, r_paren, digit] = grammar.sym();
+```
+
+You may set one or more start symbols we call `roots`.
+
+```rust
+grammar.set_roots([start]);
 ```
 
 ### Building grammar rules
@@ -124,7 +119,8 @@ number ::= digit+
 
 With our library:
 ```rust
-SequencesToProductions::new(&mut grammar).sequence(number).inclusive(1, None).rhs(digit);
+use cfg_sequence::CfgSequenceExt;
+grammar.sequence(number).inclusive(1, None).rhs(digit);
 ```
 
 ### Building precedenced rules
@@ -153,8 +149,8 @@ grammar.precedenced_rule(expr)
 
 ## Using a custom grammar representation
 
-We've removed the option to plug in your custom grammar type through traits. You should find
-it easy to fork the library and make your own types.
+We've removed the option to plug in your custom grammar type through traits.
+You should findit easy to fork the library and make your own types.
 
 ## License
 

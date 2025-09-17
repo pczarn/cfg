@@ -2,10 +2,10 @@
 
 use std::collections::BTreeMap;
 
-use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use cfg_grammar::Cfg;
-use cfg_symbol::Symbol;
+use cfg_grammar::symbol_bit_set::SymbolBitSet;
 use cfg_predict_sets::{CfgSetsExt, PredictSets};
+use cfg_symbol::Symbol;
 
 /// LL parse table.
 pub struct LlParseTable<'a> {

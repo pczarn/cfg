@@ -4,28 +4,40 @@ use core::iter;
 
 use cfg_symbol::Symbol;
 
-use crate::{
-    BinarizedRhsRange, LinkedHistoryNode, RootHistoryNode
-};
+use crate::{BinarizedRhsRange, LinkedHistoryNode, RootHistoryNode};
 
 use rule_dot::RuleDot;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
-#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
-pub struct ExternalOrigin { pub id: u32 }
+#[derive(
+    miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
+)]
+pub struct ExternalOrigin {
+    pub id: u32,
+}
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
-#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
-pub struct EventId { pub id: u32 }
+#[derive(
+    miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
+)]
+pub struct EventId {
+    pub id: u32,
+}
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
-#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
-pub struct MinimalDistance { pub distance: u32 }
+#[derive(
+    miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
+)]
+pub struct MinimalDistance {
+    pub distance: u32,
+}
 pub type NullingEliminated = Option<(Symbol, bool)>;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
-#[derive(miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq)]
+#[derive(
+    miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
+)]
 pub struct ExternalDottedRule {
     id: u32,
     pos: u32,
@@ -101,9 +113,12 @@ pub struct SequenceDetails {
 pub fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
     match linked_node {
         LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
-        &LinkedHistoryNode::Binarize { height, full_len, is_top, .. } => {
-            prev_history.binarize(height, full_len, is_top)
-        }
+        &LinkedHistoryNode::Binarize {
+            height,
+            full_len,
+            is_top,
+            ..
+        } => prev_history.binarize(height, full_len, is_top),
         &LinkedHistoryNode::EliminateNulling {
             which, rhs0, rhs1, ..
         } => prev_history.eliminate_nulling(rhs0, rhs1, which),
@@ -121,9 +136,8 @@ pub fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History
                 prev_history.rewrite_sequence(sequence_details, &rhs[..]);
             }
             prev_history
-        }
-        // ???
-        // &LinkedHistoryNode::Distances { .. } => prev_history,
+        } // ???
+          // &LinkedHistoryNode::Distances { .. } => prev_history,
     }
 }
 
@@ -175,7 +189,11 @@ impl History {
                 if full_len == 2 {
                     [self.at_dot(0), none, self.at_dot(1)]
                 } else if full_len >= 3 {
-                    [self.at_dot(0), self.at_dot(full_len - 2), self.at_dot(full_len - 1)]
+                    [
+                        self.at_dot(0),
+                        self.at_dot(full_len - 2),
+                        self.at_dot(full_len - 1),
+                    ]
                 } else {
                     [self.at_dot(0), none, none]
                 }
@@ -184,7 +202,11 @@ impl History {
             }
         };
 
-        let origin = if is_top { self.origin } else { ExternalOrigin::null() };
+        let origin = if is_top {
+            self.origin
+        } else {
+            ExternalOrigin::null()
+        };
 
         History {
             origin,

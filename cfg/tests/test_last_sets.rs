@@ -1,7 +1,7 @@
 #![cfg(feature = "cfg-predict-sets")]
 
 use cfg::Cfg;
-use cfg_predict_sets::{sets::PerSymbolSetVal, LastSets, PredictSets};
+use cfg_predict_sets::{LastSets, PredictSets, sets::PerSymbolSetVal};
 
 use std::collections::BTreeMap;
 

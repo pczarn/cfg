@@ -18,3 +18,6 @@ resolver = "2"
 
 [workspace.dependencies]
 miniserde = "0.1"
+bit-matrix = "0.9.0"
+bit-vec = "0.8"
+log = "0.4"
