@@ -1,5 +1,7 @@
 //! Calculation of minimum distance from one part of the grammar to another.
 
+#![deny(unsafe_code)]
+
 use cfg_grammar::*;
 use cfg_symbol::Symbol;
 

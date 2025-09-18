@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 pub mod cfg_sets_ext;
 pub mod first;
 pub mod follow;

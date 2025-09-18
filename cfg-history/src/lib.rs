@@ -1,6 +1,8 @@
 //! Any data carried alongside a grammar rule can be its _history_. Rule histories may contain
 //! more than semantic actions.
 
+#![deny(unsafe_code)]
+
 use std::{num::NonZeroUsize, ops};
 
 use cfg_symbol::Symbol;

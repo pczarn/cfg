@@ -1,6 +1,8 @@
 //! A type that can represent symbols in a context-free grammar. Symbols are distinguished by their
 //! IDs.
 
+#![deny(unsafe_code)]
+
 pub mod intern;
 mod source;
 mod symbol;

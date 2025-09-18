@@ -1,6 +1,4 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![deny(unsafe_code)]
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter;
@@ -274,9 +272,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-
         let pattern = r"(?i)(foo|bar)\d+";
         let (result, mut map) = Cfg::from_regexp(pattern).unwrap();
         assert_eq!(result.rules().count(), 5);

@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 pub mod remap_symbols;
 mod symbol_bit_matrix;
 

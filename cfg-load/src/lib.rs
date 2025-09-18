@@ -1,3 +1,5 @@
+#![deny(unsafe_code)]
+
 pub mod advanced;
 pub mod basic;
 

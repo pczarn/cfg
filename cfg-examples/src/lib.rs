@@ -1,3 +1,3 @@
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 pub mod c;
