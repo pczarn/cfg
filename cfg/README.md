@@ -30,6 +30,20 @@
 Rust library for manipulating context-free grammars.
 [You can check the documentation here](https://docs.rs/cfg/latest/cfg/).
 
+## Motivation
+
+The purpose of `cfg` is to provide a reusable, well-tested foundation for
+working with context-free grammars. It simplifies the development of
+higher-level tools such as Earley, LL(1), or LR(1) parsers, as well as other
+tool that rely on grammars.
+
+We believe developers often need a common foundation to avoid
+re-implementing the wheel.
+
+Our current focus is supporting
+**[https://github.com/pczarn/gearley](gearley)**, an Earley parser built on top
+of this library.
+
 ## Usage
 
 Add this to your Cargo.toml:
@@ -50,9 +64,9 @@ If you want weighted generation support, include the `weighted-generation` featu
 
 If you want LL(1) classification support, include the `ll` feature.
 
-## Analyzing and modifying grammars
+## List of features
 
-The following features are implemented thus far:
+The following tools are implemented thus far:
 
 * rich rule building
   * sequence rules,
@@ -147,10 +161,15 @@ grammar.precedenced_rule(expr)
            .rhs([expr, plus, expr]);
 ```
 
-## Using a custom grammar representation
+## Limitations
 
 We've removed the option to plug in your custom grammar type through traits.
-You should findit easy to fork the library and make your own types.
+
+## Contributing
+
+All features are welcome. Feel free to make a Pull Request on GitHub.
+
+See CONTRIBUTING.md for more.
 
 ## License
 
