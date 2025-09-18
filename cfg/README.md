@@ -41,7 +41,7 @@ We believe developers often need a common foundation to avoid
 re-implementing the wheel.
 
 Our current focus is supporting
-**[https://github.com/pczarn/gearley](gearley)**, an Earley parser built on top
+**[gearley](https://github.com/pczarn/gearley)**, an Earley parser built on top
 of this library.
 
 ## Usage
