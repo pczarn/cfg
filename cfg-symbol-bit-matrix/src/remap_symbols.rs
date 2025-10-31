@@ -68,7 +68,9 @@ impl<'a> Remap<'a> {
         self.remap_symbols(|sym| new_mapping.to_internal[sym.usize()].unwrap());
     }
 
-    // Translates symbols in rules to new symbol IDs.
+    /// Translates symbols in rules to new symbol IDs.
+    /// 
+    /// Translates those inside `wrapped_roots` as well.
     pub fn remap_symbols<F>(&mut self, mut map: F)
     where
         F: FnMut(Symbol) -> Symbol,
@@ -144,7 +146,9 @@ impl<'a> Remap<'a> {
     }
 }
 
+/// Extension trait for running a [`Remap`] on the grammar.
 pub trait CfgRemapSymbolsExt {
+    /// Initiates a [`Remap`] on the grammar.
     fn remap(&mut self) -> Remap<'_>;
 }
 

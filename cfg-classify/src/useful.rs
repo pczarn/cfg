@@ -23,6 +23,7 @@ pub struct UsefulnessForRule<'a> {
     usefulness: RuleUsefulness,
 }
 
+/// Useful rules are both reachable and productive.
 #[derive(Copy, Clone, Debug)]
 pub struct RuleUsefulness {
     /// Indicates whether the rule is unreachable.
@@ -32,10 +33,12 @@ pub struct RuleUsefulness {
 }
 
 impl<'a> UsefulnessForRule<'a> {
+    /// Get reference to the rule.
     pub fn rule(&self) -> &CfgRule {
         self.rule
     }
 
+    /// Get information about this rule's usefulness.
     pub fn usefulness(&self) -> RuleUsefulness {
         self.usefulness
     }
@@ -48,6 +51,10 @@ impl RuleUsefulness {
 }
 
 /// Returns the set of productive symbols.
+///
+/// An productive symbol is one where there exists a rule
+/// with that symbol on the LHS as well as all symbols
+/// being productive, terminal or nulling.
 fn productive_syms(grammar: &Cfg) -> SymbolBitSet {
     let mut productive_syms = SymbolBitSet::new();
     productive_syms.terminal(grammar);
@@ -71,7 +78,7 @@ impl Usefulness {
 
         debug_assert_eq!(
             reachability.size(),
-            (productivity.len(), productivity.len())
+            (productivity.space(), productivity.space())
         );
 
         Usefulness {
@@ -111,6 +118,7 @@ impl Usefulness {
         self.reachable_syms.all()
     }
 
+    /// Get the usefulness of the given rule.
     pub fn usefulness<'r>(&self, rule: &'r CfgRule) -> UsefulnessForRule<'r> {
         let productive = rule.rhs.iter().all(|&sym| self.productivity[sym]);
         let reachable = self.reachable_syms[rule.lhs];

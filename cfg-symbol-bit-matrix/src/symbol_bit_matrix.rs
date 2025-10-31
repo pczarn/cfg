@@ -5,13 +5,17 @@ use bit_matrix::BitMatrix;
 use cfg_grammar::Cfg;
 use cfg_symbol::{Symbol, SymbolSource};
 
+/// A matrix that represents a relation `R(A, B)` between two symbols.
 #[derive(Debug)]
 pub struct SymbolBitMatrix {
     bit_matrix: BitMatrix,
 }
 
+/// A direct derivation matrix.
 pub struct DirectDerivationMatrix(SymbolBitMatrix);
+/// A reachability matrix.
 pub struct ReachabilityMatrix(SymbolBitMatrix);
+/// A unit derivation matrix.
 pub struct UnitDerivationMatrix(SymbolBitMatrix);
 
 impl SymbolBitMatrix {
@@ -25,6 +29,7 @@ impl SymbolBitMatrix {
         self.bit_matrix.set(row.usize(), col.usize(), included);
     }
 
+    /// Creates an iterator over symbols which appear in the given row.
     pub fn iter_row_syms(&self, row: Symbol) -> impl Iterator<Item = Symbol> + '_ {
         self.bit_matrix
             .iter_row(row.usize())
@@ -137,6 +142,7 @@ impl From<SymbolBitMatrix> for BitMatrix {
 }
 
 impl ReachabilityMatrix {
+    /// A symbol is reachable from itself.
     pub fn reflexive(mut self) -> Self {
         self.reflexive_closure();
         self
@@ -151,10 +157,21 @@ impl DirectDerivationMatrix {
     }
 }
 
+/// Extension traits for building matrices that represent relation between symbols,
+/// `R(A, B)` where `A`: [`Symbol`], `B`: [`Symbol`].
 pub trait CfgSymbolBitMatrixExt {
+    /// Creates the empty matrix of size `|S|x|S|` where `S`: set of symbols.
     fn empty_matrix(&self) -> SymbolBitMatrix;
+    /// Computes the direct derivation matrix.
     fn direct_derivation_matrix(&self) -> DirectDerivationMatrix;
+    /// Computes the reachability matrix.
     fn reachability_matrix(&self) -> ReachabilityMatrix;
+    /// Computes the unit derivation matrix.
+    /// 
+    /// A unit derivation is defined with a grammar rule such as:
+    /// ```ignore
+    /// A ::= B;
+    /// ```
     fn unit_derivation_matrix(&self) -> UnitDerivationMatrix;
 }
 

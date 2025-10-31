@@ -204,7 +204,11 @@ fn test_recursive() {
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
         rule: &rec_rule,
-        recursion: cfg_classify::recursive::RecursionKind::Left,
+        recursion: cfg_classify::recursive::RecursionKind {
+            left: true,
+            middle: false,
+            right: false,
+        },
         distances: None,
     }];
 
@@ -233,7 +237,11 @@ fn test_recursive_right_rec() {
 
     let expected_recursive_rules: Vec<RecursiveRule> = vec![RecursiveRule {
         rule: &rec_rule,
-        recursion: cfg_classify::recursive::RecursionKind::Right,
+        recursion: cfg_classify::recursive::RecursionKind {
+            left: false,
+            middle: false,
+            right: true,
+        },
         distances: None,
     }];
 

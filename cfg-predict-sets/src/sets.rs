@@ -1,3 +1,6 @@
+//! Definitions for accessing the result of FIRST, FOLLOW
+//! and LAST set computation.
+
 use std::{
     collections::BTreeMap,
     ops::{Deref, DerefMut},
@@ -5,16 +8,24 @@ use std::{
 
 use cfg_symbol::Symbol;
 
+/// A set of symbols implemented as a list.
+/// May contain a "none" value in case a nullable was found.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Clone, Debug)]
 pub struct PerSymbolSetVal {
+    /// Nullable found.
     pub has_none: bool,
+    /// Set of symbols.
     pub list: Vec<Symbol>,
 }
 
 /// The representation of FIRST and FOLLOW sets.
 pub type PerSymbolSets = BTreeMap<Symbol, PerSymbolSetVal>;
 
+/// Trait for grabbing the result of FIRST, FOLLOW and LAST
+/// set computation.
 pub trait PredictSets {
+    /// Provides access to the mapping from a symbol
+    /// to a symbol set.
     fn predict_sets(&self) -> &PerSymbolSets;
 }
 
@@ -31,6 +42,7 @@ impl PerSymbolSetVal {
         self.has_none = false;
     }
 
+    /// Returns whether a nullable was found.
     pub fn has_none(&self) -> bool {
         self.has_none
     }

@@ -1,5 +1,5 @@
 [package]
-name = "cfg-regexp"
+name = "cfg-regexp-logic"
 version = "0.1.0"
 authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."

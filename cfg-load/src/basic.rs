@@ -1,46 +1,24 @@
-#![deny(unsafe_code)]
+//! Allows to load context-free grammars from a basic
+//! BNF string.
+//!
+//! # Examples
+//!
+//! ```
+//! use cfg_load::CfgLoadExt;
+//! use cfg_grammar::Cfg;
+//! let grammar = "A ::= B C D;";
+//! let cfg = Cfg::load(grammar).unwrap();
+//! assert_eq!(cfg.rules().count(), 1);
+//! ```
 
 use cfg_history::RootHistoryNode;
 use tiny_earley::{Recognizer, Symbol, forest, grammar};
 
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
-use std::{collections::HashMap, convert::AsRef, fmt::Write, str::Chars};
+use std::{collections::HashMap, fmt::Write, str::Chars};
 
-use elsa::FrozenIndexSet;
-
-use crate::LoadError;
-pub struct StringInterner {
-    set: FrozenIndexSet<String>,
-}
-
-impl StringInterner {
-    pub fn new() -> Self {
-        StringInterner {
-            set: FrozenIndexSet::new(),
-        }
-    }
-
-    pub fn get_or_intern<T>(&self, value: T) -> usize
-    where
-        T: AsRef<str>,
-    {
-        // TODO use Entry in case the standard Entry API gets improved
-        // (here to avoid premature allocation or double lookup)
-        self.set.insert_full(value.as_ref().to_string()).0
-    }
-
-    // fn get<T>(&self, value: T) -> Option<usize>
-    // where
-    //     T: AsRef<str>,
-    // {
-    //     self.set.get_full(value.as_ref()).map(|(i, _r)| i)
-    // }
-
-    // fn resolve(&self, index: usize) -> Option<&str> {
-    //     self.set.get_index(index)
-    // }
-}
+use crate::{LoadError, string_interner::StringInterner};
 
 #[derive(Clone, Debug)]
 struct Rule {
@@ -315,8 +293,14 @@ impl<'a> Lexer<'a> {
     }
 }
 
-pub trait CfgLoadExt {
-    fn load(bnf: &str) -> Result<Cfg, LoadError>;
+/// Extension trait for loading context-free grammars.
+pub trait CfgLoadExt: Sized {
+    /// Loads a `Cfg` from a basic BNF string.
+    ///
+    /// No strings may appear on RHS; only symbols.
+    /// A lexer is not supported.
+    fn load(bnf: &str) -> Result<Self, LoadError>;
+    /// Converts a `Cfg` to a basic BNF string.
     fn to_bnf(&self) -> String;
 }
 
@@ -371,7 +355,7 @@ impl CfgLoadExt for Cfg {
                 Token::RParen => rparen,
                 Token::Whitespace => continue,
                 &Token::Error(line_no, col_no) => {
-                    return Err(LoadError::Parse {
+                    return Err(LoadError {
                         reason: "failed to tokenize".to_string(),
                         line: line_no as u32,
                         col: col_no as u32,
@@ -382,7 +366,7 @@ impl CfgLoadExt for Cfg {
             recognizer.scan(terminal, i as u32);
             let success = recognizer.end_earleme();
             if !success {
-                return Err(LoadError::Parse {
+                return Err(LoadError {
                     reason: "parse failed".to_string(),
                     line: 1,
                     col: 1,
@@ -394,10 +378,10 @@ impl CfgLoadExt for Cfg {
         let finished_node = if let Some(node) = recognizer.finished_node {
             node
         } else {
-            return Err(LoadError::Parse {
+            return Err(LoadError {
                 reason: "parse failed: no result".to_string(),
-                line: 1,
-                col: 1,
+                line: 0,
+                col: 0,
                 token: None,
             });
         };
@@ -449,8 +433,11 @@ impl CfgLoadExt for Cfg {
             }
             Ok(cfg)
         } else {
-            return Err(LoadError::Eval {
+            return Err(LoadError {
                 reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result),
+                line: 0,
+                col: 0,
+                token: None,
             });
         }
     }

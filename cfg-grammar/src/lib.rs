@@ -2,6 +2,7 @@
 //! grammar representations.
 
 #![deny(unsafe_code)]
+#![warn(missing_docs)]
 #![deny(
     missing_copy_implementations,
     trivial_casts,

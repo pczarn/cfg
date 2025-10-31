@@ -1,4 +1,4 @@
-//! Grammar rules can be built with the builder pattern.
+//! Plain grammar rules can be built with the builder pattern.
 
 use std::convert::AsRef;
 

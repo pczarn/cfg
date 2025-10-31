@@ -23,11 +23,19 @@ fn test_recursive() {
     let expected_recursive_rules: Vec<(NamedCfgRule, RecursionKind)> = vec![
         (
             named_cfg_rule!(primary_expression ::= lparen expression rparen),
-            RecursionKind::Middle,
+            RecursionKind {
+                left: false,
+                middle: true,
+                right: false,
+            },
         ),
         (
             named_cfg_rule!(postfix_expression ::= primary_expression),
-            RecursionKind::All,
+            RecursionKind {
+                left: true,
+                middle: false,
+                right: true,
+            },
         ),
     ];
     assert_eq!(actual_recursive_rules, expected_recursive_rules);
@@ -51,12 +59,20 @@ fn test_recursive_distances() {
     let expected_recursive_rules: Vec<(NamedCfgRule, RecursionKind, Option<(usize, usize)>)> = vec![
         (
             named_cfg_rule!(primary_expression ::= lparen expression rparen),
-            RecursionKind::Middle,
+            RecursionKind {
+                left: false,
+                middle: true,
+                right: false,
+            },
             Some((0, 1)),
         ),
         (
             named_cfg_rule!(postfix_expression ::= primary_expression),
-            RecursionKind::All,
+            RecursionKind {
+                left: true,
+                middle: false,
+                right: true,
+            },
             Some((0, 1)),
         ),
     ];

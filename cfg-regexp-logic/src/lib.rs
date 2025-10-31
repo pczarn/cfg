@@ -1,23 +1,17 @@
 #![deny(unsafe_code)]
 
+mod ext;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::iter;
 
 use cfg_grammar::Cfg;
 use cfg_sequence::CfgSequenceExt;
 use cfg_symbol::Symbol;
-use regex_syntax::Parser;
+
+pub use ext::CfgRegexpExt;
+
 use regex_syntax::hir::{Class, Hir, HirKind};
-
-pub trait CfgRegexpExt: Sized {
-    fn from_regexp(regexp: &str) -> Result<(Self, LexerMap), regex_syntax::Error>;
-}
-
-impl CfgRegexpExt for Cfg {
-    fn from_regexp(regexp: &str) -> Result<(Self, LexerMap), regex_syntax::Error> {
-        Parser::new().parse(regexp).map(Translator::cfg_from_hir)
-    }
-}
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone)]
 pub struct LexerClasses {

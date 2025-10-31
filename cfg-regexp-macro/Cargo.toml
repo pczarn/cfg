@@ -1,0 +1,13 @@
+[package]
+name = "cfg-regexp-macro"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+cfg = { path = "../cfg/" }
+cfg-regexp-logic = { path = "../cfg-regexp-logic/" }
+cfg-load = { path = "../cfg-load/" }
+miniserde = "0.1"

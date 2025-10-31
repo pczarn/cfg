@@ -1,3 +1,5 @@
+//! Utilities with a focus on our Earley parser, `gearley`.
+
 pub mod rule_dot;
 
 use core::iter;
@@ -8,65 +10,84 @@ use crate::{BinarizedRhsRange, LinkedHistoryNode, RootHistoryNode};
 
 use rule_dot::RuleDot;
 
+/// ID of the original rule.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
 #[derive(
     miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
 )]
 pub struct ExternalOrigin {
+    /// The ID.
     pub id: u32,
 }
+
+///
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
 #[derive(
     miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
 )]
 pub struct EventId {
+    /// The ID. Zero if none.
     pub id: u32,
 }
+
+/// Information about the dot's minimal distance.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
 #[derive(
     miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
 )]
 pub struct MinimalDistance {
+    /// The distance. `u32::MAX` if none.
     pub distance: u32,
 }
+
+/// Information about .
 pub type NullingEliminated = Option<(Symbol, bool)>;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "nanoserde", derive(nanoserde::SerBin, nanoserde::DeBin))]
 #[derive(
     miniserde::Serialize, miniserde::Deserialize, Copy, Clone, Default, Debug, Eq, PartialEq,
 )]
+
+/// Information about the original dotted rule for a dot.
 pub struct ExternalDottedRule {
     id: u32,
     pos: u32,
 }
+
+/// Semantics for event and minimal distance, together.
 pub type EventAndDistance = (EventId, MinimalDistance);
 
 impl MinimalDistance {
+    /// Unknown distance.
     pub fn null() -> Self {
         MinimalDistance { distance: !0 }
     }
 }
 
 impl EventId {
+    /// Unknown event.
     pub fn null() -> Self {
         EventId { id: 0 }
     }
 }
 
 impl ExternalDottedRule {
+    /// Unknown original dotted rule position.
     pub fn null() -> Self {
         ExternalDottedRule { id: !0, pos: !0 }
     }
 }
 
 impl ExternalOrigin {
+    /// Unknown original rule position.
     pub fn null() -> Self {
         ExternalOrigin { id: !0 }
     }
 
+    /// Checks whether the original rule position is unknown.
     pub fn is_null(&self) -> bool {
         self.id == !0
     }
@@ -79,15 +100,24 @@ enum SymKind {
     Other,
 }
 
+/// All rule semantics for a grammar rule in an Earley parser.
 #[derive(Copy, Clone, Default, Debug, Eq, PartialEq)]
 pub struct History {
+    /// Q: Why 3?
+    /// A: This rule is binarized, so it has three dot positions:
+    /// `A ::= • B • C? •`.
     pub dots: [RuleDot; 3],
+    /// The original grammar rule ID.
     pub origin: ExternalOrigin,
+    /// Nullables may have been eliminated.
     pub nullable: NullingEliminated,
+    /// Only used for generation with PCFGs.
     pub weight: Option<u32>,
+    /// This rule may have been a sequence.
     pub sequence: Option<SequenceDetails>,
 }
 
+/// Whether the rule was originally a sequence rule.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SequenceDetails {
     top: bool,
@@ -110,6 +140,7 @@ pub struct SequenceDetails {
 //     }
 // }
 
+/// Updates the rule semantics with additional info.
 pub fn process_linked(linked_node: &LinkedHistoryNode, mut prev_history: History) -> History {
     match linked_node {
         LinkedHistoryNode::AssignPrecedence { looseness: _, .. } => prev_history,
@@ -156,6 +187,7 @@ impl From<RootHistoryNode> for History {
 }
 
 impl History {
+    /// New `History` for the given original rule ID.
     pub fn new(id: u32) -> Self {
         // assert!(!ExternalOrigin { id }.is_null());
         History {
@@ -164,14 +196,17 @@ impl History {
         }
     }
 
+    /// Returns the original rule ID.
     pub fn origin(&self) -> ExternalOrigin {
         self.origin
     }
 
+    /// Returns information about eliminated nullables.
     pub fn nullable(&self) -> NullingEliminated {
         self.nullable
     }
 
+    /// Accesses rule dot semantics at the given rule RHS position.
     pub fn dot(&self, n: usize) -> RuleDot {
         self.dots.get(n).copied().unwrap_or(RuleDot::none())
     }

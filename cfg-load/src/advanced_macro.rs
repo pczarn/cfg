@@ -1,33 +1,7 @@
-//! Allows to load context-free grammars and lexers from a rich
-//! BNF string.
-//!
-//! The `sym_map` allows you to access symbols by name. Strings
-//! are replaced with gensyms such as `__lex0`, `__lex1` etc.
-//!
-//! # Examples
-//!
-//! ```
-//! use cfg_load::CfgLoadAdvancedExt;
-//! use cfg_grammar::Cfg;
-//! let grammar = r#"
-//! A ::= B ~ C ~ D;
-//! lexer {
-//!     B ::= "b";
-//!     C ::= "c";
-//!     D ::= "d";
-//! }
-//! "#;
-//! let mut result = Cfg::load_advanced(grammar).unwrap();
-//! assert_eq!(result.cfg.rules().count(), 7);
-//! result.lexer_map.compute();
-//! for rule in result.cfg.rules() {
-//!     if rule.lhs == *result.sym_map.get("__lex0").unwrap() {
-//!         assert_eq!(rule.rhs[0], result.lexer_map.get('b')[0]);
-//!     }
-//! }
-//! ```
+#![deny(unsafe_code)]
+
 use cfg_history::RootHistoryNode;
-use cfg_regexp_logic::CfgRegexpExt;
+use cfg_regexp::CfgRegexpExt;
 use cfg_symbol_bit_matrix::Remap;
 use tiny_earley::{Recognizer, Symbol, forest, grammar};
 
@@ -35,13 +9,47 @@ use cfg_grammar::{Cfg, SymbolBitSet};
 use cfg_sequence::CfgSequenceExt;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    convert::AsRef,
     iter,
     str::Chars,
 };
 
-pub use cfg_regexp_logic::LexerMap;
+use elsa::FrozenIndexSet;
 
-use crate::{LoadError, string_interner::StringInterner};
+pub use cfg_regexp::LexerMap;
+
+use crate::LoadError;
+pub struct StringInterner {
+    set: FrozenIndexSet<String>,
+}
+
+impl StringInterner {
+    pub fn new() -> Self {
+        StringInterner {
+            set: FrozenIndexSet::new(),
+        }
+    }
+
+    pub fn get_or_intern<T>(&self, value: T) -> usize
+    where
+        T: AsRef<str>,
+    {
+        // TODO use Entry in case the standard Entry API gets improved
+        // (here to avoid premature allocation or double lookup)
+        self.set.insert_full(value.as_ref().to_string()).0
+    }
+
+    // fn get<T>(&self, value: T) -> Option<usize>
+    // where
+    //     T: AsRef<str>,
+    // {
+    //     self.set.get_full(value.as_ref()).map(|(i, _r)| i)
+    // }
+
+    // fn resolve(&self, index: usize) -> Option<&str> {
+    //     self.set.get_index(index)
+    // }
+}
 
 #[derive(Clone, Debug)]
 struct Rule {
@@ -53,19 +61,9 @@ struct Rule {
 
 #[derive(Clone, Debug)]
 enum Fragment {
-    Rhs {
-        ident: String,
-        rep: Rep,
-    },
-    Lex {
-        string: String,
-        span: usize,
-    },
-    Call {
-        func: String,
-        arg: Box<Fragment>,
-        span: (usize, usize),
-    },
+    Rhs { ident: String, rep: Rep },
+    Lex { string: String },
+    Call { func: String, arg: Box<Fragment> },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -129,11 +127,11 @@ impl forest::Eval for Evaluator {
             tilde_op,
         ] = self.symbols;
         if terminal == ident {
-            self.tokens[values as usize].0.ident(values as usize + 1)
+            self.tokens[values as usize].0.ident(values as usize)
         } else if terminal == string {
-            self.tokens[values as usize].0.string(values as usize + 1)
+            self.tokens[values as usize].0.string(values as usize)
         } else {
-            Value::None(values as usize + 1)
+            Value::None(values as usize)
         }
     }
 
@@ -229,7 +227,7 @@ impl forest::Eval for Evaluator {
             // alt2 ::= alt;
             (11, Value::Alt(alt), ..) => Value::Alt2(alt, None),
             // alt2 ::= alt action;
-            (12, Value::Alt(alt), Value::Ident(action, _j), ..) => Value::Alt2(alt, Some(action)),
+            (12, Value::Alt(alt), Value::Ident(action, j), ..) => Value::Alt2(alt, Some(action)),
             // alt ::= alt tilde_op fragment;
             (13, Value::Alt(mut alt), _, Value::Fragment(fragment), ..) => {
                 alt.push(fragment);
@@ -238,30 +236,27 @@ impl forest::Eval for Evaluator {
             // alt ::= fragment;
             (14, Value::Fragment(fragment), ..) => Value::Alt(vec![fragment]),
             // fragment ::= ident op_plus;
-            (15, Value::Ident(ident, _i), ..) => Value::Fragment(Fragment::Rhs {
+            (15, Value::Ident(ident, i), ..) => Value::Fragment(Fragment::Rhs {
                 ident,
                 rep: Rep::OneOrMore,
             }),
             // fragment ::= ident op_mul;
-            (16, Value::Ident(ident, _i), ..) => Value::Fragment(Fragment::Rhs {
+            (16, Value::Ident(ident, i), ..) => Value::Fragment(Fragment::Rhs {
                 ident,
                 rep: Rep::ZeroOrMore,
             }),
             // fragment ::= ident;
-            (17, Value::Ident(ident, _i), ..) => Value::Fragment(Fragment::Rhs {
+            (17, Value::Ident(ident, i), ..) => Value::Fragment(Fragment::Rhs {
                 ident,
                 rep: Rep::None,
             }),
             // fragment ::= string;
-            (18, Value::String(string, i), ..) => {
-                Value::Fragment(Fragment::Lex { string, span: i })
-            }
+            (18, Value::String(string, i), ..) => Value::Fragment(Fragment::Lex { string }),
             // fragment ::= ident rparen string rparen;
-            (19, Value::Ident(ident, i), _, Value::String(string, j), Value::None(k)) => {
+            (19, Value::Ident(ident, i), _, Value::String(string, _), Value::None(j)) => {
                 Value::Fragment(Fragment::Call {
                     func: ident,
-                    arg: Box::new(Fragment::Lex { string, span: j }),
-                    span: (i, k),
+                    arg: Box::new(Fragment::Lex { string }),
                 })
             }
             // fragment ::= ident rparen string rparen;
@@ -286,7 +281,6 @@ struct Lexer<'a> {
     col_no: usize,
 }
 
-#[allow(missing_docs)]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Token {
     Ident(String),
@@ -336,10 +330,6 @@ impl<'a> Lexer<'a> {
         let mut line_no = 1;
         let mut col_no = 1;
         while let Some(token) = lexer.eat_token() {
-            if let &Token::Error(_line, _col) = &token {
-                result.push((token, line_no, col_no));
-                return result;
-            }
             if token != Token::Whitespace {
                 result.push((token, line_no, col_no));
             }
@@ -377,7 +367,6 @@ impl<'a> Lexer<'a> {
                     self.advance();
                     Token::BnfOp
                 } else {
-                    println!("{:?}", self.chars.as_str());
                     Token::Error(self.line_no, self.col_no)
                 }
             }
@@ -475,11 +464,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-/// Extension trait for loading `Cfg`s from a rich BNF string.
 pub trait CfgLoadAdvancedExt {
-    /// Loads a context-free grammar from a rich BNF string.
-    ///
-    /// The BNF may contain a lexer.
     fn load_advanced(grammar: &str) -> Result<AdvancedGrammar, LoadError>;
 }
 
@@ -495,18 +480,11 @@ pub trait CfgLoadAdvancedExt {
 //     }
 // }
 
-/// Loaded grammar.
 pub struct AdvancedGrammar {
-    /// The context-free grammar.
     pub cfg: Cfg,
-    /// Mapping from text characters to tokens.
     pub lexer_map: LexerMap,
-    /// Set of lexemes.
     pub sbs: SymbolBitSet,
-    /// Mapping from rule external origin ID to action names.
     pub actions: BTreeMap<usize, Option<String>>,
-    /// Mapping from symbol name to `Symbol`.
-    pub sym_map: BTreeMap<String, cfg_symbol::Symbol>,
 }
 
 impl CfgLoadAdvancedExt for Cfg {
@@ -587,7 +565,7 @@ impl CfgLoadAdvancedExt for Cfg {
                 Token::LexerKeyword => lexer_keyword,
                 Token::Whitespace => continue,
                 &Token::Error(line_no, col_no) => {
-                    return Err(LoadError {
+                    return Err(LoadError::Parse {
                         reason: "failed to tokenize".to_string(),
                         line: line_no as u32,
                         col: col_no as u32,
@@ -598,7 +576,7 @@ impl CfgLoadAdvancedExt for Cfg {
             recognizer.scan(terminal, i as u32);
             let success = recognizer.end_earleme();
             if !success {
-                return Err(LoadError {
+                return Err(LoadError::Parse {
                     reason: "parse failed".to_string(),
                     line: line as u32,
                     col: col as u32,
@@ -610,10 +588,10 @@ impl CfgLoadAdvancedExt for Cfg {
         let finished_node = if let Some(node) = recognizer.finished_node {
             node
         } else {
-            return Err(LoadError {
+            return Err(LoadError::Parse {
                 reason: "parse failed: no result".to_string(),
-                line: 0,
-                col: 0,
+                line: 1,
+                col: 1,
                 token: None,
             });
         };
@@ -650,11 +628,8 @@ impl CfgLoadAdvancedExt for Cfg {
                 let lhs = intern.get_or_intern(&rule.lhs[..]);
                 if is_lexer {
                     if lhs_in_parser.contains(&lhs) {
-                        return Err(LoadError {
+                        return Err(LoadError::Lex {
                             reason: format!("lhs shared between parser and lexer: {}", rule.lhs),
-                            line: rule.span.0 as u32,
-                            col: 1,
-                            token: None,
                         });
                     }
                 } else {
@@ -671,38 +646,25 @@ impl CfgLoadAdvancedExt for Cfg {
                     .rhs
                     .into_iter()
                     .map(|fragment| match fragment {
-                        Fragment::Call { func, arg, span } => {
+                        Fragment::Call { func, arg } => {
                             if func != "Regexp" {
-                                return Err(LoadError {
+                                return Err(LoadError::Lex {
                                     reason: format!("expected 'Regexp', found '{}'", func),
-                                    line: span.0 as u32,
-                                    col: 1,
-                                    token: None,
                                 });
                             }
                             match &*arg {
-                                &Fragment::Call {
-                                    ref func,
-                                    ref arg,
-                                    span,
-                                } => {
-                                    return Err(LoadError {
+                                &Fragment::Call { ref func, ref arg } => {
+                                    return Err(LoadError::Lex {
                                         reason: format!(
                                             "expected Regex(string), found {:?}({:?})",
                                             func, arg
                                         ),
-                                        line: span.0 as u32,
-                                        col: 0,
-                                        token: None,
                                     });
                                 }
-                                &Fragment::Lex { ref string, span } => {
+                                &Fragment::Lex { ref string } => {
                                     let (mut regexp_cfg, classes) = Cfg::from_regexp(string)
-                                        .map_err(|err| LoadError {
+                                        .map_err(|err| LoadError::Lex {
                                             reason: err.to_string(),
-                                            line: span as u32,
-                                            col: 1,
-                                            token: None,
                                         })?;
                                     let mut remap = Remap::new(&mut regexp_cfg);
                                     let mut sym_map = HashMap::new();
@@ -721,19 +683,16 @@ impl CfgLoadAdvancedExt for Cfg {
                                     Ok(regexp_cfg.roots()[0])
                                 }
                                 &Fragment::Rhs { ref ident, rep } => {
-                                    return Err(LoadError {
+                                    return Err(LoadError::Lex {
                                         reason: format!(
                                             "expected Regex(string), found {:?} repeated {:?}",
                                             ident, rep
                                         ),
-                                        line: 0,
-                                        col: 0,
-                                        token: None,
                                     });
                                 }
                             }
                         }
-                        Fragment::Lex { string, span: _ } => {
+                        Fragment::Lex { string } => {
                             let id = lex_string_intern.get_or_intern(&string[..]);
                             let name = format!("__lex{}", id);
                             let id = intern.get_or_intern(&name[..]);
@@ -792,25 +751,10 @@ impl CfgLoadAdvancedExt for Cfg {
                 lexer_map: lexer_classes,
                 sbs,
                 actions,
-                sym_map: sym_map
-                    .into_iter()
-                    .map(|(id, sym)| {
-                        (
-                            intern
-                                .resolve(id)
-                                .expect("failed to resolve sym")
-                                .to_string(),
-                            sym,
-                        )
-                    })
-                    .collect(),
             })
         } else {
-            return Err(LoadError {
+            return Err(LoadError::Eval {
                 reason: format!("evaluation failed: Expected Value::Rules, got {:?}", result),
-                line: 0,
-                col: 0,
-                token: None,
             });
         }
     }

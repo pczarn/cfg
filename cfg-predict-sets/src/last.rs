@@ -1,4 +1,4 @@
-//! FIRST sets.
+//! LAST sets.
 
 use cfg_grammar::Cfg;
 
@@ -18,7 +18,7 @@ impl LastSets {
     /// if the grammar has a production of the form `N ⸬= α S β`, where
     /// β is a nullable string of symbols.
     ///
-    /// We compute the transitive closure of this relation.
+    /// We return the transitive closure of this relation.
     pub fn new(grammar: &Cfg) -> Self {
         let mut reversed_grammar = grammar.clone();
         reversed_grammar.reverse();
@@ -33,7 +33,7 @@ impl LastSets {
 }
 
 impl PredictSets for LastSets {
-    /// Returns a reference to FIRST sets.
+    /// Returns a reference to LAST sets.
     fn predict_sets(&self) -> &PerSymbolSets {
         &self.map
     }

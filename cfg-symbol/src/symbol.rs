@@ -1,10 +1,26 @@
-//! TODO: Allow choice between u8, u16 and u32 for symbols
+//! Definitions for our grammar symbol type.
 //!
+//! A symbol can be though of as simply an integer,
+//! which only works for the `SymbolSource` where it
+//! was grabbed from, or a `SymbolSource` with a similar
+//! symbol at that integer value, such as one in a cloned grammar.
+//! In short, best to be careful not to mix symbols between different
+//! grammars.
+//!
+//! # TODO
+//!
+//! Allow choice between u8, u16 and u32 for symbols.
 
 use std::num::{NonZeroU8, NonZeroU16, NonZeroU32};
 
+///
 pub trait SymbolPrimitive: TryFrom<NonZeroU32> + Into<NonZeroU32> + Copy {
+    /// Unsigned integer type that covers all possible values of `Self`.
     type BasePrimitive: From<Self> + TryInto<Self> + From<u8>;
+
+    /// Highest available numeric value for `Self`.
+    ///
+    /// For example, for `NonZeroU16`, this will be `u16::MAX`.
     const MAX: u32;
 }
 
@@ -23,7 +39,7 @@ impl SymbolPrimitive for NonZeroU32 {
     const MAX: u32 = u32::MAX;
 }
 
-/// A common grammar symbol type.
+/// Our common grammar symbol type.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 // miniserde impls are further below
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
@@ -38,6 +54,7 @@ impl<T: SymbolPrimitive> Default for Symbol<T> {
 }
 
 impl<T: SymbolPrimitive> Symbol<T> {
+    /// Returns the symbol with the lowest numeric value.
     pub fn first() -> Self {
         let one: T::BasePrimitive = 1u8.into();
         Symbol {
@@ -48,12 +65,30 @@ impl<T: SymbolPrimitive> Symbol<T> {
         }
     }
 
+    /// Returns the symbol's numeric value.
+    ///
+    /// # Panics
+    ///
+    /// May fail on 16-bit platforms in case of overflow for `usize`.
     pub fn usize(&self) -> usize {
-        self.n.into().get() as usize - 1
+        let val = self.n.into().get();
+        #[cfg(target_pointer_width = "16")]
+        assert!(val <= 0xFFFF);
+        val as usize - 1
     }
 }
 
 impl Symbol {
+    /// Constructs the `Symbol` from its numeric value.
+    ///
+    /// # Correctness
+    ///
+    /// Best to avoid using this function. Instead, grab the `Symbol`s
+    /// from `SymbolSource`, possibly through `generate_fresh`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the numeric value is `u32::MAX`.
     pub fn from_raw(n: u32) -> Self {
         Symbol {
             n: (n + 1).try_into().unwrap(),

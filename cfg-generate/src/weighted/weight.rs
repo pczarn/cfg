@@ -3,6 +3,7 @@ use std::ops::AddAssign;
 
 use num::One;
 
+/// We use the weight to pick a production rule at random.
 pub trait Weight: One + AddAssign + Copy + Default + Into<f64> + Debug + 'static {}
 
 impl Weight for u8 {}

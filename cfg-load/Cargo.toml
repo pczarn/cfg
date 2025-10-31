@@ -16,7 +16,7 @@ cfg-symbol-bit-matrix = { version = "0.1.0", path = "../cfg-symbol-bit-matrix/" 
 cfg-sequence = { version = "0.1.0", path = "../cfg-sequence/" }
 cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
 cfg-history = { version = "0.1.0", path = "../cfg-history/" }
-cfg-regexp = { version = "0.1.0", path = "../cfg-regexp/" }
+cfg-regexp-logic = { version = "0.1.0", path = "../cfg-regexp-logic/" }
 tiny-earley = { version = "0.2", features = ["debug"] }
 elsa = { version = "1.11", features = ["indexmap"] }
 log = { workspace = true }

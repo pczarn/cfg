@@ -13,44 +13,81 @@ use rand::{Rng, rng};
 
 use crate::weighted::weighted_rhs_by_lhs::Weighted;
 
+/// Returned when we fail to generate a random output.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum RandomGenError {
+    /// We produced a number of terminal symbols above the
+    /// given limit.
     LimitExceeded,
+    /// Too many attempts to reverse progress after we encountered
+    /// output that
     NegativeRuleAttemptsExceeded,
 }
 
+/// Limits for generation.
+#[derive(Copy, Clone)]
+pub struct Limits {
+    /// How many terminals we are allowed to produce.
+    pub terminals: u64,
+    ///
+    pub negative_rule_attempts: u64,
+}
+
+/// Extension trait that allows generation.
 pub trait Random {
+    /// Generates symbols derivable from the **start** symbol, driven
+    /// by the given **rng**. Respects provided limits.
+    ///  
+    ///
+    /// Computes a list of terminal symbols as well as a `String`, which
+    /// is included in the language described by this grammar.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when limits are exceeded.
     fn random<R: GenRange + Clone, F: Fn(Symbol, &mut R) -> Option<char>>(
         &self,
         start: Symbol,
-        limit: Option<u64>,
+        limit: Option<Limits>,
         rng: &mut R,
         negative_rules: &[NegativeRule],
         to_char: F,
     ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError>;
 
-    fn with_thread_rng<F: Fn(Symbol, &mut ThreadRng) -> Option<char>>(
+    /// Same as `fn random`, but initializes a thread rng
+    /// and uses it to produce output.
+    fn with_thread_rng<F>(
         &self,
         start: Symbol,
-        limit: Option<u64>,
+        limit: Option<Limits>,
         negative_rules: &[NegativeRule],
         to_char: F,
-    ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
+    ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError>
+    where
+        F: Fn(Symbol, &mut ThreadRng) -> Option<char>,
+    {
         let mut thread_rng = rng();
         self.random(start, limit, &mut thread_rng, negative_rules, to_char)
     }
 }
 
+/// Can be used in place of the `Rng` to generate in a determinstic
+/// way.
 #[derive(Clone)]
 pub struct ByteSource<I: Iterator<Item = u8>>(I, Vec<u8>);
 
+/// Extension trait for [`Rng`]s.
 pub trait GenRange {
+    /// Generates a random floating point value
+    /// up to the given `limit`.
     fn generate(&mut self, limit: f64) -> f64;
 
+    /// Allows us to skip some random values.
     fn mutate_start(&mut self, attempt_number: u64);
 }
 
 impl<I: Iterator<Item = u8>> ByteSource<I> {
+    /// Creates an em
     pub fn new(iter: I) -> Self {
         ByteSource(iter, vec![])
     }
@@ -97,9 +134,13 @@ impl<I: Iterator<Item = u8> + Clone> GenRange for ByteSource<I> {
     }
 }
 
+/// For negative lookahead.
 #[derive(Copy, Clone)]
 pub struct NegativeRule {
+    /// The symbol that, when detected in the output we generate,
+    /// that place cannot match `chars` because we will backtrack.
     pub sym: Symbol,
+    /// The forbidden characters.
     pub chars: &'static str,
 }
 
@@ -114,15 +155,11 @@ impl Random for Cfg {
     fn random<R: GenRange + Clone, F: Fn(Symbol, &mut R) -> Option<char>>(
         &self,
         start: Symbol,
-        limit: Option<u64>,
+        limit: Option<Limits>,
         rng: &mut R,
         negative_rules: &[NegativeRule],
         to_char: F,
     ) -> Result<(Vec<Symbol>, Vec<char>), RandomGenError> {
-        // let _ = env_logger::try_init();
-        // for rule in self.rules() {
-        // debug!("RULE: {:?} ::= {:?}", rule.lhs, rule.rhs);
-        // }
         let weighted = self.weighted();
         let mut work = List::new();
         work.push_front_mut(start);
@@ -136,21 +173,15 @@ impl Random for Cfg {
             .collect();
         let mut backtracking: BTreeMap<usize, Vec<BacktrackState<R>>> = BTreeMap::new();
         let mut backtracking_attempts: BTreeMap<usize, u64> = BTreeMap::new();
-        // let mut
         while let Some(&sym) = work.first() {
             work.drop_first_mut();
-            // debug!("WORK: pop {:?}", sym);
             if terminal_set[sym] {
                 result.push(sym);
                 if let Some(ch) = to_char(sym, rng) {
                     string.push(ch);
-                    // debug!("TERMINAL: string: {:?}, result: {:?}", ch, sym);
                 }
-                // } else {
-                // debug!("TERMINAL: result: {:?}", sym);
-                // }
-                if let Some(max_terminals) = limit {
-                    if result.len() as u64 > max_terminals {
+                if let Some(our_limits) = limit {
+                    if result.len() as u64 > our_limits.terminals {
                         return Err(RandomGenError::LimitExceeded);
                     }
                 }
@@ -208,6 +239,14 @@ fn test_simplest_random_generation() {
     assert_eq!(grammar.rules().count(), 1);
 
     let to_char = |sym, _: &mut _| if sym == rhs { Some('X') } else { None };
-    let string = grammar.with_thread_rng(lhs, Some(1), &[], to_char);
+    let string = grammar.with_thread_rng(
+        lhs,
+        Some(Limits {
+            terminals: 1,
+            negative_rule_attempts: 0,
+        }),
+        &[],
+        to_char,
+    );
     assert_eq!(string, Ok((vec![rhs], vec!['X'])));
 }

@@ -69,23 +69,21 @@ impl<'a> SequencesToProductions<'a> {
         let prev = top
             .history
             .unwrap_or_else(|| RootHistoryNode::Rule { lhs: top.lhs }.into());
-        let history_top = HistoryNodeRewriteSequence {
+        let history_top = Into::into(HistoryNodeRewriteSequence {
             top: true,
             rhs: top.rhs,
             sep: top.separator.into(),
             prev,
-        }
-        .into();
+        });
         self.top = Some(history_top);
         self.reduce(top);
         let prev = top.history.unwrap_or_else(|| RootHistoryNode::NoOp.into());
-        let history_bottom = HistoryNodeRewriteSequence {
+        let history_bottom = Into::into(HistoryNodeRewriteSequence {
             top: false,
             rhs: top.rhs,
             sep: top.separator.into(),
             prev,
-        }
-        .into();
+        });
         *self.top.as_mut().unwrap() = history_bottom;
         while let Some(seq) = self.stack.pop() {
             assert!(seq.start <= seq.end.unwrap_or(!0));
@@ -111,15 +109,14 @@ impl<'a> SequencesToProductions<'a> {
 
     fn rhs<A: AsRef<[Symbol]>>(&mut self, rhs: A) {
         assert!(rhs.as_ref().len() <= 3);
-        let history = HistoryNodeSequenceRhs {
+        let history = Into::into(HistoryNodeSequenceRhs {
             prev: self.top.unwrap(),
             rhs: [
                 rhs.as_ref().get(0).copied(),
                 rhs.as_ref().get(1).copied(),
                 rhs.as_ref().get(2).copied(),
             ],
-        }
-        .into();
+        });
         RuleBuilder::new(self.destination)
             .rule(self.lhs.unwrap())
             .history(history)

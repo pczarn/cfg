@@ -2,8 +2,9 @@
 //! more than semantic actions.
 
 #![deny(unsafe_code)]
+#![warn(missing_docs)]
 
-use std::{num::NonZeroUsize, ops};
+use std::ops;
 
 use cfg_symbol::Symbol;
 use earley::{History, process_linked};
@@ -12,110 +13,70 @@ use self::BinarizedRhsRange::*;
 
 pub mod earley;
 
-pub type HistoryId = NonZeroUsize;
-
-// #[derive(Clone, Debug)]
-// pub enum HistoryGraph {
-//     Nodes {
-//         nodes: Vec<HistoryNode>,
-//     },
-//     Earley {
-//         earley: Vec<earley::History>,
-//     },
-// }
-
-// pub enum HistoryKind {
-//     Earley,
-// }
-
-// impl Default for HistoryGraph {
-//     fn default() -> Self {
-//         Self::nodes()
-//     }
-// }
-
-// impl HistoryGraph {
-//     pub fn nodes() -> Self {
-//         Self::Nodes {
-//             nodes: vec![RootHistoryNode::NoOp.into()],
-//         }
-//     }
-
-//     pub fn earley() -> Self {
-//         Self::Earley { earley: vec![earley::History::new(0)] }
-//     }
-
-//     // pub fn enable(&mut self, history_kind: HistoryKind) {
-//     //     match history_kind {
-//     //         HistoryKind::Earley => {
-//     //             let mut prev_histories = vec![];
-//     //             for node in &self.nodes {
-//     //                 prev_histories.push(earley::process_node(node, &prev_histories[..]));
-//     //             }
-//     //             self.earley = Some(prev_histories);
-//     //         }
-//     //     }
-//     // }
-
-//     pub fn next_id(&mut self) -> HistoryId {
-//         match self {
-//             Self::Nodes { nodes } => nodes.len(),
-//             Self::Earley { earley } => earley.len(),
-//         }.try_into().expect("problem with zero length history graph")
-//     }
-
-//     pub fn add_history_node(&mut self, node: HistoryNode) -> HistoryId {
-//         let result = self.next_id();
-//         match self {
-//             Self::Nodes { nodes }
-//         }
-//         if let Some(earley) = self.earley.as_mut() {
-//             let result = earley::process_node(&node, &earley[..]);
-//             earley.push(result);
-//         }
-//         self.push(node);
-//         result
-//     }
-// }
-
-// impl ::std::ops::Deref for HistoryGraph {
-//     type Target = Vec<HistoryNode>;
-
-//     fn deref(&self) -> &Self::Target {
-//         &self.nodes
-//     }
-// }
-
-// impl ::std::ops::DerefMut for HistoryGraph {
-//     fn deref_mut(&mut self) -> &mut Self::Target {
-//         &mut self.nodes
-//     }
-// }
-
+/// A history update to an existing history value,
+/// used with grammar transformations.
 #[derive(Clone, Debug)]
 pub enum LinkedHistoryNode {
+    /// Updates history during binarization of a rule.
+    /// Binarization is the process of making a rule with
+    /// any number of RHS symbols become a rule with
+    /// only one or two symbols on the RHS.
     Binarize {
+        /// Tells us how high we are in a chain of binarized rules.
+        /// For example, when binarizing a rule A ::= B C D E, we get:
+        ///
+        /// - g0 ::= B C -- this is at height 0
+        ///
+        /// - g1 ::= g0 D -- this is at height 1
+        ///
+        /// - A ::= g1 E -- this is at height 2
         height: u32,
+        /// Original length of the rule before binarization.
         full_len: usize,
+        /// Whether we are at the highest rule.
         is_top: bool,
     },
+    /// Updates history after nulling rule elimination.
     EliminateNulling {
+        /// The symbol at the first place in the RHS of the binarized rule
+        /// we are de-nulling, or `None` if the rule has zero symbols
+        /// to begin with.
         rhs0: Option<Symbol>,
+        /// The symbol at the second place in the RHS of the binarized rule
+        /// we are de-nulling, or `None` if the rule has zero or one symbol
+        /// to begin with.
         rhs1: Option<Symbol>,
+        /// Range of eliminated RHS symbols of the binary rule.
         which: BinarizedRhsRange,
     },
+    /// Updates history for rules built with the precedenced rule
+    /// builder.
     AssignPrecedence {
+        /// Operator precedence, starting with highest
+        /// and loosening with increase.
         looseness: u32,
     },
+    /// Updates history of a rule made from a sequence rule.
     RewriteSequence {
+        /// Whether this is the outermost level of derivation
+        /// among rules build by the sequence rewrite.
         top: bool,
+        /// The symbol we are repeating.
         rhs: Symbol,
+        /// Separator.
         sep: Option<Symbol>,
     },
+    /// The RHS as computed by the sequence rewrite.
+    /// The rule with this history was made from a sequence
+    /// rule.
     SequenceRhs {
+        /// The RHS as computed by the sequence rewrite.
+        /// Up to three symbols may appear on the RHS.
         rhs: [Option<Symbol>; 3],
     },
+    /// Weight for generation for PCFGs.
     Weight {
+        /// Floating point weight.
         weight: f64,
     },
     // Distances {
@@ -123,57 +84,112 @@ pub enum LinkedHistoryNode {
     // },
 }
 
+/// The basic semantics. They may receive further updates.
 #[derive(Clone, Copy, Debug)]
 pub enum RootHistoryNode {
+    /// Empty semantics.
     NoOp,
-    Rule { lhs: Symbol },
-    Origin { origin: usize },
+    /// This is a plain rule.
+    Rule {
+        /// Only the LHS is given. The RHS may be updated
+        /// through [`HistoryNodeRhs`].
+        lhs: Symbol,
+    },
+    /// This is a plain rule.
+    Origin {
+        /// Original rule ID is given.
+        origin: usize,
+    },
 }
 
+/// Provides information about the RHS of the rule
+/// we have semantics for.
 pub struct HistoryNodeRhs {
+    /// The history we are updating.
     pub prev: History,
+    /// The rule RHS.
     pub rhs: Vec<Symbol>,
 }
 
+/// Updates history during binarization of a rule.
+/// Binarization is the process of making a rule with
+/// any number of RHS symbols become a rule with
+/// only one or two symbols on the RHS.
 #[derive(Clone, Copy)]
 pub struct HistoryNodeBinarize {
+    /// The history we are updating.
     pub prev: History,
+    /// Tells us how high we are in a chain of binarized rules.
+    /// For example, when binarizing a rule A ::= B C D E, we get:
+    ///
+    /// - g0 ::= B C -- this is at height 0
+    ///
+    /// - g1 ::= g0 D -- this is at height 1
+    ///
+    /// - A ::= g1 E -- this is at height 2
     pub height: u32,
+    /// Original length of the rule before binarization.
     pub full_len: usize,
+    /// Whether we are at the highest rule.
     pub is_top: bool,
 }
 
+///
 #[derive(Clone, Copy)]
 pub struct HistoryNodeWeight {
+    /// The history we are updating.
     pub prev: History,
+    /// Floating-point weight for generation for PCFGs.
     pub weight: f64,
 }
 
+/// Updates history after nulling rule elimination.
 #[derive(Clone, Copy)]
 pub struct HistoryNodeEliminateNulling {
+    /// The history we are updating.
     pub prev: History,
+    /// The symbol at the first place in the RHS of the binarized rule
+    /// we are de-nulling, or `None` if the rule has zero symbols
+    /// to begin with.
     pub rhs0: Option<Symbol>,
+    /// The symbol at the secong place in the RHS of the binarized rule
+    /// we are de-nulling, or `None` if the rule has zero or one symbol
+    /// to begin with.
     pub rhs1: Option<Symbol>,
+    /// Range of eliminated RHS symbols of the binary rule.
     pub which: BinarizedRhsRange,
 }
 
+/// This is built with the precedenced rule builder.
 #[derive(Clone, Copy)]
 pub struct HistoryNodeAssignPrecedence {
+    /// The history we are updating.
     pub prev: History,
+    /// Operator precedence, starting with highest
+    /// and loosening with increase.
     pub looseness: u32,
 }
 
+/// This is built with the sequence rewrite.
 #[derive(Clone, Copy)]
 pub struct HistoryNodeRewriteSequence {
+    /// The history we are updating.
     pub prev: History,
+    /// Whether this is the outermost level of derivation.
     pub top: bool,
+    /// Symbol we are repating.
     pub rhs: Symbol,
+    /// Our separator, or `None` for no separation.
     pub sep: Option<Symbol>,
 }
 
+/// The RHS as computed by the sequence rewrite.
 #[derive(Clone, Copy)]
 pub struct HistoryNodeSequenceRhs {
+    /// The history we are updating.
     pub prev: History,
+    /// The RHS as computed by the sequence rewrite.
+    /// Up to three symbols may appear on the RHS.
     pub rhs: [Option<Symbol>; 3],
 }
 
@@ -256,7 +272,8 @@ impl From<HistoryNodeSequenceRhs> for History {
     }
 }
 
-/// Used to inform which symbols on a rule'Symbol RHS are nullable, and will be eliminated.
+/// Used to inform history about which symbols on a rule's
+/// Symbol RHS are nullable, and will be eliminated.
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum BinarizedRhsRange {
     /// The first of two symbols.
@@ -268,11 +285,25 @@ pub enum BinarizedRhsRange {
 }
 
 impl BinarizedRhsRange {
+    /// Turns this into a Rust `Range` of dot positions in a rule.
     pub fn as_range(self) -> ops::Range<usize> {
         match self {
             Left => 0..1,
             Right => 1..2,
             All(num) => 0..num,
+        }
+    }
+
+    /// Flips the range to cover the rest of the rule RHS.
+    ///
+    /// # Panics
+    ///
+    /// Does not work with `All`.
+    pub fn negate(self) -> Self {
+        match self {
+            Left => Right,
+            Right => Left,
+            All(_) => unreachable!(),
         }
     }
 }

@@ -35,7 +35,7 @@ Rust library for manipulating context-free grammars.
 The purpose of `cfg` is to provide a reusable, well-tested foundation for
 working with context-free grammars. It simplifies the development of
 higher-level tools such as Earley, LL(1), or LR(1) parsers, as well as other
-tool that rely on grammars.
+tools that rely on grammars.
 
 We believe developers often need a common foundation to avoid
 re-implementing the wheel.

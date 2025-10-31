@@ -17,7 +17,8 @@ pub struct Mapping {
 }
 
 impl Mapping {
-    /// Creates a new instance of `Mapping`.
+    /// Creates an empty `Mapping`. It has zero internal symbols,
+    /// and space for the given number of external symbols.
     pub fn new(num_external: usize) -> Self {
         Mapping {
             to_internal: vec![None; num_external],

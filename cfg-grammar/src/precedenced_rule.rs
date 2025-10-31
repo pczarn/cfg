@@ -89,11 +89,10 @@ impl<'a> PrecedencedRuleBuilder<'a> {
         S: AsRef<[Symbol]>,
     {
         let syms = syms.as_ref();
-        let history_assign_precedence = HistoryNodeAssignPrecedence {
+        let history_assign_precedence = Into::into(HistoryNodeAssignPrecedence {
             prev: history,
             looseness: self.looseness,
-        }
-        .into();
+        });
         let lhs = self.lhs;
         let mut syms = syms.to_vec();
         if self.assoc == Group {

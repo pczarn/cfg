@@ -16,6 +16,7 @@ use grammars::*;
 #[cfg(feature = "weighted-generation")]
 #[test]
 fn test_precedenced_arith() {
+    use cfg::generate::weighted::random::Limits;
     use rand::SeedableRng;
     use rand::rngs::SmallRng;
 
@@ -25,7 +26,16 @@ fn test_precedenced_arith() {
     let mut rng = SmallRng::seed_from_u64(42);
     let to_char = |s, _: &mut _| sym_map.get(&s).cloned();
     let string = grammar
-        .random(start, Some(1_000_000), &mut rng, &[], to_char)
+        .random(
+            start,
+            Some(Limits {
+                terminals: 1_000_000,
+                negative_rule_attempts: 1024,
+            }),
+            &mut rng,
+            &[],
+            to_char,
+        )
         .map(|(_syms, chars)| chars.into_iter().collect());
     // let string = syms.map(|sym_list| {
     //     sym_list
@@ -42,6 +52,7 @@ fn test_precedenced_arith() {
 #[test]
 fn test_precedenced_arith_with_negative_lookahead() {
     use cfg::generate::weighted::NegativeRule;
+    use cfg::generate::weighted::random::Limits;
     use rand::SeedableRng;
     use rand::rngs::SmallRng;
 
@@ -55,7 +66,16 @@ fn test_precedenced_arith_with_negative_lookahead() {
     };
     let to_char = |sym, _: &mut _| sym_map.get(&sym).cloned();
     let string = grammar
-        .random(start, Some(1_000_000), &mut rng, &[neg], to_char)
+        .random(
+            start,
+            Some(Limits {
+                terminals: 1_000_000,
+                negative_rule_attempts: 1024,
+            }),
+            &mut rng,
+            &[neg],
+            to_char,
+        )
         .map(|(_syms, chars)| chars.into_iter().collect());
     // let string = syms.map(|sym_list| {
     //     sym_list

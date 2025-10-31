@@ -1,6 +1,7 @@
 //! Calculation of minimum distance from one part of the grammar to another.
 
 #![deny(unsafe_code)]
+#![deny(missing_docs)]
 
 use cfg_grammar::*;
 use cfg_symbol::Symbol;
@@ -20,10 +21,43 @@ struct Distances {
     after: Vec<Option<u32>>,
 }
 
+/// Determines how the distance propagates through
+/// the rule RHS.
 #[derive(Copy, Clone)]
 pub enum DistanceDirection {
+    /// The distance propagates forward.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// A ::= B C D
+    /// ```
+    ///
+    /// The distance to C is:
+    ///
+    /// ```ignore
+    /// A ::= 1 B 0 C null D null
+    /// ```
+    ///
+    /// We find it like so:
+    ///
+    /// ```
+    /// use cfg_grammar::Cfg;
+    /// use cfg_predict_distance::{MinimalDistance, DistanceDirection};
+    /// let mut cfg = Cfg::new();
+    /// let [a, b, c, d] = cfg.sym();
+    /// cfg.set_roots([a]);
+    /// cfg.rule(a).rhs([b, c, d]);
+    /// let mut distance = MinimalDistance::new(&cfg);
+    /// let result = distance.minimal_distances(&[(0, 1)], DistanceDirection::Forward);
+    /// let expected = vec![Some(1), Some(0), None, None];
+    /// assert_eq!(result, &[expected]);
+    /// ```
     Forward,
+    /// The distance propagates only backwards.
     Backward,
+    /// The distance propagates both ways thorughout
+    /// the RHS.
     Symmetric,
 }
 

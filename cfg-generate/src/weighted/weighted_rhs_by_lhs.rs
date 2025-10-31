@@ -6,15 +6,11 @@ use cfg_symbol::Symbol;
 use super::random::GenRange;
 use super::*;
 
+/// Holds the list of weighted productions indexed
+/// by their LHS symbol.
 #[derive(Clone, Default, Debug)]
 pub struct WeightedRhsByLhs<W> {
     weights: BTreeMap<Symbol, WeightedRhsList<W>>,
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct WeightedRhs<W> {
-    weight: W,
-    rhs: Vec<Symbol>,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -23,11 +19,19 @@ pub struct WeightedRhsList<W> {
     rhs_list: Vec<WeightedRhs<W>>,
 }
 
+#[derive(Clone, Default, Debug)]
+pub struct WeightedRhs<W> {
+    weight: W,
+    rhs: Vec<Symbol>,
+}
+
 impl<W: Weight> WeightedRhsByLhs<W> {
+    /// Creates an empty map.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Adds a weighted production to the map.
     pub fn add_weight(&mut self, weight: W, lhs: Symbol, rhs: &[Symbol]) {
         let weighted_rhs_list = self.weights.entry(lhs).or_default();
         weighted_rhs_list.rhs_list.push(WeightedRhs {
@@ -43,6 +47,12 @@ pub trait Weighted {
 }
 
 impl Weighted for Cfg {
+    /// Computes the full list of weighted productions
+    /// for this enitre grammar. Picks weights based on rule's
+    /// [`earley::History`]. Since the given weights are unsigned,
+    /// moves the comma three places by dividing by 1000.0.
+    ///
+    /// [`earley::History`]: cfg_history::earley::History
     fn weighted(&self) -> WeightedRhsByLhs<f64> {
         let mut weighted = WeightedRhsByLhs::new();
         for rule in self.rules() {
@@ -54,6 +64,8 @@ impl Weighted for Cfg {
 }
 
 impl<W: Weight> WeightedRhsByLhs<W> {
+    /// Picks the production with the given symbol at LHS,
+    /// driven by the given random number source.
     pub fn pick_rhs<R>(&self, lhs: Symbol, rng: &mut R) -> &[Symbol]
     where
         R: GenRange,

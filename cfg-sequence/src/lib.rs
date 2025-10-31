@@ -1,6 +1,7 @@
 //! Sequences are similar to regex repetitions with numbering.
 
 #![deny(unsafe_code)]
+#![deny(missing_docs)]
 
 pub mod builder;
 pub mod destination;
