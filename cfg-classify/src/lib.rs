@@ -35,11 +35,13 @@ pub trait CfgClassifyExt {
     fn make_proper(&mut self) -> bool;
     /// Determines usefulness of rules with the grammar's roots.
     ///
-    /// A rule is useful if it is reachable from these rooots.
+    /// A rule is useful if it is reachable from the grammar's roots,
+    /// and productive.
     fn usefulness(&mut self) -> useful::Usefulness;
     /// Determines usefulness of rules with the given roots.
     ///
-    /// A rule is useful if it is reachable from these rooots.
+    /// A rule is useful if it is reachable from these roots, and
+    /// productive.
     fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> useful::Usefulness;
 }
 
