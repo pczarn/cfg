@@ -13,7 +13,6 @@ members = [
     "cfg-examples",
     "cfg-load",
     "cfg-regexp-logic",
-    "cfg-regexp-macro",
 ]
 
 resolver = "2"

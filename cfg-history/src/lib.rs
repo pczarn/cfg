@@ -59,7 +59,7 @@ pub enum LinkedHistoryNode {
     /// Updates history of a rule made from a sequence rule.
     RewriteSequence {
         /// Whether this is the outermost level of derivation
-        /// among rules build by the sequence rewrite.
+        /// among rules built by the sequence rewrite.
         top: bool,
         /// The symbol we are repeating.
         rhs: Symbol,
@@ -74,7 +74,10 @@ pub enum LinkedHistoryNode {
         /// Up to three symbols may appear on the RHS.
         rhs: [Option<Symbol>; 3],
     },
-    /// Weight for generation for PCFGs.
+    /// Weight for generation for Probabilistic CFGs.
+    ///
+    /// We generate by picking one of the alternatives
+    /// at random or from seed.
     Weight {
         /// Floating point weight.
         weight: f64,

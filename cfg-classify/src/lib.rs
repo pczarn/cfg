@@ -16,16 +16,16 @@ pub mod recursive;
 // pub mod regular;
 pub mod useful;
 
-/// Extension trait for computing classes of context-free
-/// grammar rules.
+/// Extension trait for assigning categories to context-free
+/// grammar rules, and related operations.
 pub trait CfgClassifyExt {
     /// Computes the LL(1) parse table.
     #[cfg(feature = "ll")]
     fn ll_parse_table(&self) -> ll::LlParseTable<'_>;
-    /// Allows you to build the LL(0) fsm.
+    /// Allows you to build the LR(0) fsm.
     #[cfg(feature = "lr")]
     fn lr0_fsm_builder(&mut self) -> lr::Lr0FsmBuilder<'_>;
-    /// Allows you to build the LL(0) closure.
+    /// Allows you to build the LR(0) closure.
     #[cfg(feature = "lr")]
     fn lr0_closure_builder(&mut self) -> lr::Lr0ClosureBuilder<'_>;
     /// Allows you to access information on rule recursiveness.
@@ -35,11 +35,13 @@ pub trait CfgClassifyExt {
     fn make_proper(&mut self) -> bool;
     /// Determines usefulness of rules with the grammar's roots.
     ///
-    /// A rule is useful if it is reachable from these rooots.
+    /// A rule is useful if it is reachable from the grammar's roots,
+    /// and productive.
     fn usefulness(&mut self) -> useful::Usefulness;
     /// Determines usefulness of rules with the given roots.
     ///
-    /// A rule is useful if it is reachable from these rooots.
+    /// A rule is useful if it is reachable from these roots, and
+    /// productive.
     fn usefulness_with_roots(&mut self, roots: &[Symbol]) -> useful::Usefulness;
 }
 

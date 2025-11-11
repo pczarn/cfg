@@ -23,7 +23,7 @@ fn test_precedenced_arith() {
     let (mut grammar, start, sym_map, _) = precedenced_arith::weighted_grammar();
     grammar.limit_rhs_len(Some(2));
 
-    let mut rng = SmallRng::seed_from_u64(42);
+    let mut rng = SmallRng::seed_from_u64(4242);
     let to_char = |s, _: &mut _| sym_map.get(&s).cloned();
     let string = grammar
         .random(
@@ -44,7 +44,7 @@ fn test_precedenced_arith() {
     //         .collect::<String>()
     // });
     // let string = chars.into_iter().collect();
-    let expected = Ok("(1/17352*87/8/762*(8)-7*7*43)-5/2-8877383*3+0*(824*7)".to_string());
+    let expected = Ok("33/5*10*6+2-890/(((5/6601-40)/970-1/0-40/8*2/70-(9*91700))*(768-(6/26*(1+508/41-(97))/((((315483)*86*2/0)-8-61*0436238*72629)+8*66)+69/9667974*43-1))/3)/8*(830/(3+5/460/01/02-0066/956-(8*45*(((((4969)/5))-(3*6+4/9796416*((3*627-5*66/(77)/(316/0/84/51+8)+6+3*866/4)))+7/7+578/749)*6/(7)*88*6)+87*03/9*(8))/7412/50)+1)".to_string());
     assert_eq!(string, expected);
 }
 
@@ -59,7 +59,7 @@ fn test_precedenced_arith_with_negative_lookahead() {
     let (mut grammar, start, sym_map, neg) = precedenced_arith::weighted_grammar();
     grammar.limit_rhs_len(Some(2));
 
-    let mut rng = SmallRng::seed_from_u64(42);
+    let mut rng = SmallRng::seed_from_u64(4242);
     let neg = NegativeRule {
         sym: neg,
         chars: "0",
@@ -83,7 +83,7 @@ fn test_precedenced_arith_with_negative_lookahead() {
     //         .map(|s| sym_map.get(&s).cloned().unwrap_or('X'))
     //         .collect::<String>()
     // });
-    let expected = Ok("(1/17352*87/8/762*(8)-7*7*43)-5/2-8877383*3+15*(24)".to_string());
+    let expected = Ok("33/5*10*6+2-890/(((5/6601-40)/970-1/3-40/8*2-828)*(9)/1700)/(768-(6/26*(1+508/41-(97))/((((315483)*86*2/5)-9-1)+((2629-8*66)/(9-67974/43)))+1-48))*(830/(3+5/460/1/2-66/956-(8*45*(((((4969)/5))-(3*6+4/9796416*((3*627-5*66/(77)/(316/8/4/51+8)+6+3*866/4)))+7/7+578/749)*6/(7)*88*6)+87*3/9*(8))/7412/50)+1)".to_string());
     assert_eq!(string, expected);
 }
 

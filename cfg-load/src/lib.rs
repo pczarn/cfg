@@ -14,7 +14,7 @@ use std::fmt;
 pub use crate::advanced::CfgLoadAdvancedExt;
 pub use crate::basic::CfgLoadExt;
 
-///
+/// Represents an error when loading a BNF string.
 #[derive(Debug, Clone)]
 pub struct LoadError {
     /// Human-readable reason for the error.

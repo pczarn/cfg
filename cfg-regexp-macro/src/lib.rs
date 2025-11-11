@@ -107,8 +107,8 @@ pub fn cfg_regexp(stream: TokenStream) -> TokenStream {
             LoadError {
                 reason,
                 line,
-                col,
-                token,
+                col: _,
+                token: _,
             } => {
                 let result: TokenStream = format!(r##"compile_error!("{}")"##, reason)
                     .parse()
