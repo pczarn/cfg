@@ -75,7 +75,7 @@ pub enum LinkedHistoryNode {
         rhs: [Option<Symbol>; 3],
     },
     /// Weight for generation for Probabilistic CFGs.
-    /// 
+    ///
     /// We generate by picking one of the alternatives
     /// at random or from seed.
     Weight {

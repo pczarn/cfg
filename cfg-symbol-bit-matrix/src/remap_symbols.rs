@@ -69,7 +69,7 @@ impl<'a> Remap<'a> {
     }
 
     /// Translates symbols in rules to new symbol IDs.
-    /// 
+    ///
     /// Translates those inside `wrapped_roots` as well.
     pub fn remap_symbols<F>(&mut self, mut map: F)
     where

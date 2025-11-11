@@ -167,7 +167,7 @@ pub trait CfgSymbolBitMatrixExt {
     /// Computes the reachability matrix.
     fn reachability_matrix(&self) -> ReachabilityMatrix;
     /// Computes the unit derivation matrix.
-    /// 
+    ///
     /// A unit derivation is defined with a grammar rule such as:
     /// ```ignore
     /// A ::= B;
