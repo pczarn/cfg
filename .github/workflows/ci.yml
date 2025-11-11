@@ -119,6 +119,7 @@ jobs:
   #     - run: cargo clippy --features weighted-generation -- -Dclippy::all -Dclippy::pedantic
 
   format:
+    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
