@@ -3,6 +3,18 @@
 //! A symbol source is meant to track the number of
 //! symbols that were generated, as well as their names
 //! (optionally).
+//! 
+//! # Examples
+//! 
+//! Grabbing the symbol at a certain position in the sequence
+//! of symbols.
+//! 
+//! ```
+//! use cfg_symbol::{Symbol, SymbolSource};
+//! let symbol: Symbol = SymbolSource::generate_fresh().nth(42).unwrap();
+//! let mut source = SymbolSource::new();
+//! assert_eq!(symbol, source.generate().nth(42).unwrap());
+//! ```
 
 use std::{
     borrow::{Borrow, Cow},

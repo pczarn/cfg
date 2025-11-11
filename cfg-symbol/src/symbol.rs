@@ -1,6 +1,6 @@
 //! Definitions for our grammar symbol type.
 //!
-//! A symbol can be though of as simply an integer,
+//! A symbol can be thought of as simply an integer,
 //! which only works for the `SymbolSource` where it
 //! was grabbed from, or a `SymbolSource` with a similar
 //! symbol at that integer value, such as one in a cloned grammar.
@@ -78,24 +78,6 @@ impl<T: SymbolPrimitive> Symbol<T> {
     }
 }
 
-impl Symbol {
-    /// Constructs the `Symbol` from its numeric value.
-    ///
-    /// # Correctness
-    ///
-    /// Best to avoid using this function. Instead, grab the `Symbol`s
-    /// from `SymbolSource`, possibly through `generate_fresh`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the numeric value is `u32::MAX`.
-    pub fn from_raw(n: u32) -> Self {
-        Symbol {
-            n: (n + 1).try_into().unwrap(),
-        }
-    }
-}
-
 impl<T: SymbolPrimitive> Into<u32> for Symbol<T> {
     fn into(self) -> u32 {
         let nzu32: NonZeroU32 = self.n.into();
@@ -137,6 +119,10 @@ mod miniserde_impls {
 
     impl<T: SymbolPrimitive> Serialize for Symbol<T> {
         fn begin(&self) -> ser::Fragment<'_> {
+            // Q: Why cast u32 to u64?
+            // A: Miniserde only accepts wide integers.
+            //    It does not matter what's the width in case of
+            //    JSON, and this is the only format miniserde accepts.
             let n: u32 = (*self).into();
             ser::Fragment::U64(n as u64)
         }

@@ -226,15 +226,16 @@ impl Cfg {
     ///
     /// # Invariants
     ///
-    /// All rule RHS' have at most `n` symbols at all times until another
-    /// call to this method or a call to [`fn binarize_and_eliminate_nulling_rules`].
+    /// All rule RHS' have at most `limit` symbols at all times until another
+    /// call to this method followed by a rule addition, or a call to
+    /// [`fn binarize_and_eliminate_nulling_rules`].
     ///
     /// [`fn binarize_and_eliminate_nulling_rules`]: Self::binarize_and_eliminate_nulling_rules
     pub fn limit_rhs_len(&mut self, limit: Option<usize>) {
         self.rhs_len_invariant = limit;
-        let mut container = mem::take(&mut self.rules);
-        container.retain(|rule| self.maybe_process_rule(rule));
-        self.rules.extend(container);
+        for rule in mem::take(&mut self.rules) {
+            self.add_rule(rule);
+        }
     }
 
     /// The grammar rewrites and stores rules with a certain range of RHS lengths.
@@ -461,9 +462,15 @@ impl Cfg {
         self.rules.retain(f);
     }
 
-    fn maybe_process_rule(&mut self, rule: &CfgRule) -> bool {
+    /// Adds a rule to this grammar, binarizing or limiting its length
+    /// if [`fn limit_rhs_len`] was called. Returns the number of parts
+    /// the given rule was split into.
+    ///
+    /// [`fn limit_rhs_len`]: Self::limit_rhs_len
+    pub fn add_rule(&mut self, rule: CfgRule) -> u32 {
         if self.rule_rhs_len_allowed_range().contains(&rule.rhs.len()) {
-            return true;
+            self.rules.push(rule);
+            return 1;
         }
 
         // Rewrite to a set of binarized rules.
@@ -478,7 +485,7 @@ impl Cfg {
         let mut rhs_rev = rule.rhs.to_vec();
         rhs_rev.reverse();
         let mut tail = Vec::new();
-        let mut i: u32 = 0;
+        let mut parts: u32 = 0;
         while !rhs_rev.is_empty() {
             let tail_idx = rhs_rev
                 .len()
@@ -493,32 +500,22 @@ impl Cfg {
                 rhs_rev.push(lhs);
             }
             let history;
-            if i == 0 && rhs_rev.is_empty() || self.rule_rhs_len_allowed_range().end != 2 {
+            if parts == 0 && rhs_rev.is_empty() || self.rule_rhs_len_allowed_range().end != 2 {
                 history = rule.history;
             } else {
                 history = Into::into(HistoryNodeBinarize {
                     prev: rule.history,
-                    height: i,
+                    height: parts,
                     full_len: rule.rhs.len(),
                     is_top: rhs_rev.is_empty(),
                 });
             }
             self.rules.push(CfgRule::new(lhs, &tail[..], history));
             tail.clear();
-            i += 1;
+            parts += 1;
         }
 
-        false
-    }
-
-    /// Adds a rule to this grammar, binarizing or limiting its length
-    /// if [`fn limit_rhs_len`] was called.
-    ///
-    /// [`fn limit_rhs_len`]: Self::limit_rhs_len
-    pub fn add_rule(&mut self, rule: CfgRule) {
-        if self.maybe_process_rule(&rule) {
-            self.rules.push(rule);
-        }
+        parts
     }
 
     /// Empties the grammar.
