@@ -34,7 +34,6 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - run: cargo test --features weighted-generation
       - run: cargo test --features serde
-      - run: cargo test --features miniserde
       - run: cargo test --features weighted-generation,serde
       - run: cargo test
       - run: cargo test --no-default-features
@@ -120,20 +119,12 @@ jobs:
   #     - run: cargo clippy --features weighted-generation -- -Dclippy::all -Dclippy::pedantic
 
   format:
-      name: rustfmt-check
-      runs-on: ubuntu-latest
-      if: github.event_name == 'pull_request'
-      steps:
-          - uses: actions/checkout@v2
-          - run: echo "date=$(date -d '1 month ago' +'%Y-%m-%d')" >> $GITHUB_ENV
-          - uses: dtolnay/rust-toolchain@master
-            with:
-                toolchain: nightly-${{ env.date }}
-                components: rustfmt
-                working-directory: .
-          - uses: LoliGothick/rustfmt-check@master
-            with:
-                token: ${{ secrets.GITHUB_TOKEN }}
-                toolchain: nightly-${{ env.date }}
-                flags: --all
-                working-directory: .
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: mbrobbel/rustfmt-check@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
