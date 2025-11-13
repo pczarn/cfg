@@ -1,6 +1,6 @@
 [package]
 name = "cfg-history"
-version = "0.1.0"
+version = "0.1.1"
 authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
 keywords = ["grammar", "parsing", "language"]

@@ -1,6 +1,6 @@
 [package]
 name = "cfg-sequence"
-version = "0.1.0"
+version = "0.1.1"
 documentation = "https://docs.rs/cfg/latest/cfg-sequence/"
 authors = [ "Peter Blackson <pioczarn@gmail.com>" ]
 description = "Library for manipulating context-free grammars."
