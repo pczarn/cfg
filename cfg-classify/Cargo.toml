@@ -13,12 +13,12 @@ repository = "https://github.com/pczarn/cfg/"
 [dependencies]
 bit-matrix = "0.8.1"
 bit-vec = "0.8"
-cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
-cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
-cfg-predict-distance = { version = "0.1.0", path = "../cfg-predict-distance/" }
-cfg-predict-sets = { version = "0.1.0", path = "../cfg-predict-sets/", optional = true }
-cfg-symbol-bit-matrix = { version = "0.1.0", path = "../cfg-symbol-bit-matrix/" }
-cfg-history = { version = "0.1.0", path = "../cfg-history/", optional = true }
+cfg-grammar = { path = "../cfg-grammar/" }
+cfg-symbol = { path = "../cfg-symbol/" }
+cfg-predict-distance = { path = "../cfg-predict-distance/" }
+cfg-predict-sets = { path = "../cfg-predict-sets/", optional = true }
+cfg-symbol-bit-matrix = { path = "../cfg-symbol-bit-matrix/" }
+cfg-history = { path = "../cfg-history/", optional = true }
 
 [features]
 default = []

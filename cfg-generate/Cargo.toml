@@ -11,9 +11,9 @@ homepage = "https://github.com/pczarn/cfg/"
 repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
-cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/", optional = true }
-cfg-history = { version = "0.1.0", path = "../cfg-history/", optional = true }
+cfg-symbol = { path = "../cfg-symbol/" }
+cfg-grammar = { path = "../cfg-grammar/", optional = true }
+cfg-history = { path = "../cfg-history/", optional = true }
 
 # generation
 rand = { version = "0.9", optional = true, features = ["small_rng"] }

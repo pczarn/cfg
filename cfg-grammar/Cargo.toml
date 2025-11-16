@@ -15,8 +15,8 @@ name = "cfg_grammar"
 
 [dependencies]
 bit-vec = { version = "0.8", features = ["miniserde"] }
-cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
-cfg-history = { version = "0.1.0", path = "../cfg-history/" }
+cfg-symbol = { path = "../cfg-symbol/" }
+cfg-history = { path = "../cfg-history/" }
 smallvec = { version = "1.13", features = ["const_generics"], optional = true }
 log = "0.4"
 
