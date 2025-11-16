@@ -22,3 +22,6 @@ miniserde = "0.1"
 bit-matrix = "0.9.0"
 bit-vec = "0.8"
 log = "0.4"
+cfg-grammar = { version = "0.1.1", path = "cfg-grammar/" }
+cfg-sequence = { version = "0.1.1", path = "cfg-sequence/" }
+cfg-symbol = { version = "0.1.1", path = "cfg-symbol/" }

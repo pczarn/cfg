@@ -11,11 +11,11 @@ homepage = "https://github.com/pczarn/cfg/"
 repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
-cfg-symbol-bit-matrix = { version = "0.1.0", path = "../cfg-symbol-bit-matrix/" }
-cfg-sequence = { version = "0.1.0", path = "../cfg-sequence/" }
-cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
-cfg-history = { version = "0.1.0", path = "../cfg-history/" }
+cfg-grammar = { version = "0.1.1", path = "../cfg-grammar/" }
+cfg-symbol-bit-matrix = { version = "0.1.1", path = "../cfg-symbol-bit-matrix/" }
+cfg-sequence = { version = "0.1.1", path = "../cfg-sequence/" }
+cfg-symbol = { version = "0.1.1", path = "../cfg-symbol/" }
+cfg-history = { version = "0.1.1", path = "../cfg-history/" }
 cfg-regexp-logic = { version = "0.1.0", path = "../cfg-regexp-logic/" }
 tiny-earley = { version = "0.2", features = ["debug"] }
 elsa = { version = "1.11", features = ["indexmap"] }

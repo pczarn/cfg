@@ -11,7 +11,7 @@ homepage = "https://github.com/pczarn/cfg/"
 repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg = { version = "0.10.0", path = "../cfg/" }
+cfg = { version = "0.10.1", path = "../cfg/" }
 cfg-load = { version = "0.1.0", path = "../cfg-load/" }
 
 [features]
