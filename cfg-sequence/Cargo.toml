@@ -12,9 +12,9 @@ homepage = "https://github.com/pczarn/cfg/"
 repository = "https://github.com/pczarn/cfg/"
 
 [dependencies]
-cfg-symbol = { version = "0.1.0", path = "../cfg-symbol/" }
-cfg-grammar = { version = "0.1.0", path = "../cfg-grammar/" }
-cfg-history = { version = "0.1.0", path = "../cfg-history/" }
+cfg-symbol = { workspace = true }
+cfg-grammar = { workspace = true }
+cfg-history = { version = "0.1.1", path = "../cfg-history/" }
 
 [features]
 serde = ["cfg-symbol/serde"]
