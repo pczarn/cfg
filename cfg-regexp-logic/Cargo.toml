@@ -17,4 +17,3 @@ log = { workspace = true }
 cfg-grammar = { workspace = true }
 cfg-sequence = { workspace = true }
 cfg-symbol = { workspace = true }
-miniserde = "0.1"
