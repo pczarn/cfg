@@ -165,6 +165,16 @@ impl Cfg {
         self.lexemes.set(result, true);
         result
     }
+    
+    /// Accesses the set of lexemes.
+    pub fn lexeme_set(&self) -> &SymbolBitSet {
+        &self.lexemes
+    }
+
+    /// Accesses the set of lexemes.
+    pub fn lexeme_set_mut(&mut self) -> &mut SymbolBitSet {
+        &mut self.lexemes
+    }
 
     // /// Generates
     // pub fn sym_at<const N: usize>(at: usize) -> [Symbol; N] {

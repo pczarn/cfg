@@ -78,7 +78,7 @@ g13 ::= g10 g11 g12 g10;
 x ::= g13;
 "#
     );
-    assert_eq!(grammar.sbs.iter().count(), 3);
+    assert_eq!(grammar.cfg.lexeme_set().iter().count(), 3);
 }
 
 #[test]
@@ -140,5 +140,5 @@ g17 ::= g10 g11 g13 g10 g15;
 x ::= g17;
 "#
     );
-    assert_eq!(grammar.sbs.iter().count(), 3);
+    assert_eq!(grammar.cfg.lexeme_set().iter().count(), 3);
 }

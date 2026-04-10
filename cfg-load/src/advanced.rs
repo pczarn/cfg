@@ -501,8 +501,6 @@ pub struct AdvancedGrammar {
     pub cfg: Cfg,
     /// Mapping from text characters to tokens.
     pub lexer_map: LexerMap,
-    /// Set of lexemes.
-    pub sbs: SymbolBitSet,
     /// Mapping from rule external origin ID to action names.
     pub actions: BTreeMap<usize, Option<String>>,
     /// Mapping from symbol name to `Symbol`.
@@ -738,7 +736,7 @@ impl CfgLoadAdvancedExt for Cfg {
                             let name = format!("__lex{}", id);
                             let id = intern.get_or_intern(&name[..]);
                             let rhs_sym = *sym_map.entry(id).or_insert_with(|| {
-                                cfg.sym_source_mut().next_sym(Some(name.clone().into()))
+                                cfg.lexeme(Some(name.clone().into()))
                             });
                             let child: Vec<_> = string
                                 .chars()
@@ -750,7 +748,6 @@ impl CfgLoadAdvancedExt for Cfg {
                                 })
                                 .collect();
                             cfg.rule(rhs_sym).rhs(&child[..]);
-                            set_of_lexical.insert(rhs_sym);
                             Ok(rhs_sym)
                         }
                         Fragment::Rhs { ident, rep } => {
@@ -782,15 +779,9 @@ impl CfgLoadAdvancedExt for Cfg {
                     .rhs(rhs_syms?);
                 actions.insert(idx + 1, rule.action);
             }
-            let mut sbs = SymbolBitSet::new();
-            sbs.reset(cfg.sym_source());
-            for sym in set_of_lexical {
-                sbs.set(sym, true);
-            }
             Ok(AdvancedGrammar {
                 cfg,
                 lexer_map: lexer_classes,
-                sbs,
                 actions,
                 sym_map: sym_map
                     .into_iter()

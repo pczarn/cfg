@@ -70,6 +70,12 @@ pub struct LexerMap {
     ranges: BTreeMap<char, Vec<Symbol>>,
 }
 
+#[derive(Debug, Clone, miniserde::Serialize, miniserde::Deserialize)]
+pub struct LexerMapSerializable {
+    ascii: Vec<Vec<Symbol>>,
+    ranges: BTreeMap<char, Vec<Symbol>>,
+}
+
 impl LexerMap {
     pub fn new() -> Self {
         LexerMap {
@@ -129,6 +135,10 @@ impl LexerMap {
                 .map(|(_, v)| &v[..])
                 .unwrap_or(&[])
         }
+    }
+
+    pub fn into_serializable(self) -> LexerMapSerializable {
+        LexerMapSerializable { ascii: self.ascii, ranges: self.ranges }
     }
 }
 
